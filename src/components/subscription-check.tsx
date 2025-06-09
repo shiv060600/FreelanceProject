@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { checkUserSubscription } from '@/app/actions';
-import { createClient } from '../../supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 interface SubscriptionCheckProps {
     children: React.ReactNode;
@@ -11,16 +11,23 @@ export async function SubscriptionCheck({
     children,
     redirectTo = '/pricing'
 }: SubscriptionCheckProps) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (userError || !user) {
         redirect('/sign-in');
     }
 
-    const isSubscribed = await checkUserSubscription(user?.id!);
+    // Check subscription directly in the database
+    const { data: subscription, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
 
-    if (!isSubscribed) {
+    if (subError || !subscription) {
+        console.log('No active subscription found, redirecting to pricing');
         redirect(redirectTo);
     }
 

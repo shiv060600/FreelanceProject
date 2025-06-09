@@ -1,0 +1,233 @@
+/* Layout */
+.layout-container {
+  @apply container mx-auto px-4;
+}
+
+/* Navigation */
+.nav-container {
+  @apply w-full border-b border-gray-200 bg-white py-4 px-6 md:px-8;
+}
+
+.nav-content {
+  @apply flex justify-between items-center max-w-7xl mx-auto;
+}
+
+.nav-brand {
+  @apply text-xl font-bold;
+}
+
+.nav-links {
+  @apply flex items-center gap-6;
+}
+
+.nav-link {
+  @apply flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50;
+}
+
+.nav-link-active {
+  @apply bg-gray-100;
+}
+
+.nav-actions {
+  @apply flex gap-4 items-center;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply bg-primary text-primary-foreground shadow hover:bg-primary/90;
+}
+
+.btn-secondary {
+  @apply bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80;
+}
+
+.btn-outline {
+  @apply border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-ghost {
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-link {
+  @apply text-primary underline-offset-4 hover:underline;
+}
+
+.btn-destructive {
+  @apply bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90;
+}
+
+/* Cards */
+.card {
+  @apply rounded-xl border bg-card text-card-foreground shadow;
+}
+
+.card-header {
+  @apply flex flex-col space-y-1.5 p-6;
+}
+
+.card-title {
+  @apply font-semibold leading-none tracking-tight;
+}
+
+.card-description {
+  @apply text-sm text-muted-foreground;
+}
+
+.card-content {
+  @apply p-6 pt-0;
+}
+
+.card-footer {
+  @apply flex items-center p-6 pt-0;
+}
+
+/* Forms */
+.form-container {
+  @apply flex flex-col gap-2 w-full max-w-md text-sm;
+}
+
+.form-message {
+  @apply flex flex-col gap-2 w-full max-w-md text-sm;
+}
+
+.form-message-success {
+  @apply text-green-500 border-l-2 border-green-500 px-4;
+}
+
+.form-message-error {
+  @apply text-red-500 border-l-2 border-red-500 px-4;
+}
+
+.form-message-info {
+  @apply text-foreground border-l-2 px-4;
+}
+
+/* Dropdowns */
+.dropdown-trigger {
+  @apply inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50;
+}
+
+.dropdown-content {
+  @apply origin-top relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 md:w-[var(--radix-navigation-menu-viewport-width)];
+}
+
+/* Alerts */
+.alert {
+  @apply relative w-full rounded-lg border px-4 py-3 text-sm [&:has(svg)]:pl-11 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground;
+}
+
+.alert-default {
+  @apply bg-background text-foreground;
+}
+
+.alert-destructive {
+  @apply border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive;
+}
+
+/* Badges */
+.badge {
+  @apply inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+}
+
+.badge-default {
+  @apply border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80;
+}
+
+.badge-secondary {
+  @apply border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+.badge-destructive {
+  @apply border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80;
+}
+
+.badge-outline {
+  @apply text-foreground;
+}
+
+/* Skeletons */
+.skeleton {
+  @apply animate-pulse rounded-md bg-primary/10;
+}
+
+/* Calendar */
+.calendar {
+  @apply p-3;
+}
+
+.calendar-months {
+  @apply flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0;
+}
+
+.calendar-month {
+  @apply space-y-4;
+}
+
+.calendar-caption {
+  @apply flex justify-center pt-1 relative items-center;
+}
+
+.calendar-caption-label {
+  @apply text-sm font-medium;
+}
+
+.calendar-nav {
+  @apply space-x-1 flex items-center;
+}
+
+.calendar-nav-button {
+  @apply h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100;
+}
+
+.calendar-table {
+  @apply w-full border-collapse space-y-1;
+}
+
+.calendar-head-row {
+  @apply flex;
+}
+
+.calendar-head-cell {
+  @apply text-muted-foreground rounded-md w-8 font-normal text-[0.8rem];
+}
+
+.calendar-row {
+  @apply flex w-full mt-2;
+}
+
+.calendar-cell {
+  @apply text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20;
+}
+
+.calendar-day {
+  @apply h-8 w-8 p-0 font-normal aria-selected:opacity-100;
+}
+
+.calendar-day-selected {
+  @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground;
+}
+
+.calendar-day-today {
+  @apply bg-accent text-accent-foreground;
+}
+
+.calendar-day-outside {
+  @apply text-muted-foreground opacity-50;
+}
+
+.calendar-day-disabled {
+  @apply text-muted-foreground opacity-50;
+}
+
+.calendar-day-range-middle {
+  @apply aria-selected:bg-accent aria-selected:text-accent-foreground;
+}
+
+.calendar-day-hidden {
+  @apply invisible;
+} 

@@ -29,10 +29,6 @@ export default function Hero() {
                 <span className="font-medium">Client Management</span>
               </div>
               <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <span className="font-medium">Time Tracking</span>
-              </div>
-              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <span className="font-medium">Invoice Generation</span>
               </div>

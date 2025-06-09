@@ -9,12 +9,14 @@ import {
     CardHeader,
     CardTitle
 } from "./ui/card";
-import { supabase } from "../../supabase/supabase";
+import { createClient } from "@/lib/supabase-browser";
 
 export default function PricingCard({ item, user }: {
     item: any,
     user: User | null
 }) {
+    const supabase = createClient();
+
     // Handle checkout process
     const handleCheckout = async (priceId: string) => {
         if (!user) {
@@ -22,7 +24,6 @@ export default function PricingCard({ item, user }: {
             window.location.href = "/login?redirect=pricing";
             return;
         }
-
 
         try {
             const { data, error } = await supabase.functions.invoke('supabase-functions-create-checkout', {

@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "types": [
+      "https://deno.land/x/deno@v1.40.5/mod.d.ts",
+      "https://esm.sh/stripe@12.0.0?target=deno"
+    ]
+  }
+} 

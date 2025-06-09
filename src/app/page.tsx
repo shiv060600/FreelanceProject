@@ -51,12 +51,6 @@ export default async function Home() {
                   "Organize client information, contact details, projects, and rates in one clean interface.",
               },
               {
-                icon: <Clock className="w-6 h-6" />,
-                title: "Time Tracking",
-                description:
-                  "Track billable hours with an intuitive timer or manual entry, categorized by project.",
-              },
-              {
                 icon: <FileText className="w-6 h-6" />,
                 title: "Invoice Generator",
                 description:
@@ -66,7 +60,7 @@ export default async function Home() {
                 icon: <BarChart4 className="w-6 h-6" />,
                 title: "Dashboard Overview",
                 description:
-                  "Visualize key metrics including monthly hours, earnings, and outstanding payments.",
+                  "Visualize key metrics including monthly earnings and outstanding payments.",
               },
               {
                 icon: <Shield className="w-6 h-6" />,
@@ -105,7 +99,7 @@ export default async function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                 1
@@ -120,20 +114,9 @@ export default async function Home() {
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                 2
               </div>
-              <h3 className="text-xl font-semibold mb-2">Track Your Time</h3>
-              <p className="text-gray-600">
-                Use our intuitive timer or manual entry to log hours against
-                specific projects.
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                3
-              </div>
               <h3 className="text-xl font-semibold mb-2">Generate Invoices</h3>
               <p className="text-gray-600">
-                Create professional invoices from your time logs with just a few
-                clicks.
+                Create professional invoices with just a few clicks.
               </p>
             </div>
           </div>

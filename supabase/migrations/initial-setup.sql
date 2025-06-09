@@ -150,4 +150,107 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP TRIGGER IF EXISTS on_auth_user_updated ON auth.users;
 CREATE TRIGGER on_auth_user_updated
   AFTER UPDATE ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_user_update(); 
+  FOR EACH ROW EXECUTE FUNCTION public.handle_user_update();
+
+-- Clients table
+CREATE TABLE IF NOT EXISTS public.clients (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text REFERENCES public.users(user_id),
+    name text NOT NULL,
+    email text,
+    phone text,
+    company text,
+    address text,
+    notes text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Time logs table
+CREATE TABLE IF NOT EXISTS public.time_logs (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text REFERENCES public.users(user_id),
+    client_id uuid REFERENCES public.clients(id),
+    description text NOT NULL,
+    start_time timestamp with time zone NOT NULL,
+    end_time timestamp with time zone,
+    duration_minutes integer,
+    is_running boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Invoices table
+CREATE TABLE IF NOT EXISTS public.invoices (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text REFERENCES public.users(user_id),
+    client_id uuid REFERENCES public.clients(id),
+    invoice_number text NOT NULL,
+    issue_date date NOT NULL,
+    due_date date NOT NULL,
+    status text DEFAULT 'draft',
+    subtotal decimal(10,2) NOT NULL,
+    tax_rate decimal(5,2) DEFAULT 0,
+    tax_amount decimal(10,2) DEFAULT 0,
+    total decimal(10,2) NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Invoice items table
+CREATE TABLE IF NOT EXISTS public.invoice_items (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    invoice_id uuid REFERENCES public.invoices(id),
+    time_log_id uuid REFERENCES public.time_logs(id),
+    description text NOT NULL,
+    quantity decimal(10,2) NOT NULL,
+    unit_price decimal(10,2) NOT NULL,
+    amount decimal(10,2) NOT NULL,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Add RLS policies for new tables
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.time_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for clients
+CREATE POLICY "Users can manage their own clients"
+    ON public.clients
+    FOR ALL
+    USING (auth.uid()::text = user_id);
+
+-- Create policies for time logs
+CREATE POLICY "Users can manage their own time logs"
+    ON public.time_logs
+    FOR ALL
+    USING (auth.uid()::text = user_id);
+
+-- Create policies for invoices
+CREATE POLICY "Users can manage their own invoices"
+    ON public.invoices
+    FOR ALL
+    USING (auth.uid()::text = user_id);
+
+-- Create policies for invoice items
+CREATE POLICY "Users can manage their own invoice items"
+    ON public.invoice_items
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.invoices
+            WHERE invoices.id = invoice_items.invoice_id
+            AND invoices.user_id = auth.uid()::text
+        )
+    );
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS clients_user_id_idx ON public.clients(user_id);
+CREATE INDEX IF NOT EXISTS time_logs_user_id_idx ON public.time_logs(user_id);
+CREATE INDEX IF NOT EXISTS time_logs_client_id_idx ON public.time_logs(client_id);
+CREATE INDEX IF NOT EXISTS invoices_user_id_idx ON public.invoices(user_id);
+CREATE INDEX IF NOT EXISTS invoices_client_id_idx ON public.invoices(client_id);
+CREATE INDEX IF NOT EXISTS invoice_items_invoice_id_idx ON public.invoice_items(invoice_id);
+CREATE INDEX IF NOT EXISTS invoice_items_time_log_id_idx ON public.invoice_items(time_log_id); 
