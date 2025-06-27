@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     user_id text UNIQUE,
     token_identifier text NOT NULL,
     subscription text,
+    subscription_status text DEFAULT 'inactive',
     credits text,
     image text,
     invoice_count integer DEFAULT 0,
@@ -25,6 +26,10 @@ CREATE TABLE IF NOT EXISTS public.users (
     name text,
     full_name text
 );
+
+-- Add subscription_status column if it doesn't exist
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS subscription_status text DEFAULT 'inactive';
 
 -- Subscriptions table
 CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -226,6 +231,64 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Function to update user subscription from subscription table
+CREATE OR REPLACE FUNCTION public.sync_user_subscription()
+RETURNS TRIGGER AS $$
+DECLARE
+    plan_name text;
+    is_subscription_active boolean;
+BEGIN
+    -- Check if subscription is truly active (not just 'active' status but also within billing period)
+    -- For cancelled subscriptions, they should keep access until current_period_end
+    is_subscription_active := (
+        NEW.status = 'active' OR 
+        (NEW.status = 'canceled' AND NEW.cancel_at_period_end = true AND NEW.current_period_end > EXTRACT(epoch FROM NOW()))
+    );
+    
+    -- Only update if subscription is active or still in grace period
+    IF is_subscription_active THEN
+        -- Map price IDs to plan names using stripe_price_id
+        CASE NEW.stripe_price_id
+            -- Current price IDs being used
+            WHEN 'price_1RaQ0KDBPJVWy5Mhrf7REir7' THEN plan_name := 'Expert Freelancer';
+            WHEN 'price_1RaPzpDBPJVWy5Mh7TS53Heu' THEN plan_name := 'Seasoned Freelancer';
+            WHEN 'price_1RTCfJDBPJVWy5MhqB5gMwWZ' THEN plan_name := 'New Freelancer';
+            -- Legacy price IDs (keep for backwards compatibility)
+            WHEN 'price_1OqYLgDNtZHzJBITKyRoXhOD' THEN plan_name := 'Expert Freelancer';
+            WHEN 'price_1OqYLFDNtZHzJBITXVYfHbXt' THEN plan_name := 'Seasoned Freelancer';
+            WHEN 'price_1OqYKgDNtZHzJBITvDLbA6Vz' THEN plan_name := 'New Freelancer';
+            ELSE plan_name := 'Free';
+        END CASE;
+
+        -- Update the user's subscription and status
+        UPDATE public.users
+        SET 
+            subscription = plan_name,
+            subscription_status = NEW.status,
+            -- Update max_invoices based on subscription
+            max_invoices = CASE 
+                WHEN plan_name = 'Expert Freelancer' THEN 500
+                WHEN plan_name = 'Seasoned Freelancer' THEN 125
+                WHEN plan_name = 'New Freelancer' THEN 50
+                ELSE 10
+            END
+        WHERE user_id = NEW.user_id;
+
+    ELSE 
+        -- Set them back to Free if subscription is truly expired/inactive
+        UPDATE public.users
+        SET 
+            subscription = 'Free',
+            subscription_status = NEW.status,
+            max_invoices = 10
+        WHERE user_id = NEW.user_id;
+    END IF;
+
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- Function to update lifetime earnings
 CREATE OR REPLACE FUNCTION public.update_lifetime_earnings()
 RETURNS TRIGGER AS $$
@@ -317,6 +380,13 @@ CREATE TRIGGER on_auth_user_updated
   AFTER UPDATE ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_user_update();
 
+-- Add trigger to sync subscription changes to users table
+DROP TRIGGER IF EXISTS trigger_sync_user_subscription ON public.subscriptions;
+CREATE TRIGGER trigger_sync_user_subscription
+  AFTER INSERT OR UPDATE ON public.subscriptions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sync_user_subscription();
+
 -- Invoice-related triggers
 DROP TRIGGER IF EXISTS trigger_update_lifetime_earnings ON public.invoices;
 CREATE TRIGGER trigger_update_lifetime_earnings
@@ -379,6 +449,11 @@ CREATE POLICY "Users can manage their own invoice items" ON public.invoice_items
             AND invoices.user_id = auth.uid()::text
         )
     );
+
+-- Webhook events policies (if needed for admin access)
+DROP POLICY IF EXISTS "Service can manage webhook events" ON public.webhook_events;
+CREATE POLICY "Service can manage webhook events" ON public.webhook_events
+    FOR ALL USING (true);
 
 -- ==========================================
 -- DATA RECALCULATION
@@ -468,4 +543,6 @@ BEGIN
     RAISE NOTICE '📊 Lifetime earnings and client stats configured';
     RAISE NOTICE '🛡️ Row Level Security policies applied';
     RAISE NOTICE '🔄 This script is idempotent and can be run multiple times safely';
-END $$; 
+END $$;
+
+ 

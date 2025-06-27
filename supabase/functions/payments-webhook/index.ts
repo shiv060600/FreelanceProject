@@ -92,11 +92,11 @@ async function handleSubscriptionCreated(supabaseClient: any, event: any) {
       const customer = await stripe.customers.retrieve(subscription.customer);
       const { data: userData } = await supabaseClient
         .from('users')
-        .select('id')
+        .select('id, user_id')
         .eq('email', customer.email)
         .single();
 
-      userId = userData?.id;
+      userId = userData?.user_id || userData?.id;
       if (!userId) {
         throw new Error('User not found');
       }
@@ -131,6 +131,8 @@ async function handleSubscriptionCreated(supabaseClient: any, event: any) {
     ended_at: subscription.ended_at
   };
 
+  console.log('Creating subscription with data:', subscriptionData);
+
   // First, check if a subscription with this stripe_id already exists
   const { data: existingSubscription } = await supabaseClient
     .from('subscriptions')
@@ -161,6 +163,8 @@ async function handleSubscriptionCreated(supabaseClient: any, event: any) {
     );
   }
 
+  console.log('Subscription created successfully, database triggers will update user subscription');
+
   return new Response(
     JSON.stringify({ message: "Subscription created successfully" }),
     { 
@@ -186,6 +190,22 @@ async function handleSubscriptionUpdated(supabaseClient: any, event: any) {
       ended_at: subscription.ended_at
     })
     .eq("stripe_id", subscription.id);
+    
+  // Get the user ID from the subscription
+  let userId = subscription.metadata?.user_id || subscription.metadata?.userId;
+  
+  // If not in metadata, try to get from database
+  if (!userId) {
+    const { data: subData } = await supabaseClient
+      .from("subscriptions")
+      .select("user_id")
+      .eq("stripe_id", subscription.id)
+      .single();
+      
+    userId = subData?.user_id;
+  }
+  
+  // Database triggers will automatically update the user subscription
 
   if (error) {
     console.error('Error updating subscription:', error);
@@ -213,6 +233,22 @@ async function handleSubscriptionDeleted(supabaseClient: any, event: any) {
 
   try {
     await updateSubscriptionStatus(supabaseClient, subscription.id, "canceled");
+    
+    // Get the user ID from the subscription
+    let userId = subscription.metadata?.user_id || subscription.metadata?.userId;
+    
+    // If not in metadata, try to get from database
+    if (!userId) {
+      const { data: subData } = await supabaseClient
+        .from("subscriptions")
+        .select("user_id")
+        .eq("stripe_id", subscription.id)
+        .single();
+        
+      userId = subData?.user_id;
+    }
+    
+    // Database triggers will automatically update the user subscription
     
     // If we have email in metadata, update user's subscription status
     if (subscription?.metadata?.email) {
@@ -291,6 +327,8 @@ async function handleCheckoutSessionCompleted(supabaseClient: any, event: any) {
     console.log('Attempting to update subscription in Supabase with stripe_id:', subscriptionId);
     console.log('User ID being set:', session.metadata?.userId || session.metadata?.user_id);
     
+    const userId = session.metadata?.userId || session.metadata?.user_id;
+    
     const supabaseUpdateResult = await supabaseClient
       .from("subscriptions")
       .update({
@@ -298,7 +336,7 @@ async function handleCheckoutSessionCompleted(supabaseClient: any, event: any) {
           ...session.metadata,
           checkoutSessionId: session.id
         },
-        user_id: session.metadata?.userId || session.metadata?.user_id,
+        user_id: userId,
         status: stripeSubscription.status, // Update the status from Stripe
         current_period_start: stripeSubscription.current_period_start,
         current_period_end: stripeSubscription.current_period_end,
@@ -312,11 +350,14 @@ async function handleCheckoutSessionCompleted(supabaseClient: any, event: any) {
       console.error('Error updating Supabase subscription:', supabaseUpdateResult.error);
       throw new Error(`Supabase update failed: ${supabaseUpdateResult.error.message}`);
     }
+    
+    // Database triggers will automatically update the user subscription based on the subscriptions table
 
     return new Response(
       JSON.stringify({ 
         message: "Checkout session completed successfully",
-        subscriptionId 
+        subscriptionId,
+        userId
       }),
       { 
         status: 200,

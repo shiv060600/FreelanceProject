@@ -64,42 +64,72 @@ export default function InvoicesPage() {
         return
       }
 
-      const { data: userData, error: dbError } = await supabase
-        .from('users')
-        .select('subscription')
+      // Check subscription directly from subscriptions table
+      const { data: subscriptionData, error: dbError } = await supabase
+        .from('subscriptions')
+        .select('stripe_price_id, status, current_period_end, cancel_at_period_end')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single()
 
       if (dbError) {
-        console.error('Error fetching user subscription:', dbError)
-        setMaxInvoices(10);
+        console.log('No active subscription found:', dbError.message)
+        setMaxInvoices(10); // Default to free tier
         return
       }
       
-      if (userData) {
-        const subscription = userData.subscription || 'free';
+      if (subscriptionData) {
+        const { stripe_price_id, status, current_period_end, cancel_at_period_end } = subscriptionData;
         
-        switch (subscription) {
-          case 'New Freelancer':
-            setMaxInvoices(50);
-            break;
-          case 'Seasoned Freelancer':
-            setMaxInvoices(125);
-            break;
-          case 'Expert Freelancer':
-            setMaxInvoices(500);
-            break;
-          default:
-            setMaxInvoices(10);
+        // Check if subscription is active OR cancelled but still in billing period
+        const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+        const hasAccess = status === 'active' || 
+                         (status === 'canceled' && cancel_at_period_end && current_period_end > now);
+        
+        if (hasAccess) {
+          // Map price IDs to invoice limits
+          switch (stripe_price_id) {
+            case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
+              setMaxInvoices(500); // Expert Freelancer
+              break;
+            case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
+              setMaxInvoices(125); // Seasoned Freelancer
+              break;
+            case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
+              setMaxInvoices(50); // New Freelancer
+              break;
+            // Legacy price IDs (keep for backwards compatibility)
+            case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
+              setMaxInvoices(500); // Expert Freelancer
+              break;
+            case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
+              setMaxInvoices(125); // Seasoned Freelancer
+              break;
+            case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
+              setMaxInvoices(50); // New Freelancer
+              break;
+            default:
+              setMaxInvoices(10); // Free tier
+          }
+        } else {
+          setMaxInvoices(10); // Subscription expired or inactive
         }
       } else {
-        setMaxInvoices(10);
+        setMaxInvoices(10); // No subscription
       }
     } catch (error) {
       console.error('Unexpected error in fetchInvoiceLimit:', error);
       setMaxInvoices(10);
     }
   }
+
+  // Log maxInvoices when it changes
+  useEffect(() => {
+    if (maxInvoices !== 10 || !loading) { // Only log when it's not the default value or when loading is complete
+      console.log('Current max invoices:', maxInvoices);
+    }
+  }, [maxInvoices, loading]);
 
   async function fetchInvoiceCount() {
     try {

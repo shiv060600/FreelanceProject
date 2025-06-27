@@ -26,8 +26,9 @@ export default function PricingCard({ item, user }: {
         }
 
         try {
-            const { data, error } = await supabase.functions.invoke('supabase-functions-create-checkout', {
+            const { data, error } = await supabase.functions.invoke('stripe-billing', {
                 body: {
+                    action: 'create_checkout',
                     price_id: priceId,
                     user_id: user.id,
                     return_url: `${window.location.origin}/dashboard`,
