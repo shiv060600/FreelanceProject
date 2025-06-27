@@ -18,14 +18,28 @@ export default function DashboardNavbar() {
   const pathname = usePathname()
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+    // Get initial session state immediately
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+      setIsLoading(false)
     }
-    getUser()
-  }, [supabase.auth])
+    
+    getInitialSession()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null)
+        setIsLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const isActive = (path: string) => pathname === path
 
@@ -38,7 +52,8 @@ export default function DashboardNavbar() {
     router.push("/dashboard/profile")
   }
 
-  if (!user) {
+  // Don't render navbar if loading or no user
+  if (isLoading || !user) {
     return null
   }
 

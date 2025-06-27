@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import ClientList from "@/components/clients/client-list";
 import AddClientDialog from "@/components/clients/add-client-dialog";
+import '@/styles/components.css';
 
 const ClientsPage = async () => {
   const supabase = await createClient();

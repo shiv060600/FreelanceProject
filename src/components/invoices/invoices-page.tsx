@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, FileText, Download, Mail, Trash, Pencil } from "lucide-react"
-import { createClient } from "../../../supabase/client"
+import { createClient } from "@/lib/supabase-browser"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"

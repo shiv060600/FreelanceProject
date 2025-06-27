@@ -10,15 +10,18 @@ interface InvoiceLimitCheckProps {
 }
 
 export function InvoiceLimitCheck({ children }: InvoiceLimitCheckProps) {
-  const [invoiceCount, setInvoiceCount] = useState<number>(0);
-  const [maxInvoices, setMaxInvoices] = useState<number>(10);
+  const [invoiceCount, setInvoiceCount] = useState<number | null>(null);
+  const [maxInvoices, setMaxInvoices] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     async function checkInvoiceLimit() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const { data: userData } = await supabase
         .from('users')
@@ -29,6 +32,10 @@ export function InvoiceLimitCheck({ children }: InvoiceLimitCheckProps) {
       if (userData) {
         setInvoiceCount(userData.invoice_count || 0);
         setMaxInvoices(userData.max_invoices || 10);
+      } else {
+        // Fallback values if no user data found
+        setInvoiceCount(0);
+        setMaxInvoices(10);
       }
       setLoading(false);
     }
@@ -36,7 +43,8 @@ export function InvoiceLimitCheck({ children }: InvoiceLimitCheckProps) {
     checkInvoiceLimit();
   }, [supabase]);
 
-  if (loading) {
+  // Don't show anything while loading or if data isn't ready
+  if (loading || invoiceCount === null || maxInvoices === null) {
     return <>{children}</>;
   }
 
