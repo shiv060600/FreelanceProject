@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, FileText, Download, Mail, Trash, Pencil } from "lucide-react"
+import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw } from "lucide-react"
 import { createClient } from "@/lib/supabase-browser"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -25,22 +25,23 @@ interface Invoice {
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [invoiceCount, setInvoiceCount] = useState(0)
-  const [maxInvoices, setMaxInvoices] = useState(0)
+  const [maxInvoices, setMaxInvoices] = useState(10)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
   const { userInfo, loading: userInfoLoading } = useInvoicePDF()
 
+  // Initial load
   useEffect(() => {
-    // Only load once per component mount to reduce free tier strain
-    if (loading) {
-      loadInvoiceData()
-    }
-  }, [loading])
+    loadInvoiceData()
+  }, [])
+
+  const handleRefresh = () => {
+    setLoading(true)
+    loadInvoiceData()
+  }
 
   async function loadInvoiceData() {
-    if (!loading) return // Prevent duplicate calls
-    
     try {
       // Use Promise.all for better performance
       await Promise.all([
@@ -140,7 +141,7 @@ export default function InvoicesPage() {
       // Simplified query - get basic invoice data first
       const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
-        .select('*')
+        .select('id, invoice_number, client_id, issue_date, due_date, total, status, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -263,12 +264,8 @@ export default function InvoicesPage() {
         .update({ invoice_count: invoiceCount - 1 })
         .eq('id', user.id);
 
-      // Refresh both invoice count and list concurrently
-      await Promise.all([
-        fetchInvoiceCount(),
-        fetchInvoices(),
-        fetchInvoiceLimit()
-      ]);
+      // Refresh data
+      handleRefresh();
 
       console.log('Invoice deleted successfully');
     } catch (error) {
@@ -281,18 +278,18 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Invoices</h1>
-        <CreateInvoiceDialog onSuccess={() => {
-          Promise.all([
-            fetchInvoiceCount(),
-            fetchInvoices(),
-            fetchInvoiceLimit()
-          ])
-        }}>
-          <Button onClick={createNewInvoice}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Invoice
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Loading..." : "Refresh"}
           </Button>
-        </CreateInvoiceDialog>
+          <CreateInvoiceDialog onSuccess={handleRefresh}>
+            <Button onClick={createNewInvoice}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Invoice
+            </Button>
+          </CreateInvoiceDialog>
+        </div>
       </div>
 
       {invoiceCount >= maxInvoices && (
@@ -322,7 +319,13 @@ export default function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-8 text-gray-500">
+                      Loading invoices...
+                    </td>
+                  </tr>
+                ) : invoices.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-8 text-gray-500">
                       No invoices yet
@@ -349,12 +352,7 @@ export default function InvoicesPage() {
                         <div className="flex justify-end space-x-2">
                           <EditInvoiceDialog 
                             invoice={invoice}
-                            onSuccess={() => {
-                              Promise.all([
-                                fetchInvoices(),
-                                fetchInvoiceCount()
-                              ])
-                            }}
+                            onSuccess={handleRefresh}
                           >
                             <Button
                               variant="ghost"
