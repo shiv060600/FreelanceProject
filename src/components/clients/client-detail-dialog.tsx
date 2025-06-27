@@ -23,48 +23,38 @@ interface ClientDetailDialogProps {
 export default function ClientDetailDialog({ client, children }: ClientDetailDialogProps) {
   const [open, setOpen] = useState(false)
   const [stats, setStats] = useState<{
-    totalHours: number;
-    invoiceCount: number;
-    totalBilled: number;
+    lifetime_client_earnings: number;
+    lifetime_client_paid_invoices: number;
   } | null>(null)
   const supabase = createClient()
 
+
   async function fetchClientStats() {
-    // Fetch time logs to calculate hours
-    const { data: timeLogs, error: timeError } = await supabase
-      .from('time_logs')
-      .select('duration_minutes')
-      .eq('client_id', client.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('Error fetching user in fetchClientStats')
+      return
+    }
+
+    // Fetch client lifetime stats from the clients table
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('lifetime_client_earnings, lifetime_client_paid_invoices')
+      .eq('id', client.id)
+      .eq('user_id', user.id)
+      .single()
     
-    if (timeError) {
-      console.error('Error fetching time logs:', timeError);
+    if (clientError) {
+      console.error('Error fetching client stats:', clientError);
       return;
     }
     
-    const totalHours = timeLogs?.reduce(
-      (sum, log) => sum + (log.duration_minutes || 0), 0
-    ) / 60 || 0;
-    
-    // Fetch invoices
-    const { data: invoices, error: invoiceError } = await supabase
-      .from('invoices')
-      .select('total')
-      .eq('client_id', client.id);
-    
-    if (invoiceError) {
-      console.error('Error fetching invoices:', invoiceError);
-      return;
+    if (clientData) {
+      setStats({
+        lifetime_client_earnings: clientData.lifetime_client_earnings || 0,
+        lifetime_client_paid_invoices: clientData.lifetime_client_paid_invoices || 0
+      });
     }
-    
-    const totalBilled = invoices?.reduce(
-      (sum, invoice) => sum + Number(invoice.total), 0
-    ) || 0;
-    
-    setStats({
-      totalHours: parseFloat(totalHours.toFixed(2)),
-      invoiceCount: invoices?.length || 0,
-      totalBilled: parseFloat(totalBilled.toFixed(2))
-    });
   }
   
   function handleOpen(openState: boolean) {
@@ -151,31 +141,22 @@ export default function ClientDetailDialog({ client, children }: ClientDetailDia
           {stats && (
             <div className="pt-4">
               <h3 className="text-sm font-medium mb-3">Client Summary</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">                
                 <Card>
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base">Total Hours</CardTitle>
+                    <CardTitle className="text-base">Lifetime Paid Invoices</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <p className="text-2xl font-bold">{stats.totalHours.toFixed(1)}</p>
+                    <p className="text-2xl font-bold">{stats.lifetime_client_paid_invoices}</p>
                   </CardContent>
                 </Card>
                 
                 <Card>
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base">Invoices</CardTitle>
+                    <CardTitle className="text-base">Lifetime Earnings</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <p className="text-2xl font-bold">{stats.invoiceCount}</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base">Total Billed</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <p className="text-2xl font-bold">${stats.totalBilled.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">${stats.lifetime_client_earnings.toFixed(2)}</p>
                   </CardContent>
                 </Card>
               </div>

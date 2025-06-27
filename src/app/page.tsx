@@ -24,11 +24,18 @@ export default async function Home() {
     "supabase-functions-get-plans",
   );
 
+  // Debug: Log the plans data to see what we're getting
+  if (plans) {
+    console.log('Plans data:', plans);
+  }
+  if (error) {
+    console.log('Plans error:', error);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
       <Hero />
-
       {/* Features Section */}
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
@@ -132,8 +139,8 @@ export default async function Home() {
               <div className="text-blue-100">Less Admin Time</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">1,000+</div>
-              <div className="text-blue-100">Freelancers Trust Us</div>
+              <div className="text-4xl font-bold mb-2">99%</div>
+              <div className="text-blue-100">Client Satisfaction</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-2">15+</div>
@@ -151,7 +158,7 @@ export default async function Home() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Start with our free plan and upgrade as your business grows.
+              Choose the perfect plan for your freelance business needs.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -169,14 +176,14 @@ export default async function Home() {
             Ready to Streamline Your Freelance Business?
           </h2>
           <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join thousands of freelancers who are saving time and getting paid
+            Join freelancers who are saving time and getting paid
             faster.
           </p>
           <a
             href="/dashboard"
             className="inline-flex items-center px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Start Your Free Trial
+            Get Started
             <ArrowUpRight className="ml-2 w-4 h-4" />
           </a>
         </div>

@@ -43,7 +43,6 @@ serve(async (req) => {
         const products = await stripe.products.list({
             limit: 10,
         });
-        
 
         // Get all prices for these products
         const prices = await stripe.prices.list({
@@ -51,9 +50,6 @@ serve(async (req) => {
             limit: 10,
         });
 
-        // Debug: Log the actual data
-        console.log('Raw Stripe products:', JSON.stringify(products.data, null, 2));
-        console.log('Raw Stripe prices:', JSON.stringify(prices.data, null, 2));
 
         // Transform the data to combine product info with pricing
         const transformedPlans = prices.data.map(price => {
@@ -73,13 +69,8 @@ serve(async (req) => {
             };
         });
 
-        // Temporarily return raw data to see the actual IDs
-        return new Response(
-            JSON.stringify({ 
-                debug: "Check console for IDs", 
-                                 rawPrices: prices.data.map(p => ({ id: p.id, product: p.product })),
-                transformedPlans 
-            }),
+                return new Response(
+            JSON.stringify(transformedPlans),
             { 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200 

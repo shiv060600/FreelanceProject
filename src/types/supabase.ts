@@ -19,6 +19,8 @@ export interface Database {
           avatar_url: string | null
           invoice_count: number
           max_invoices: number
+          lifetime_earnings: number
+          total_paid_invoices: number
         }
         Insert: {
           id: string
@@ -29,6 +31,8 @@ export interface Database {
           avatar_url?: string | null
           invoice_count?: number
           max_invoices?: number
+          lifetime_earnings?: number
+          total_paid_invoices?: number
         }
         Update: {
           id?: string
@@ -39,6 +43,8 @@ export interface Database {
           avatar_url?: string | null
           invoice_count?: number
           max_invoices?: number
+          lifetime_earnings?: number
+          total_paid_invoices?: number
         }
       }
       clients: {

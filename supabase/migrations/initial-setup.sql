@@ -122,7 +122,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Create a trigger to call the function when a new user is added to auth.users
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -144,7 +144,7 @@ BEGIN
   WHERE user_id = NEW.id::text;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' ;
 
 -- Create a trigger to call the function when a user is updated in auth.users
 DROP TRIGGER IF EXISTS on_auth_user_updated ON auth.users;
