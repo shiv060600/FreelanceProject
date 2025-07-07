@@ -97,7 +97,7 @@ export default function InvoicesPage() {
 
       if (dbError) {
         console.log('No active subscription found:', dbError.message)
-        setMaxInvoices(10); // Default to free tier
+        setMaxInvoices(2); // Default to free tier
         return
       }
       
@@ -256,12 +256,6 @@ export default function InvoicesPage() {
         router.push('/sign-in')
         return
       }
-      // Check if user has reached their invoice limit
-      if (invoiceCount >= maxInvoices) {
-        alert(`You've reached your free invoice limit (${maxInvoices}). Please upgrade to create more invoices.`)
-        return
-      }
-
     } catch (error) {
       console.error('Error in createNewInvoice:', error)
       alert('Failed to create invoice. Please try again.')
@@ -315,7 +309,7 @@ export default function InvoicesPage() {
       await supabase
         .from('users')
         .update({ invoice_count: invoiceCount - 1 })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
       // Refresh data
       handleRefresh();
@@ -326,7 +320,7 @@ export default function InvoicesPage() {
       alert('Failed to delete invoice. Please try again.');
     }
   }
-
+  const cancreateInvoice = invoiceCount < maxInvoices;
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -337,7 +331,7 @@ export default function InvoicesPage() {
             {loading ? "Loading..." : "Refresh"}
           </Button>
           <CreateInvoiceDialog onSuccess={handleRefresh}>
-            <Button onClick={createNewInvoice}>
+            <Button onClick={createNewInvoice} disabled = {!cancreateInvoice}>
               <Plus className="h-4 w-4 mr-2" />
               New Invoice
             </Button>
