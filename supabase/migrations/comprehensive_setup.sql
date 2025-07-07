@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     credits text,
     image text,
     invoice_count integer DEFAULT 0,
-    max_invoices integer DEFAULT 10,
+    max_invoices integer DEFAULT 2,
+    max_contracts integer DEFAULT 0,
     lifetime_earnings decimal(10,2) DEFAULT 0,
     total_paid_invoices integer DEFAULT 0,
     created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -27,9 +28,10 @@ CREATE TABLE IF NOT EXISTS public.users (
     full_name text
 );
 
--- Add subscription_status column if it doesn't exist
+-- Add subscription_status and max_contracts columns if they don't exist
 ALTER TABLE public.users
-ADD COLUMN IF NOT EXISTS subscription_status text DEFAULT 'inactive';
+ADD COLUMN IF NOT EXISTS subscription_status text DEFAULT 'inactive',
+ADD COLUMN IF NOT EXISTS max_contracts integer DEFAULT 0;
 
 -- Subscriptions table
 CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -133,6 +135,15 @@ CREATE TABLE IF NOT EXISTS public.invoice_items (
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.contracts (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id text REFERENCES public.users(user_id),
+  client_id uuid REFERENCES public.clients(id),
+  created_at timestamp with time zone DEFAULT timezone('utc'::text,now()) NOT NULL,
+  title text NOT NULL,
+  content text
+);
+
 -- Add invoice_name column if it doesn't exist
 ALTER TABLE public.invoice_items
 ADD COLUMN IF NOT EXISTS invoice_name text;
@@ -153,6 +164,8 @@ CREATE INDEX IF NOT EXISTS invoices_user_id_idx ON public.invoices(user_id);
 CREATE INDEX IF NOT EXISTS invoices_client_id_idx ON public.invoices(client_id);
 CREATE INDEX IF NOT EXISTS invoice_items_invoice_id_idx ON public.invoice_items(invoice_id);
 CREATE INDEX IF NOT EXISTS invoice_items_time_log_id_idx ON public.invoice_items(time_log_id);
+CREATE INDEX IF NOT EXISTS contracts_user_id_idx ON public.contracts(user_id);
+CREATE INDEX IF NOT EXISTS contracts_client_id_idx ON public.contracts(client_id);
 
 -- ==========================================
 -- CONSTRAINTS
@@ -181,6 +194,7 @@ ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.time_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 
 -- ==========================================
 -- FUNCTIONS (Secure with proper search_path)
@@ -199,7 +213,14 @@ BEGIN
     avatar_url,
     token_identifier,
     created_at,
-    updated_at
+    updated_at,
+    subscription,
+    subscription_status,
+    max_invoices,
+    max_contracts,
+    invoice_count,
+    lifetime_earnings,
+    total_paid_invoices
   ) VALUES (
     NEW.id,
     NEW.id::text,
@@ -209,7 +230,14 @@ BEGIN
     NEW.raw_user_meta_data->>'avatar_url',
     NEW.email,
     NEW.created_at,
-    NEW.updated_at
+    NEW.updated_at,
+    'Free',
+    'inactive',
+    2,
+    0,
+    0,
+    0,
+    0
   );
   RETURN NEW;
 END;
@@ -265,12 +293,18 @@ BEGIN
         SET 
             subscription = plan_name,
             subscription_status = NEW.status,
-            -- Update max_invoices based on subscription
+            -- Update max_invoices and max_contracts based on subscription
             max_invoices = CASE 
-                WHEN plan_name = 'Expert Freelancer' THEN 500
-                WHEN plan_name = 'Seasoned Freelancer' THEN 125
-                WHEN plan_name = 'New Freelancer' THEN 50
-                ELSE 10
+                WHEN plan_name = 'Expert Freelancer' THEN 40
+                WHEN plan_name = 'Seasoned Freelancer' THEN 20
+                WHEN plan_name = 'New Freelancer' THEN 10
+                ELSE 2
+            END,
+            max_contracts = CASE 
+                WHEN plan_name = 'Expert Freelancer' THEN 8
+                WHEN plan_name = 'Seasoned Freelancer' THEN 4
+                WHEN plan_name = 'New Freelancer' THEN 1
+                ELSE 0
             END
         WHERE user_id = NEW.user_id;
 
@@ -280,7 +314,8 @@ BEGIN
         SET 
             subscription = 'Free',
             subscription_status = NEW.status,
-            max_invoices = 10
+            max_invoices = 2,
+            max_contracts = 0
         WHERE user_id = NEW.user_id;
     END IF;
 
@@ -371,14 +406,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- User management triggers
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
 DROP TRIGGER IF EXISTS on_auth_user_updated ON auth.users;
-CREATE TRIGGER on_auth_user_updated
-  AFTER UPDATE ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_user_update();
 
 -- Add trigger to sync subscription changes to users table
 DROP TRIGGER IF EXISTS trigger_sync_user_subscription ON public.subscriptions;
@@ -413,31 +441,31 @@ CREATE TRIGGER trigger_handle_invoice_deletion
 -- Users policies
 DROP POLICY IF EXISTS "Users can view own data" ON public.users;
 CREATE POLICY "Users can view own data" ON public.users
-    FOR SELECT USING (auth.uid()::text = user_id);
+    FOR SELECT USING ((SELECT auth.uid())::text = user_id);
 
 DROP POLICY IF EXISTS "Users can update own data" ON public.users;
 CREATE POLICY "Users can update own data" ON public.users
-    FOR UPDATE USING (auth.uid()::text = user_id);
+    FOR UPDATE USING ((SELECT auth.uid())::text = user_id);
 
 -- Subscriptions policies
 DROP POLICY IF EXISTS "Users can view own subscriptions" ON public.subscriptions;
 CREATE POLICY "Users can view own subscriptions" ON public.subscriptions
-    FOR SELECT USING (auth.uid()::text = user_id);
+    FOR SELECT USING ((SELECT auth.uid())::text = user_id);
 
 -- Clients policies
 DROP POLICY IF EXISTS "Users can manage their own clients" ON public.clients;
 CREATE POLICY "Users can manage their own clients" ON public.clients
-    FOR ALL USING (auth.uid()::text = user_id);
+    FOR ALL USING ((SELECT auth.uid())::text = user_id);
 
 -- Time logs policies
 DROP POLICY IF EXISTS "Users can manage their own time logs" ON public.time_logs;
 CREATE POLICY "Users can manage their own time logs" ON public.time_logs
-    FOR ALL USING (auth.uid()::text = user_id);
+    FOR ALL USING ((SELECT auth.uid())::text = user_id);
 
 -- Invoices policies
 DROP POLICY IF EXISTS "Users can manage their own invoices" ON public.invoices;
 CREATE POLICY "Users can manage their own invoices" ON public.invoices
-    FOR ALL USING (auth.uid()::text = user_id);
+    FOR ALL USING ((SELECT auth.uid())::text = user_id);
 
 -- Invoice items policies
 DROP POLICY IF EXISTS "Users can manage their own invoice items" ON public.invoice_items;
@@ -446,9 +474,14 @@ CREATE POLICY "Users can manage their own invoice items" ON public.invoice_items
         EXISTS (
             SELECT 1 FROM public.invoices
             WHERE invoices.id = invoice_items.invoice_id
-            AND invoices.user_id = auth.uid()::text
+            AND invoices.user_id = (SELECT auth.uid())::text
         )
     );
+
+-- Contracts policies
+DROP POLICY IF EXISTS "Users can manage their own contracts" ON public.contracts;
+CREATE POLICY "Users can manage their own contracts" ON public.contracts
+    FOR ALL USING ((SELECT auth.uid())::text = user_id);
 
 -- Webhook events policies (if needed for admin access)
 DROP POLICY IF EXISTS "Service can manage webhook events" ON public.webhook_events;
@@ -458,6 +491,16 @@ CREATE POLICY "Service can manage webhook events" ON public.webhook_events
 -- ==========================================
 -- DATA RECALCULATION
 -- ==========================================
+
+-- Update existing users' max_contracts based on their current subscription
+UPDATE public.users 
+SET max_contracts = CASE 
+    WHEN subscription = 'Expert Freelancer' THEN 8
+    WHEN subscription = 'Seasoned Freelancer' THEN 4
+    WHEN subscription = 'New Freelancer' THEN 1
+    ELSE 0
+END
+WHERE max_contracts = 0 OR max_contracts IS NULL;
 
 -- Recalculate all user stats to ensure everything is correct
 DO $$
@@ -544,5 +587,16 @@ BEGIN
     RAISE NOTICE '🛡️ Row Level Security policies applied';
     RAISE NOTICE '🔄 This script is idempotent and can be run multiple times safely';
 END $$;
+
+-- Step 5: Recreate the triggers with CORRECT schema references
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.handle_new_user();
+
+CREATE TRIGGER on_auth_user_updated
+  AFTER UPDATE ON auth.users
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.handle_user_update();
 
  

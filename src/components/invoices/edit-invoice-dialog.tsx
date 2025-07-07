@@ -108,7 +108,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
             <Input
               id="invoice_name"
               name="invoice_name"
-              defaultValue={invoice.invoice_items[0]?.invoice_name}
+              defaultValue={invoice.invoice_items?.[0]?.invoice_name}
               placeholder="e.g., Website Development, Gardening Services"
             />
           </div>

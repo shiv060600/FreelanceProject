@@ -1,25 +1,23 @@
-import { ArrowUpRight, InfoIcon } from "lucide-react";
-import Link from "next/link";
+"use client";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 export function SmtpMessage() {
-  return (
-    <div className="bg-muted/50 px-5 py-3 border mt-[2rem] rounded-md flex gap-4">
-      <InfoIcon size={16} className="mt-0.5" />
-      <div className="flex flex-col gap-1">
-        <small className="text-sm text-secondary-foreground">
-          <strong> Note:</strong> Emails are rate limited. Enable Custom SMTP to
-          increase the rate limit.
-        </small>
-        <div>
-          <Link
-            href="https://supabase.com/docs/guides/auth/auth-smtp"
-            target="_blank"
-            className="text-primary/50 hover:text-primary flex items-center text-sm gap-1"
-          >
-            Learn more <ArrowUpRight size={14} />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  // In development, show a helpful message about SMTP configuration
+  if (process.env.NODE_ENV === "development") {
+    return (
+      <Alert className="mt-6 max-w-md">
+        <Info className="h-4 w-4 mr-2" />
+        <AlertDescription>
+          <p className="text-xs text-muted-foreground">
+            In development mode, check the server console to find the password reset link.
+            For production, make sure to configure your SMTP settings.
+          </p>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  return null;
 }

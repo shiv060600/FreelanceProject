@@ -25,7 +25,7 @@ export default async function ForgotPassword(props: {
       <Navbar />
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
         <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
-          <form className="flex flex-col space-y-6">
+          <form action={forgotPasswordAction} className="flex flex-col space-y-6">
             <div className="space-y-2 text-center">
               <h1 className="text-3xl font-semibold tracking-tight">Reset Password</h1>
               <p className="text-sm text-muted-foreground">
@@ -56,7 +56,6 @@ export default async function ForgotPassword(props: {
             </div>
 
             <SubmitButton
-              formAction={forgotPasswordAction}
               pendingText="Sending reset link..."
               className="w-full"
             >

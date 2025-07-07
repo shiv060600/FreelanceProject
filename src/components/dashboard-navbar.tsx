@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { Button } from './ui/button'
-import { UserCircle, FileText, Users, BarChart } from 'lucide-react'
+import { UserCircle, FileText, Users, BarChart, Zap, FileSignature } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -52,9 +52,46 @@ export default function DashboardNavbar() {
     router.push("/dashboard/profile")
   }
 
-  // Don't render navbar if loading or no user
+  // Render skeleton navbar if loading or no user to prevent layout shift
   if (isLoading || !user) {
-    return null
+    return (
+      <nav className="nav-container">
+        <div className="nav-content">
+          <div className="flex items-center gap-6">
+            <div className="nav-brand opacity-50">
+              FreelanceFlow
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="nav-link opacity-50">
+                <BarChart className="h-5 w-5" />
+                <span>Dashboard</span>
+              </div>
+              <div className="nav-link opacity-50">
+                <Users className="h-5 w-5" />
+                <span>Clients</span>
+              </div>
+              <div className="nav-link opacity-50">
+                <FileText className="h-5 w-5" />
+                <span>Invoices</span>
+              </div>
+              <div className="nav-link opacity-50">
+                <FileSignature className="h-5 w-5" />
+                <span>Contracts</span>
+              </div>
+              <div className="nav-link opacity-50">
+                <Zap className="h-5 w-5" />
+                <span>Lead Generator</span>
+              </div>
+            </div>
+          </div>
+          <div className="nav-actions">
+            <Button variant="ghost" size="icon" className="btn btn-ghost opacity-50" disabled>
+              <UserCircle className="h-6 w-6" />
+            </Button>
+          </div>
+        </div>
+      </nav>
+    )
   }
 
   return (
@@ -76,6 +113,14 @@ export default function DashboardNavbar() {
             <Link href="/dashboard/invoices" className={`nav-link ${isActive('/dashboard/invoices') ? 'nav-link-active' : ''}`}>
               <FileText className="h-5 w-5" />
               <span>Invoices</span>
+            </Link>
+            <Link href="/dashboard/contracts" className={`nav-link ${isActive('/dashboard/contracts') ? 'nav-link-active' : ''}`}>
+              <FileSignature className="h-5 w-5" />
+              <span>Contracts</span>
+            </Link>
+            <Link href="/dashboard/lead-generator" className={`nav-link ${isActive('/dashboard/lead-generator') ? 'nav-link-active' : ''}`}>
+              <Zap className="h-5 w-5" />
+              <span>Lead Generator</span>
             </Link>
           </div>
         </div>

@@ -126,6 +126,26 @@ export default async function Home() {
                 Create professional invoices with just a few clicks.
               </p>
             </div>
+            <div className="text-center p-6">
+                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                  3
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Generate Contracts</h3>
+                <p className="text-gray-600">
+                  Protect yourself with contract generation
+                </p>
+            </div>
+            <div className="text-center p-6">
+                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                  4
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Generate Leads</h3>
+                <p className="text-gray-600">
+                  Get relevant business leads and start making connections
+                </p>
+            </div>
+            
+            
           </div>
         </div>
       </section>

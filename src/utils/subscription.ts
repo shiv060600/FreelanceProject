@@ -12,6 +12,17 @@ interface SubscriptionAccess {
   status: string;
 }
 
+interface SubscriptionLimits {
+  invoices: number;
+  contracts: number;
+}
+
+interface SubscriptionDetails {
+  subscription: string;
+  maxInvoices: number;
+  maxContracts: SubscriptionLimits;
+}
+
 /**
  * Check if user has subscription access based on subscription data
  * Handles cancelled subscriptions that are still within billing period
@@ -21,7 +32,7 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
     return {
       hasAccess: false,
       planName: 'Free',
-      invoiceLimit: 10,
+      invoiceLimit: 2,
       status: 'free'
     };
   }
@@ -37,7 +48,7 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
     return {
       hasAccess: false,
       planName: 'Free',
-      invoiceLimit: 10,
+      invoiceLimit: 2,
       status: status
     };
   }
@@ -49,21 +60,21 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
       return {
         hasAccess: true,
         planName: 'Expert Freelancer',
-        invoiceLimit: 500,
+        invoiceLimit: 40,
         status: status
       };
     case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
       return {
         hasAccess: true,
         planName: 'Seasoned Freelancer',
-        invoiceLimit: 125,
+        invoiceLimit: 20,
         status: status
       };
     case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
       return {
         hasAccess: true,
         planName: 'New Freelancer',
-        invoiceLimit: 50,
+        invoiceLimit: 10,
         status: status
       };
     // Legacy price IDs (keep for backwards compatibility)
@@ -71,29 +82,69 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
       return {
         hasAccess: true,
         planName: 'Expert Freelancer',
-        invoiceLimit: 500,
+        invoiceLimit: 40,
         status: status
       };
     case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
       return {
         hasAccess: true,
         planName: 'Seasoned Freelancer',
-        invoiceLimit: 125,
+        invoiceLimit: 20,
         status: status
       };
     case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
       return {
         hasAccess: true,
         planName: 'New Freelancer',
-        invoiceLimit: 50,
+        invoiceLimit: 10,
         status: status
       };
     default:
       return {
         hasAccess: false,
         planName: 'Free',
-        invoiceLimit: 10,
+        invoiceLimit: 2,
         status: status
       };
   }
-} 
+}
+
+/**
+ * Get subscription limits based on plan name
+ */
+export function checkSubscriptionLimits(planName: string): { subscription: string; maxContracts: SubscriptionLimits } {
+  switch (planName) {
+    case 'Expert Freelancer':
+      return {
+        subscription: 'Expert Freelancer',
+        maxContracts: {
+          invoices: 40,
+          contracts: 8
+        }
+      };
+    case 'Seasoned Freelancer':
+      return {
+        subscription: 'Seasoned Freelancer',
+        maxContracts: {
+          invoices: 20,
+          contracts: 4
+        }
+      };
+    case 'New Freelancer':
+      return {
+        subscription: 'New Freelancer',
+        maxContracts: {
+          invoices: 10,
+          contracts: 1
+        }
+      };
+    default:
+      return {
+        subscription: 'Free',
+        maxContracts: {
+          invoices: 2,
+          contracts: 0
+        }
+      };
+  }
+}

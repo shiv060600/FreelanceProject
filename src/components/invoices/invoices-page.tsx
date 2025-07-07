@@ -15,15 +15,37 @@ import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
 
 interface Invoice {
   id: string;
+  user_id: string;
+  client_id: string;
   invoice_number: string;
-  client_name?: string;
   issue_date: string;
-  total: number;
+  due_date: string;
   status: 'draft' | 'paid';
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  total: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  // Joined data (not in DB but added by your code)
+  clients?: {
+    id: string;
+    name: string;
+  };
+  invoice_items?: Array<{
+    id: string;
+    invoice_id: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    amount: number;
+    invoice_name?: string;
+  }>;
 }
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [invoices, setInvoices] = useState<any []>([])
   const [invoiceCount, setInvoiceCount] = useState(0)
   const [maxInvoices, setMaxInvoices] = useState(10)
   const [loading, setLoading] = useState(true)
@@ -91,36 +113,36 @@ export default function InvoicesPage() {
           // Map price IDs to invoice limits
           switch (stripe_price_id) {
             case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
-              setMaxInvoices(500); // Expert Freelancer
+              setMaxInvoices(40); // Expert Freelancer
               break;
             case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
-              setMaxInvoices(125); // Seasoned Freelancer
+              setMaxInvoices(20); // Seasoned Freelancer
               break;
             case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
-              setMaxInvoices(50); // New Freelancer
+              setMaxInvoices(10); // New Freelancer
               break;
             // Legacy price IDs (keep for backwards compatibility)
             case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
-              setMaxInvoices(500); // Expert Freelancer
+              setMaxInvoices(40); // Expert Freelancer
               break;
             case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
-              setMaxInvoices(125); // Seasoned Freelancer
+              setMaxInvoices(20); // Seasoned Freelancer
               break;
             case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
-              setMaxInvoices(50); // New Freelancer
+              setMaxInvoices(10); // New Freelancer
               break;
             default:
-              setMaxInvoices(10); // Free tier
+              setMaxInvoices(2); // Free tier
           }
         } else {
-          setMaxInvoices(10); // Subscription expired or inactive
+          setMaxInvoices(2); // Subscription expired or inactive
         }
       } else {
-        setMaxInvoices(10); // No subscription
+        setMaxInvoices(2); // No subscription
       }
     } catch (error) {
       console.error('Unexpected error in fetchInvoiceLimit:', error);
-      setMaxInvoices(10);
+      setMaxInvoices(2);
     }
   }
 
@@ -220,6 +242,7 @@ export default function InvoicesPage() {
       }))
 
       setInvoices(enrichedInvoices)
+     
     } catch (error) {
       console.error('Unexpected error in fetchInvoices:', error)
       setInvoices([])

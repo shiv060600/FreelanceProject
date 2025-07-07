@@ -31,11 +31,11 @@ export function InvoiceLimitCheck({ children }: InvoiceLimitCheckProps) {
 
       if (userData) {
         setInvoiceCount(userData.invoice_count || 0);
-        setMaxInvoices(userData.max_invoices || 10);
+        setMaxInvoices(userData.max_invoices || 2);
       } else {
         // Fallback values if no user data found
         setInvoiceCount(0);
-        setMaxInvoices(10);
+        setMaxInvoices(2);
       }
       setLoading(false);
     }

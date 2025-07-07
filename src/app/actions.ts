@@ -34,37 +34,13 @@ export const signUpAction = async (formData: FormData) => {
   }
 
   if (user) {
-    try {
-      const { error: updateError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          user_id: user.id,
-          name: fullName,
-          email: email,
-          token_identifier: user.id,
-          created_at: new Date().toISOString(),
-          invoice_count: 0, // Initialize invoice count
-          max_invoices: 10  // Set max invoices limit
-        });
-
-      if (updateError) {
-        // If user was created in auth but failed in users table, we should still consider it a success
-        // as they can retry the profile update later
-        return encodedRedirect(
-          "success",
-          "/sign-up",
-          "Account created! Please check your email for verification.",
-        );
-      }
-    } catch (err) {
-      // Similar to above, consider it a success
-      return encodedRedirect(
-        "success",
-        "/sign-up",
-        "Account created! Please check your email for verification.",
-      );
-    }
+    // The handle_new_user() trigger will automatically create the user record
+    // with the correct subscription limits based on the trigger logic
+    return encodedRedirect(
+      "success",
+      "/sign-up",
+      "Account created! Please check your email for verification.",
+    );
   }
 
   return encodedRedirect(
