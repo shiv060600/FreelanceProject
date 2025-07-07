@@ -44,8 +44,12 @@ export default function DashboardNavbar() {
   const isActive = (path: string) => pathname === path
 
   const handleSignOut = async () => {
+    try{
     await supabase.auth.signOut()
-    router.push("/")
+    window.location.href="/"
+    } catch(error){
+      console.log(`error signing out ${error}`)
+    }
   }
 
   const handleProfileClick = () => {
