@@ -6,9 +6,11 @@ import { createClient } from "@/lib/supabase-browser";
 import { redirect } from "next/navigation";
 import { getSubscriptionAccess } from "@/utils/subscription";
 import { Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 export default function LeadGeneratorPage() {
   const { leads, loading, error, generateLeads } = useLeadGenerator();
   const [currenttier,setCurrentTier] = useState<string | null>(null);
+  const [isLoading,setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -18,6 +20,8 @@ export default function LeadGeneratorPage() {
       }
       catch(error){
         console.log(`error getting subscription ${error}`)
+      }finally{
+        setIsLoading(false);
       }
     }
     fetchSubscription();
@@ -40,11 +44,6 @@ export default function LeadGeneratorPage() {
 
   
 
-  
-
-  
-  
-  
   const [formData, setFormData] = useState<LeadGeneratorParams>({
     location: "",
     radius: "10",
@@ -68,6 +67,14 @@ export default function LeadGeneratorPage() {
       // Error is already handled in the useLeadGenerator hook
     }
   };
+
+  if(isLoading){
+    return(
+      <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin"/>
+      </div>
+    )
+  }
 
   return (
     currenttier === "Expert Freelancer" ? (

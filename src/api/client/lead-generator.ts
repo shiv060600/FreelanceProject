@@ -27,14 +27,14 @@ export function useLeadGenerator() {
         throw new Error("Please enter a location");
       }
 
-      // Construct the query string
+
       const queryParams = new URLSearchParams({
         businessType: params.businessType,
         location: params.location,
         radius: params.radius,
         limit: params.limit,
       });
-      // Call our internal API endpoint
+
       const response = await fetch(`/api/lead-generator?${queryParams}`);
       const data = await response.json();
       

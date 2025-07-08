@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { YelpBusiness } from '@/types/lead-generator';
 
-/**
+/*
  * Fetches business data from the Yelp API
  * @param params Search parameters for the Yelp API
  * @returns Array of businesses or empty array on error
@@ -61,9 +61,7 @@ export async function fetchYelpBusinesses({
   }
 }
 
-/**
- * Transforms Yelp business data to our Lead format
- */
+
 export function transformYelpDataToLeads(businesses: YelpBusiness[]) {
   return businesses.map(business => ({
     name: business.name,

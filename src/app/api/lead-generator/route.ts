@@ -11,13 +11,13 @@ export async function GET(request: Request) {
   const limit = searchParams.get('limit');
   const businessType = searchParams.get('businessType');
 
-  // Validate required parameters
+
   if (!location || !radius || !limit || !businessType) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
   try {
-    // Fetch data from Yelp API
+
     const businesses = await fetchYelpBusinesses({
       term: businessType,
       location,

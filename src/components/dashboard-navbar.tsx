@@ -56,7 +56,7 @@ export default function DashboardNavbar() {
     router.push("/dashboard/profile")
   }
 
-  // Render skeleton navbar if loading or no user to prevent layout shift
+
   if (isLoading || !user) {
     return (
       <nav className="nav-container">
