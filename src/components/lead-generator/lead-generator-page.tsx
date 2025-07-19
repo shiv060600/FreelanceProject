@@ -11,6 +11,7 @@ export default function LeadGeneratorPage() {
   const { leads, loading, error, generateLeads } = useLeadGenerator();
   const [currenttier,setCurrentTier] = useState<string | null>(null);
   const [isLoading,setIsLoading] = useState(true)
+  const [currentPage,setCurrentPage] = useState(1)
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -26,6 +27,10 @@ export default function LeadGeneratorPage() {
     }
     fetchSubscription();
   },[]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  },[leads]);
 
   const getSubscription = async () => {
     const supabase = createClient();
@@ -75,6 +80,42 @@ export default function LeadGeneratorPage() {
       </div>
     )
   }
+  const indexOfLastLead = currentPage * 10
+  const indexOfFirstLead = indexOfLastLead - 10
+  const currentLeads = leads.slice(indexOfFirstLead,indexOfLastLead)
+  const totalPages = Math.ceil(leads.length/10);
+  const needMoreThanOne = leads.length > 10;
+
+  const Pagination = () => {
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++){
+      pageNumbers.push(i)
+    }
+    return(
+      <div className="flex justify-center items-center space-x-2 mt-6">
+        <button 
+        onClick={() => setCurrentPage(prev => Math.max(prev-1,1))}
+        disabled = {currentPage === 1} 
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          Previous
+        </button>
+        {pageNumbers.map(number => (
+            <button
+              key = {number}
+              onClick={() => setCurrentPage(number)}
+              className="px-3 py-2 text-sm font-medium rounded-md">
+            {number}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1,totalPages))}
+            disabled = {currentPage === totalPages}
+            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Next
+          </button>
+      </div>
+    );
+  };
 
   return (
     currenttier === "Expert Freelancer" ? (
@@ -173,9 +214,10 @@ export default function LeadGeneratorPage() {
             <p className="mt-2 text-gray-600">Generating leads...</p>
           </div>
         ) : leads.length > 0 ? (
-          leads.map((lead, index) => (
+          <>
+          {currentLeads.map((lead, index) => (
             <div
-              key={index}
+              key={indexOfFirstLead + index}
               className="p-4 border rounded-md shadow-md mb-4 flex"
             >
               {lead.image_url && (
@@ -210,7 +252,9 @@ export default function LeadGeneratorPage() {
                 )}
               </div>
             </div>
-          ))
+          ))}
+          {needMoreThanOne && <Pagination/>}
+          </>
         ) : (
           <div className="text-center mt-8">
             {error ? (
@@ -251,6 +295,7 @@ export default function LeadGeneratorPage() {
         </div>
       </div>
     )
+    
   
   );
 }

@@ -36,11 +36,11 @@ export const signUpAction = async (formData: FormData) => {
   if (user) {
     // The handle_new_user() trigger will automatically create the user record
     // with the correct subscription limits based on the trigger logic
-    return encodedRedirect(
-      "success",
-      "/sign-up",
-      "Account created! Please check your email for verification.",
-    );
+      return encodedRedirect(
+        "success",
+        "/sign-up",
+        "Account created! Please check your email for verification.",
+      );
   }
 
   return encodedRedirect(

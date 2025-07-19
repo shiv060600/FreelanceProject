@@ -320,7 +320,7 @@ BEGIN
     END IF;
 
     
-    RETURN NEW;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
@@ -586,7 +586,7 @@ BEGIN
     RAISE NOTICE '📊 Lifetime earnings and client stats configured';
     RAISE NOTICE '🛡️ Row Level Security policies applied';
     RAISE NOTICE '🔄 This script is idempotent and can be run multiple times safely';
-END $$;
+END $$; 
 
 -- Step 5: Recreate the triggers with CORRECT schema references
 CREATE TRIGGER on_auth_user_created
