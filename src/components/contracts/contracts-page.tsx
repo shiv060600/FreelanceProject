@@ -12,12 +12,14 @@ import { EditContractDialog } from './edit-contract-dialog'
 import { DeleteContractDialog } from './delete-contract-dialog'
 import { useContracts, useCanCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function ContractsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   
   const { data: user , isLoading: userLoading } = useUser();
@@ -69,6 +71,15 @@ export default function ContractsPage() {
   
   return (
     <div className="space-y-6">
+      <div className='flex justify-between'>
+        <h1 className='text-2xl font-bold'>Contracts</h1>
+        <Button 
+          disabled = {!canCreate}
+          onClick={() => {setCreateDialogOpen(true)}}>          
+          <Plus className='h-4 w-4'/>
+          Add Contract
+        </Button>
+      </div>
         <div className="grid gap-4">
           {contracts.map((contract) => (
             <Card key={contract.id}>
@@ -129,6 +140,9 @@ export default function ContractsPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+
+
+                    
                   </div>
                 </div>
               </CardHeader>
@@ -151,7 +165,7 @@ export default function ContractsPage() {
       {/* Dialogs */}
       <CreateContractDialog 
         open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
       />
       
       <EditContractDialog 
