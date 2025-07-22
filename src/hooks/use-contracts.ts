@@ -61,9 +61,6 @@ export function useContracts (userId:string) {
             if (contractsError){
                 throw new Error ('error fetching contracts')
             }
-            if (!contracts || contracts.length === 0){
-                return [];
-            }
 
             // Transform the data to match our interface
             return contracts.map(contract => ({
@@ -77,7 +74,6 @@ export function useContracts (userId:string) {
     })
 }
 
-// 2. Fetch user subscription limits (reuse from use-invoices)
 export function useUserSubscription(userId: string) {
     return useQuery({
         queryKey: ['user-subscription', userId],
@@ -108,7 +104,7 @@ export function useUserSubscription(userId: string) {
                 
                 if (hasAccess) {
                     // Map price IDs to contract limits
-                    let maxContracts = 0; // free tier 
+                    let maxContracts = 0 
                     switch (stripe_price_id) {
                         case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
                             maxContracts = 8; // Expert Freelancer
@@ -139,7 +135,7 @@ export function useUserSubscription(userId: string) {
             return { maxContracts: 0, status: 'free' }
         },
         enabled: !!userId,
-        refetchInterval: 300000,
+        refetchInterval: 3000,
     })
 }
 
