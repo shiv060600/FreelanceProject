@@ -10,21 +10,26 @@ import EditInvoiceDialog from "./edit-invoice-dialog"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import InvoicePDF from './invoice-pdf'
 import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
-
+import { useState } from "react"
+import { DeleteInvoiceDialog } from "./delete-invoice-dialog"
 // React Query hooks
 import { useUser } from '@/hooks/use-user'
+import { useQueryClient } from '@tanstack/react-query'
 import { 
   useInvoices, 
   useUserSubscription, 
   useInvoiceCount, 
   useCanCreateInvoice,
-  useDeleteInvoice,
-  useSendInvoice
+  useSendInvoice,
+  useUpdateInvoice
 } from '@/hooks/use-invoices'
 
 export default function InvoicesPage() {
   const router = useRouter()
   const { userInfo, loading: userInfoLoading } = useInvoicePDF()
+  const queryClient = useQueryClient()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   
   // React Query hooks
   const { data: user, isLoading: userLoading } = useUser()
@@ -32,8 +37,8 @@ export default function InvoicesPage() {
   const { data: subscription } = useUserSubscription(user?.id || '')
   const { data: invoiceCount } = useInvoiceCount(user?.id || '')
   const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id || '')
-  const deleteInvoice = useDeleteInvoice()
-  const sendInvoice = useSendInvoice()
+  const sendInvoice = useSendInvoice();
+  const updateInvoice = useUpdateInvoice();
 
   // Combined loading state
   const isLoading = userLoading || invoicesLoading
@@ -45,10 +50,6 @@ export default function InvoicesPage() {
     }
   }
 
-  const downloadInvoice = (invoice: any) => {
-    console.log('Downloading invoice:', invoice.invoice_number)
-  }
-
   const handleSendInvoice = async (invoiceId: string) => {
     if (!user) {
       router.push('/sign-in')
@@ -56,7 +57,7 @@ export default function InvoicesPage() {
     }
 
     try {
-      await sendInvoice.mutateAsync({ invoiceId, userId: user.id })
+      await sendInvoice.mutateAsync({ id: invoiceId, userId: user.id })
       console.log('Invoice sent successfully')
     } catch (error) {
       console.error('Error sending invoice:', error)
@@ -64,18 +65,21 @@ export default function InvoicesPage() {
     }
   }
 
-  const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!user) {
+
+  const handleUpdateInvoice = async(invoiceId:string) => {
+    if (!user){
       router.push('/sign-in')
       return
     }
-
     try {
-      await deleteInvoice.mutateAsync({ invoiceId, userId: user.id })
-      console.log('Invoice deleted successfully')
-    } catch (error) {
-      console.error('Error deleting invoice:', error)
-      alert('Failed to delete invoice. Please try again.')
+      await updateInvoice.mutateAsync({ 
+        id: invoiceId,
+        user_id: user.id,  // Use user_id to match the interface
+        status: 'paid'     
+      })
+
+    }catch(error){
+      console.error('Failed to update invoice:', error)
     }
   }
 
@@ -196,7 +200,10 @@ export default function InvoicesPage() {
               <span>Loading...</span>
             </div>
           )}
-          <CreateInvoiceDialog onSuccess={() => {}}>
+          <CreateInvoiceDialog onSuccess={() => {
+            // Invalidate and refetch invoices to show new invoice
+            queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
+          }}>
             <Button onClick={createNewInvoice} disabled={!canCreate || isLoading}>
               <Plus className="h-4 w-4 mr-2" />
               New Invoice
@@ -259,7 +266,10 @@ export default function InvoicesPage() {
                         <div className="flex justify-end space-x-2">
                           <EditInvoiceDialog 
                             invoice={invoice}
-                            onSuccess={() => {}}
+                            onSuccess={() => {
+                              // Invalidate and refetch invoices to show updated data
+                              queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
+                            }}
                           >
                             <Button
                               variant="ghost"
@@ -293,8 +303,10 @@ export default function InvoicesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteInvoice(invoice.id)}
-                            disabled={deleteInvoice.isPending}
+                            onClick={() => {
+                              setSelectedInvoice(invoice)
+                              setDeleteDialogOpen(true)
+                            }}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>
@@ -308,6 +320,10 @@ export default function InvoicesPage() {
           </div>
         </div>
       </div>
+      <DeleteInvoiceDialog
+        invoice={selectedInvoice}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}/>
     </div>
   )
 } 

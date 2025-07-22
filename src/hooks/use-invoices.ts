@@ -18,11 +18,12 @@ interface Invoice {
     notes?: string;
     created_at: string;
     updated_at: string;
-    // Joined data (not in DB but added by your code)
+    //added from db query
     clients?: {
       id: string;
       name: string;
-    } | null; // Changed from undefined to null to match actual data
+    } | null; 
+    //same
     invoice_items?: Array<{
       id: string;
       invoice_id: string;
@@ -53,7 +54,6 @@ interface CreateInvoiceData {
     id: string;
 }
 
-// 1. Fetch invoices with manual join
 export function useInvoices (userId:string){
     return useQuery({
         queryKey:['invoices',userId],
@@ -119,7 +119,6 @@ export function useInvoices (userId:string){
     })
 }
 
-// 2. Fetch user subscription limits
 export function useUserSubscription(userId: string) {
   return useQuery({
     queryKey: ['user-subscription', userId],
@@ -206,7 +205,7 @@ export function useInvoiceCount(userId: string) {
   })
 }
 
-// 4. Create invoice mutation
+
 export function useCreateInvoice() {
   const queryClient = useQueryClient()
   
@@ -222,20 +221,19 @@ export function useCreateInvoice() {
       return data
     },
     onSuccess: (newInvoice, variables) => {
-      // Invalidate and refetch related queries
+      // refetch invoices and invoice count
       queryClient.invalidateQueries({ queryKey: ['invoices', variables.user_id] })
       queryClient.invalidateQueries({ queryKey: ['invoice-count', variables.user_id] })
     },
   })
 }
 
-// 5. Update invoice mutation
 export function useUpdateInvoice() {
   const queryClient = useQueryClient()
   
   return useMutation({
     mutationFn: async ({ id, ...updates }: UpdateInvoiceData) => {
-      const { data:upadtedInvoice, error } = await supabase
+      const { data: updatedInvoice, error } = await supabase
         .from('invoices')
         .update(updates)
         .eq('id', id)
@@ -243,26 +241,51 @@ export function useUpdateInvoice() {
         .single()
       
       if (error) throw error
-      return upadtedInvoice
+      return updatedInvoice
     },
-    onSuccess: (updatedInvoice) => {
-      // Invalidate and refetch invoices
-      queryClient.invalidateQueries({ queryKey: ['invoices',updatedInvoice.user_id] })
+    onMutate: async ({ id, ...updates }) => {
+      const userId = updates.user_id
+      
+      await queryClient.cancelQueries({ queryKey: ['invoices', userId] })
+      
+      // Snapshot the previous value
+      const previousInvoices = queryClient.getQueryData(['invoices', userId])
+      
+      // Optimistically update the invoice
+      queryClient.setQueryData(['invoices', userId], (old: Invoice[] = []) => 
+        old.map(invoice => 
+          invoice.id === id 
+            ? { ...invoice, ...updates, updated_at: new Date().toISOString() }
+            : invoice
+        )
+      )
+      
+      // Return context with the snapshotted value
+      return { previousInvoices }
+    },
+    onError: (err, { id }, context) => {
+      // use the prevInovoice data returned from onMutate to roll back
+      if (context?.previousInvoices) {
+        queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      }
+    },
+    onSettled: (_, __, { id }) => {
+      // refetch since updated
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
     },
   })
 }
 
-// 6. Delete invoice mutation with optimistic updates
 export function useDeleteInvoice() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async ({ invoiceId, userId }: { invoiceId: string; userId: string }) => {
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
       // First, delete all invoice items for this invoice
       const { error: itemsError } = await supabase
         .from('invoice_items')
         .delete()
-        .eq('invoice_id', invoiceId)
+        .eq('invoice_id', id)
 
       if (itemsError) throw itemsError
 
@@ -270,7 +293,7 @@ export function useDeleteInvoice() {
       const { data: deletedInvoice, error: invoiceError } = await supabase
         .from('invoices')
         .delete()
-        .eq('id', invoiceId)
+        .eq('id', id)
         .eq('user_id', userId)
 
       if (invoiceError) throw invoiceError
@@ -287,26 +310,26 @@ export function useDeleteInvoice() {
 
       return deletedInvoice
     },
-    onMutate: async ({ invoiceId, userId }) => {
-      // Cancel any outgoing refetches
+    onMutate: async ({ id, userId }) => {
+      // stop any outgoing refetches 
       await queryClient.cancelQueries({ queryKey: ['invoices', userId] })
       await queryClient.cancelQueries({ queryKey: ['invoice-count', userId] })
       
-      // Snapshot the previous values
+      // save current data
       const previousInvoices = queryClient.getQueryData(['invoices', userId])
       const previousCount = queryClient.getQueryData(['invoice-count', userId])
       
-      // Optimistically update invoices
+      // optimistically update invoices
       queryClient.setQueryData(['invoices', userId], (old: Invoice[] = []) => 
-        old.filter(invoice => invoice.id !== invoiceId)
+        old.filter(invoice => invoice.id !== id)
       )
       
-      // Optimistically update count
+      // optimistically update count
       queryClient.setQueryData(['invoice-count', userId], (old: number = 0) => 
         Math.max(0, old - 1)
       )
       
-      // Return context with the snapshotted values
+      //  context with the snapshotted values
       return { previousInvoices, previousCount }
     },
     onError: (err, { userId }, context) => {
@@ -319,27 +342,27 @@ export function useDeleteInvoice() {
       }
     },
     onSettled: (_, __, { userId }) => {
-      // Always refetch after error or success to ensure consistency
+      // refetch after error or success to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['invoices', userId] })
       queryClient.invalidateQueries({ queryKey: ['invoice-count', userId] })
     },
   })
 }
 
-// 7. Send invoice mutation (placeholder for future implementation)
+
 export function useSendInvoice() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async ({ invoiceId, userId }: { invoiceId: string; userId: string }) => {
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
       // TODO: Implement email sending logic
-      console.log('Sending invoice:', invoiceId)
+      console.log('Sending invoice:', id)
       
       // For now, just update the status to 'sent'
       const { data, error } = await supabase
         .from('invoices')
         .update({ status: 'sent' })
-        .eq('id', invoiceId)
+        .eq('id', id)
         .eq('user_id', userId)
         .select()
         .single()
@@ -348,19 +371,19 @@ export function useSendInvoice() {
       return data
     },
     onSuccess: (_, { userId }) => {
-      // Invalidate and refetch invoices
+      // invalidate and refetch invoices
       queryClient.invalidateQueries({ queryKey: ['invoices', userId] })
     },
   })
 }
 
-// 8. Helper function to check if user can create more invoices
+
 export function useCanCreateInvoice(userId: string) {
   const { data: subscription } = useUserSubscription(userId)
   const { data: invoiceCount } = useInvoiceCount(userId)
   
   return {
-    canCreate: !subscription || (invoiceCount || 0) < (subscription?.maxInvoices || 2),
+    canCreate: (invoiceCount || 0) < (subscription?.maxInvoices || 2),
     currentCount: invoiceCount || 0,
     maxInvoices: subscription?.maxInvoices || 2,
     subscriptionStatus: subscription?.status || 'free'

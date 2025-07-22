@@ -102,13 +102,13 @@ export function useUserSubscription(userId: string) {
                 const { stripe_price_id, status, current_period_end, cancel_at_period_end } = subscriptionData;
                 
                 // Check if subscription is active OR cancelled but still in billing period
-                const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+                const now = Math.floor(Date.now() / 1000); 
                 const hasAccess = status === 'active' || 
                                 (status === 'canceled' && cancel_at_period_end && current_period_end > now);
                 
                 if (hasAccess) {
                     // Map price IDs to contract limits
-                    let maxContracts = 0; // Default to free tier (0 contracts)
+                    let maxContracts = 0; // free tier 
                     switch (stripe_price_id) {
                         case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
                             maxContracts = 8; // Expert Freelancer
@@ -119,7 +119,7 @@ export function useUserSubscription(userId: string) {
                         case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
                             maxContracts = 2; // New Freelancer
                             break;
-                        // Legacy price IDs (keep for backwards compatibility)
+                        // Backwards compatibility with prod_id
                         case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
                             maxContracts = 8; // Expert Freelancer
                             break;
@@ -139,11 +139,11 @@ export function useUserSubscription(userId: string) {
             return { maxContracts: 0, status: 'free' }
         },
         enabled: !!userId,
-        refetchInterval: 30000, // Check every 30 seconds for subscription changes
+        refetchInterval: 300000,
     })
 }
 
-// 3. Fetch contract count
+
 export function useContractCount(userId: string) {
     return useQuery({
         queryKey: ['contract-count', userId],
@@ -163,7 +163,6 @@ export function useContractCount(userId: string) {
     })
 }
 
-// 4. Create contract mutation
 export function useCreateContract() {
     const queryClient = useQueryClient()
     
@@ -187,14 +186,16 @@ export function useCreateContract() {
             return data
         },
         onSuccess: (newContract, variables) => {
-            // Invalidate and refetch related queries
+            // refresh data onSucces
             queryClient.invalidateQueries({ queryKey: ['contracts', variables.user_id] })
             queryClient.invalidateQueries({ queryKey: ['contract-count', variables.user_id] })
         },
+        onError: () => {
+            throw new Error('error creating contract')
+        }
     })
 }
 
-// 5. Update contract mutation
 export function useEditContract() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -241,15 +242,15 @@ export function useDeleteContract() {
             return deletedContract
         },
         onMutate: async ({ contractId, userId }) => {
-            // Cancel any outgoing refetches
+            // cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['contracts', userId] })
             await queryClient.cancelQueries({ queryKey: ['contract-count', userId] })
             
-            // Snapshot the previous values
+            // get previous contract data
             const previousContracts = queryClient.getQueryData(['contracts', userId])
             const previousCount = queryClient.getQueryData(['contract-count', userId])
             
-            // Optimistically update contracts
+            // optimistically update 
             queryClient.setQueryData(['contracts', userId], (old: Contract[] = []) => 
                 old.filter(contract => contract.id !== contractId)
             )
@@ -259,7 +260,6 @@ export function useDeleteContract() {
                 Math.max(0, old - 1)
             )
             
-            // Return context with the snapshotted values
             return { previousContracts, previousCount }
         },
         onError: (err, { userId }, context) => {

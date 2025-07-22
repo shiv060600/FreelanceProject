@@ -12,7 +12,7 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
         gcTime: 10 * 60 * 1000,   // 10 minutes
         refetchOnWindowFocus: true, // Refetch when user returns to tab
         refetchOnReconnect: true,   // Refetch when internet reconnects
-        retry: 3,                   // Retry failed requests 3 times
+        retry: 3,
       },
     },
   }))
