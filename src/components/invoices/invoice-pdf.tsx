@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { createClient } from '@/lib/supabase-browser'
 
 // Define styles for the PDF
 const styles = StyleSheet.create({
@@ -107,7 +108,17 @@ interface InvoicePDFProps {
   }
 }
 
-// Helper function to safely get string values
+interface Client {
+  name:string,
+  email:string,
+  phone:string,
+  company:string,
+  addrres:string
+}
+
+
+
+
 const safeString = (value: any): string => {
   if (value === null || value === undefined || value === '') {
     return 'N/A';
@@ -115,13 +126,11 @@ const safeString = (value: any): string => {
   return String(value);
 }
 
-// Helper function to safely format currency
 const formatCurrency = (value: any): string => {
   const num = parseFloat(value) || 0;
   return num.toFixed(2);
 }
 
-// Helper function to safely format date
 const formatDate = (dateValue: any): string => {
   try {
     if (!dateValue) return 'N/A';
@@ -132,8 +141,33 @@ const formatDate = (dateValue: any): string => {
   }
 }
 
-// PDF Document Component
+
+
 const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
+  const [clientData,setClientData] = useState<Client>()
+
+  useEffect(() => {
+      const fetchClientData = async(clientId:string) => {
+        const supabase = createClient();
+        const {data : clientDataT , error : clientError} = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id',clientId)
+        .single()
+
+        if(clientDataT && !clientError){
+          setClientData(clientDataT)
+        }
+
+      }
+      fetchClientData(invoice?.client_id)
+
+    },[invoice?.client_id])
+
+    
+    
+
+
   // Ensure we have valid data with fallbacks
   const safeInvoice = {
     invoice_number: safeString(invoice?.invoice_number) || 'N/A',
@@ -177,7 +211,11 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
           </View>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>To:</Text>
-            <Text style={styles.text}>{clientName}</Text>
+            <Text style={styles.text}>{clientData?.name || 'Not Set'}</Text>
+            <Text style={styles.text}>{clientData?.email || 'Not Set'}</Text>
+            <Text style={styles.text}>{clientData?.phone || 'Not Set'}</Text>
+            <Text style={styles.text}>{clientData?.company || 'Not Set'}</Text>
+            
           </View>
         </View>
 

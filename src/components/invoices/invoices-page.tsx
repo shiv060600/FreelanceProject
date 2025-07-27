@@ -40,7 +40,7 @@ export default function InvoicesPage() {
   const sendInvoice = useSendInvoice();
   const updateInvoice = useUpdateInvoice();
 
-  // Combined loading state
+  //master loading state
   const isLoading = userLoading || invoicesLoading
 
   const createNewInvoice = async () => {
@@ -83,7 +83,7 @@ export default function InvoicesPage() {
     }
   }
 
-  // Don't render anything if user is still loading
+  //display clean spinner if masterloading
   if (userLoading) {
     return (
       <div className="space-y-6">
@@ -115,7 +115,7 @@ export default function InvoicesPage() {
     )
   }
 
-  // Don't render anything if no user
+ 
   if (!user) {
     return (
       <div className="space-y-6">
@@ -165,7 +165,6 @@ export default function InvoicesPage() {
     )
   }
 
-  // Error state for invoices
   if (invoicesError) {
     return (
       <div className="space-y-6">

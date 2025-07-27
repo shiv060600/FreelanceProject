@@ -23,6 +23,8 @@ export default async function Home() {
   const { data: plans, error } = await supabase.functions.invoke(
     "supabase-functions-get-plans",
   );
+  const filteredplans = plans.filter((item:any) => {return item.name !== 'Shilajit Tea'})
+
 
   // Debug: Log the plans data to see what we're getting
   if (plans) {
@@ -62,18 +64,6 @@ export default async function Home() {
                 title: "Invoice Generator",
                 description:
                   "Create professional PDF invoices from your time logs with customizable templates.",
-              },
-              {
-                icon: <BarChart4 className="w-6 h-6" />,
-                title: "Dashboard Overview",
-                description:
-                  "Visualize key metrics including monthly earnings and outstanding payments.",
-              },
-              {
-                icon: <Shield className="w-6 h-6" />,
-                title: "Data Security",
-                description:
-                  "Your business data is protected with enterprise-grade security measures.",
               },
               {
                 icon: <Zap className="w-6 h-6" />,
@@ -152,15 +142,11 @@ export default async function Home() {
 
       {/* Stats Section */}
       <section className="py-20 bg-blue-600 text-white">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
+        <div className="container mx-auto px-4 ">
+          <div className="grid md:grid-cols-2 gap-8 text-center">
             <div>
               <div className="text-4xl font-bold mb-2">30%</div>
-              <div className="text-blue-100">Less Admin Time</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">99%</div>
-              <div className="text-blue-100">Client Satisfaction</div>
+              <div className="text-blue-100">Time Wasted on Admin Tasks</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-2">15+</div>
@@ -182,14 +168,13 @@ export default async function Home() {
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {plans?.map((item: any) => (
+            {filteredplans?.map((item: any) => (
               <PricingCard key={item.id} item={item} user={user} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">
