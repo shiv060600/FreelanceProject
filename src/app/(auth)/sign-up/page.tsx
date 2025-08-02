@@ -6,24 +6,27 @@ import Link from "next/link";
 import { signUpAction } from "@/app/actions";
 import Navbar from "@/components/navbar";
 
-export default async function Signup(props: {
-  searchParams: Promise<Message>;
-}) {
+
+export default async function Signup(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
-  if ("message" in searchParams) {
-    return (
-      <div className="flex h-screen w-full flex-1 items-center justify-center p-4 sm:max-w-md">
-        <FormMessage message={searchParams} />
-      </div>
-    );
-  }
+
+  const errorMessage = searchParams.error as string;
+  const generalMessage = searchParams.message as string;
+  
+  const hasError = errorMessage || generalMessage?.includes('error');
+
+  const message = errorMessage 
+    ? { error: errorMessage }
+    : generalMessage
+    ? { message: generalMessage }
+    : undefined;
 
   return (
     <>
       <Navbar />
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
         <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
-          <form className="flex flex-col space-y-6">
+          <form action={signUpAction} className="flex flex-col space-y-6">
             <div className="space-y-2 text-center">
               <h1 className="text-3xl font-semibold tracking-tight">Sign up</h1>
               <p className="text-sm text-muted-foreground">
@@ -80,8 +83,21 @@ export default async function Signup(props: {
                   className="w-full"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="verify-password" className="text-sm font-medium">
+                  Verify Password
+                </Label>
+                <Input
+                  id="verify-password"
+                  type="password"
+                  name="verify-password"
+                  placeholder="Your password"
+                  minLength={6}
+                  required
+                  className="w-full"
+                />
+              </div>
             </div>
-
             <SubmitButton
               formAction={signUpAction}
               pendingText="Signing up..."
@@ -90,7 +106,7 @@ export default async function Signup(props: {
               Sign up
             </SubmitButton>
 
-            <FormMessage message={searchParams} />
+            {message && <FormMessage message={message} />}
           </form>
         </div>
       </div>

@@ -23,7 +23,8 @@ export default async function Home() {
   const { data: plans, error } = await supabase.functions.invoke(
     "supabase-functions-get-plans",
   );
-  const filteredplans = plans.filter((item:any) => {return item.name !== 'Shilajit Tea'})
+
+  const filteredplans = plans?.filter((item:any) => {return item.name !== 'Shilajit Tea'})
 
 
   // Debug: Log the plans data to see what we're getting

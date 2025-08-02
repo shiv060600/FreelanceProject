@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS public.users (
 -- Add subscription_status and max_contracts columns if they don't exist
 ALTER TABLE public.users
 ADD COLUMN IF NOT EXISTS subscription_status text DEFAULT 'inactive',
-ADD COLUMN IF NOT EXISTS max_contracts integer DEFAULT 0;
+ADD COLUMN IF NOT EXISTS max_contracts integer DEFAULT 0,
+ADD COLUMN IF NOT EXISTS email_verified boolean DEFAULT false;
 
 -- Subscriptions table
 CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -113,10 +114,10 @@ CREATE TABLE IF NOT EXISTS public.invoices (
     issue_date date NOT NULL,
     due_date date NOT NULL,
     status text DEFAULT 'draft',
-    subtotal decimal(10,2) NOT NULL,
+    subtotal decimal(10,2) DEFAULT 0,
     tax_rate decimal(5,2) DEFAULT 0,
     tax_amount decimal(10,2) DEFAULT 0,
-    total decimal(10,2) NOT NULL,
+    total decimal(10,2) DEFAULT 0,
     notes text,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -125,28 +126,32 @@ CREATE TABLE IF NOT EXISTS public.invoices (
 -- Invoice items table
 CREATE TABLE IF NOT EXISTS public.invoice_items (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    invoice_id uuid REFERENCES public.invoices(id),
+    invoice_id uuid REFERENCES public.invoices(id) ON DELETE CASCADE,
     time_log_id uuid REFERENCES public.time_logs(id),
     description text NOT NULL,
-    quantity decimal(10,2) NOT NULL,
-    unit_price decimal(10,2) NOT NULL,
-    amount decimal(10,2) NOT NULL,
-    invoice_name text,
-    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+    quantity decimal(10,2) DEFAULT 1,
+    unit_price decimal(10,2) DEFAULT 0,
+    total decimal(10,2) DEFAULT 0,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Contracts table
 CREATE TABLE IF NOT EXISTS public.contracts (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id text REFERENCES public.users(user_id),
-  client_id uuid REFERENCES public.clients(id),
-  created_at timestamp with time zone DEFAULT timezone('utc'::text,now()) NOT NULL,
-  title text NOT NULL,
-  content text
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text REFERENCES public.users(user_id),
+    client_id uuid REFERENCES public.clients(id),
+    title text NOT NULL,
+    description text,
+    start_date date,
+    end_date date,
+    hourly_rate decimal(10,2),
+    fixed_price decimal(10,2),
+    status text DEFAULT 'active',
+    terms text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
--- Add invoice_name column if it doesn't exist
-ALTER TABLE public.invoice_items
-ADD COLUMN IF NOT EXISTS invoice_name text;
 
 -- ==========================================
 -- INDEXES
@@ -204,6 +209,9 @@ ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Add logging to debug trigger execution
+  RAISE LOG 'handle_new_user triggered for user: %', NEW.id;
+  
   INSERT INTO public.users (
     id,
     user_id,
@@ -220,26 +228,34 @@ BEGIN
     max_contracts,
     invoice_count,
     lifetime_earnings,
-    total_paid_invoices
+    total_paid_invoices,
+    email_verified
   ) VALUES (
     NEW.id,
     NEW.id::text,
     NEW.email,
-    NEW.raw_user_meta_data->>'name',
-    NEW.raw_user_meta_data->>'full_name',
-    NEW.raw_user_meta_data->>'avatar_url',
+    COALESCE(NEW.raw_user_meta_data->>'name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
     NEW.email,
     NEW.created_at,
     NEW.updated_at,
     'Free',
     'inactive',
     2,
+    2,
     0,
     0,
     0,
-    0
+    false
   );
+  
+  RAISE LOG 'User record created successfully for: %', NEW.id;
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE LOG 'Error in handle_new_user for user %: %', NEW.id, SQLERRM;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
@@ -250,10 +266,11 @@ BEGIN
   UPDATE public.users
   SET
     email = NEW.email,
-    name = NEW.raw_user_meta_data->>'name',
-    full_name = NEW.raw_user_meta_data->>'full_name',
-    avatar_url = NEW.raw_user_meta_data->>'avatar_url',
-    updated_at = NEW.updated_at
+    name = COALESCE(NEW.raw_user_meta_data->>'name', ''),
+    full_name = COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    avatar_url = COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
+    updated_at = NEW.updated_at,
+    email_verified = COALESCE(NEW.email_confirmed_at IS NOT NULL, false)
   WHERE user_id = NEW.id::text;
   RETURN NEW;
 END;
@@ -401,14 +418,24 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- ==========================================
--- TRIGGERS (Drop and recreate to avoid conflicts)
+-- TRIGGERS (All triggers created after all functions are defined)
 -- ==========================================
 
 -- User management triggers
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_updated ON auth.users;
 
--- Add trigger to sync subscription changes to users table
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.handle_new_user();
+
+CREATE TRIGGER on_auth_user_updated
+  AFTER UPDATE ON auth.users
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.handle_user_update();
+
+-- Subscription sync trigger
 DROP TRIGGER IF EXISTS trigger_sync_user_subscription ON public.subscriptions;
 CREATE TRIGGER trigger_sync_user_subscription
   AFTER INSERT OR UPDATE ON public.subscriptions
@@ -435,6 +462,71 @@ CREATE TRIGGER trigger_handle_invoice_deletion
   EXECUTE FUNCTION public.handle_invoice_deletion();
 
 -- ==========================================
+-- EMAIL VERIFICATION FUNCTIONS
+-- ==========================================
+
+-- Function to check email verification status
+CREATE OR REPLACE FUNCTION public.check_email_verification(user_email text)
+RETURNS boolean AS $$
+DECLARE
+    user_record auth.users;
+BEGIN
+    SELECT * INTO user_record 
+    FROM auth.users 
+    WHERE email = user_email;
+    
+    RETURN user_record.email_confirmed_at IS NOT NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to manually trigger email verification (for logging purposes)
+CREATE OR REPLACE FUNCTION public.resend_verification_email(user_email text)
+RETURNS void AS $$
+BEGIN
+    -- This would typically be handled by Supabase Auth
+    -- For now, we'll just log the attempt
+    RAISE LOG 'Resend verification email requested for: %', user_email;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to clear email confirmation status for development
+-- This should only be used in development environments
+CREATE OR REPLACE FUNCTION public.clear_email_confirmation(user_email text)
+RETURNS text AS $$
+DECLARE
+    user_record auth.users;
+    result text;
+BEGIN
+    -- Find the user by email
+    SELECT * INTO user_record 
+    FROM auth.users 
+    WHERE email = user_email;
+    
+    IF user_record IS NULL THEN
+        RETURN 'User not found with email: ' || user_email;
+    END IF;
+    
+    -- Clear email confirmation status
+    UPDATE auth.users 
+    SET 
+        email_confirmed_at = NULL,
+        email_confirm_sent_at = NULL,
+        updated_at = NOW()
+    WHERE email = user_email;
+    
+    result := 'Email confirmation cleared for user: ' || user_email || ' (ID: ' || user_record.id || ')';
+    
+    -- Log the action
+    RAISE LOG 'Email confirmation cleared for user: % (ID: %)', user_email, user_record.id;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users (for development)
+GRANT EXECUTE ON FUNCTION public.clear_email_confirmation(text) TO authenticated;
+
+-- ==========================================
 -- POLICIES (Drop and recreate to avoid conflicts)
 -- ==========================================
 
@@ -446,6 +538,10 @@ CREATE POLICY "Users can view own data" ON public.users
 DROP POLICY IF EXISTS "Users can update own data" ON public.users;
 CREATE POLICY "Users can update own data" ON public.users
     FOR UPDATE USING ((SELECT auth.uid())::text = user_id);
+
+DROP POLICY IF EXISTS "Service role can manage all users" ON public.users;
+CREATE POLICY "Service role can manage all users" ON public.users
+    FOR ALL USING (auth.role() = 'service_role');
 
 -- Subscriptions policies
 DROP POLICY IF EXISTS "Users can view own subscriptions" ON public.subscriptions;
@@ -587,16 +683,5 @@ BEGIN
     RAISE NOTICE '🛡️ Row Level Security policies applied';
     RAISE NOTICE '🔄 This script is idempotent and can be run multiple times safely';
 END $$; 
-
--- Step 5: Recreate the triggers with CORRECT schema references
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW 
-  EXECUTE FUNCTION public.handle_new_user();
-
-CREATE TRIGGER on_auth_user_updated
-  AFTER UPDATE ON auth.users
-  FOR EACH ROW 
-  EXECUTE FUNCTION public.handle_user_update();
 
  

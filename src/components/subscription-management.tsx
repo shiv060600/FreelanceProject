@@ -5,6 +5,9 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { CreditCard, Settings, AlertCircle, ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+
 
 interface SubscriptionManagementProps {
     user: User;
@@ -15,9 +18,31 @@ interface SubscriptionManagementProps {
 }
 
 export default function SubscriptionManagement({ user, subscription }: SubscriptionManagementProps) {
-    const handleManageSubscription = () => {
-        // Open Stripe billing portal directly
-        window.open('https://billing.stripe.com/p/login/test_5kQ9AT9Gsdjq6ELgAggjC00', '_blank');
+    const router = useRouter();
+    console.log(user.id)
+    const handleManageSubscription = async () => {
+    try {
+        
+        const response = await fetch('/api/create-stripe-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+        });
+
+        console.log(`repsonse ${response}`)
+        const data = await response.json();
+        console.log(`data (response.json): ${data}`)
+
+        if (data.url && typeof data.url === "string") {
+            window.open(data.url, "_blank");
+        } else if (data.redirect && typeof data.redirect === "string") {
+            router.push(data.redirect);
+        } else {
+            alert("No valid URL or redirect found in response.");
+        }
+    } catch (error:any) {
+        alert(`error opening stripe portal ${error.message}`);
+    }
     };
 
     const getStatusColor = (status: string | null) => {
@@ -39,13 +64,13 @@ export default function SubscriptionManagement({ user, subscription }: Subscript
     const getInvoiceLimit = (plan: string | null) => {
         switch (plan) {
             case 'New Freelancer':
-                return '50';
+                return '5';
             case 'Seasoned Freelancer':
-                return '125';
-            case 'Expert Freelancer':
-                return '500';
-            default:
                 return '10';
+            case 'Expert Freelancer':
+                return '20';
+            default:
+                return '2';
         }
     };
 

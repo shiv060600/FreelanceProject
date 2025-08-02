@@ -8,8 +8,16 @@ export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const fullName = formData.get("full_name")?.toString() || '';
-  const supabase = await createClient();
+  const verifyPassowrd = formData.get("verify-password")?.toString() || '';
 
+  if (verifyPassowrd !== password){
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Your password and verify password do not match, try again."
+    )
+  }
+  
   if (!email || !password) {
     return encodedRedirect(
       "error",
@@ -18,36 +26,55 @@ export const signUpAction = async (formData: FormData) => {
     );
   }
 
-  const { data: { user }, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-        email: email,
+  try {
+    const supabase = await createClient();
+    
+
+    const { data: { user }, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error("Supabase sign-up error:", error);
+      
+      if (error.message.includes('already registered') || error.message.includes('already exists')) {
+        return encodedRedirect(
+          "error", 
+          "/sign-up", 
+          "An account with this email already exists. Please sign in instead."
+        );
       }
-    },
-  });
+      
+      return encodedRedirect("error", "/sign-up", error.message);
+    }
 
-  if (error) {
-    return encodedRedirect("error", "/sign-up", error.message);
-  }
-
-  if (user) {
-    // The handle_new_user() trigger will automatically create the user record
-    // with the correct subscription limits based on the trigger logic
+    if (user) {
+      console.log("User created successfully:", user.id);
+      console.log("User email confirmed:", user.email_confirmed_at);
+      console.log("User email:", user.email);
+      
+      // Check if email confirmation is required
+      if (!user.email_confirmed_at) {
+        console.log("Email confirmation required - verification email should be sent");
+      } else {
+        console.log("Email already confirmed");
+      }
+      
       return encodedRedirect(
         "success",
         "/sign-up",
         "Account created! Please check your email for verification.",
       );
+    }
+  } catch (error) {
+    console.error("Unexpected sign-up error:", error);
+    return encodedRedirect(
+      "error", 
+      "/sign-up", 
+      "An unexpected error occurred. Please try again."
+    );
   }
-
-  return encodedRedirect(
-    "success",
-    "/sign-up",
-    "Thanks for signing up! Please check your email for a verification link.",
-  );
 };
 
 export const signInAction = async (formData: FormData) => {
@@ -98,13 +125,12 @@ export const forgotPasswordAction = async (formData: FormData) => {
 };
 
 export const resetPasswordAction = async (formData: FormData) => {
-  const supabase = await createClient();
-
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+  const supabase = await createClient();
 
   if (!password || !confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/protected/reset-password",
       "Password and confirm password are required",
@@ -112,7 +138,7 @@ export const resetPasswordAction = async (formData: FormData) => {
   }
 
   if (password !== confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/dashboard/reset-password",
       "Passwords do not match",
@@ -124,14 +150,14 @@ export const resetPasswordAction = async (formData: FormData) => {
   });
 
   if (error) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/dashboard/reset-password",
       "Password update failed",
     );
   }
 
-  encodedRedirect("success", "/protected/reset-password", "Password updated");
+  return encodedRedirect("success", "/protected/reset-password", "Password updated");
 };
 
 export const signOutAction = async () => {

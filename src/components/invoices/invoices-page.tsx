@@ -294,14 +294,6 @@ export default function InvoicesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleSendInvoice(invoice.id)}
-                            disabled={sendInvoice.isPending}
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             onClick={() => {
                               setSelectedInvoice(invoice)
                               setDeleteDialogOpen(true)

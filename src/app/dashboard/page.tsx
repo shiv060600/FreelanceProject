@@ -28,7 +28,7 @@ export default async function Dashboard() {
     .from('invoices')
     .select('total, status')
     .eq('user_id', user.id)
-    .eq('status', 'draft'); // Only get draft invoices
+    .eq('status', 'draft'); 
 
   const currentDraftStats = invoiceStats?.reduce((stats, currentInvoice) => {
     stats.totalToBeMade += currentInvoice.total;
