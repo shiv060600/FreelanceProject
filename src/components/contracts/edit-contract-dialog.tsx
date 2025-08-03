@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { useEditContract } from '@/hooks/use-contracts'
 import { useClients } from '@/hooks/use-clients'
+import { RichTextEditor } from '../rich-text-editor'
 
 interface Contract {
     id: string
@@ -56,7 +57,10 @@ export function EditContractDialog({ contract, open, onOpenChange }: EditContrac
             return
         }
 
-        if (!title.trim() || !content.trim() || !clientId) {
+        // Strip HTML tags for validation (ReactQuill outputs HTML)
+        const textContent = content.replace(/<[^>]*>/g, '').trim()
+        
+        if (!title.trim() || !textContent || !clientId) {
             toast({
                 title: "Error",
                 description: "Please fill in all fields",
@@ -72,7 +76,7 @@ export function EditContractDialog({ contract, open, onOpenChange }: EditContrac
                 id: contract.id,
                 user_id: contract.user_id,
                 title: title.trim(),
-                content: content.trim(),
+                content: content, // Keep HTML for storage
                 client_id: clientId,
             })
 
@@ -98,9 +102,12 @@ export function EditContractDialog({ contract, open, onOpenChange }: EditContrac
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[1000px]">
                 <DialogHeader>
                     <DialogTitle>Edit Contract</DialogTitle>
+                    <DialogDescription>
+                        Update the contract details below.
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -133,13 +140,10 @@ export function EditContractDialog({ contract, open, onOpenChange }: EditContrac
 
                     <div className="space-y-2">
                         <Label htmlFor="content">Contract Content</Label>
-                        <Textarea
-                            id="content"
+                        <RichTextEditor
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
+                            onChange={setContent}
                             placeholder="Enter contract content..."
-                            rows={10}
-                            required
                         />
                     </div>
 

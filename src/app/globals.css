@@ -2,6 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ReactQuill Styles - Import moved to components */
+
+/* ReactQuill Custom Styling */
+.react-quill-container {
+  height: 220px !important;
+  overflow: hidden;
+}
+
+.react-quill-container .ql-editor {
+  height: 170px !important;
+  max-height: 170px !important;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-y: auto;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  overflow-x: hidden !important;
+}
+
+.react-quill-container .ql-container {
+  height: 170px !important;
+}
+
+.react-quill-container .ql-toolbar {
+  border-top: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-bottom: none;
+}
+
+.react-quill-container .ql-container {
+  border-bottom: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+
+.react-quill-container .ql-toolbar {
+  border-radius: 6px 6px 0 0;
+}
+
+/* Rich text content styling in contracts list */
+.prose p {
+  margin: 0.5em 0;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose ul, .prose ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.prose h1, .prose h2, .prose h3 {
+  font-weight: 600;
+  margin: 0.5em 0 0.25em 0;
+}
+
+.prose h1 { font-size: 1.1em; }
+.prose h2 { font-size: 1.05em; }
+.prose h3 { font-size: 1em; }
+
 @layer base {
   :root {
     --background: 0 0% 100%;

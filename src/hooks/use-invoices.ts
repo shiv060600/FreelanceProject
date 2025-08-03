@@ -132,10 +132,10 @@ export function useUserSubscription(userId: string) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (dbError) {
-        // No active subscription found
+        console.error('Subscription query error:', dbError)
         return { maxInvoices: 2, status: 'free' }
       }
       

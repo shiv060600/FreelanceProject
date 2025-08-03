@@ -87,11 +87,11 @@ export function useUserSubscription(userId: string) {
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single()
+                .maybeSingle()
 
             if (dbError) {
-                // No active subscription found
-                return { maxContracts: 0, status: 'free' }
+                console.error('Subscription query error:', dbError)
+                return { maxContracts: 2, status: 'free' }
             }
             
             if (subscriptionData) {
@@ -135,7 +135,7 @@ export function useUserSubscription(userId: string) {
             return { maxContracts: 0, status: 'free' }
         },
         enabled: !!userId,
-        refetchInterval: 3000,
+        refetchInterval: 30000, // Reduce to 30 seconds instead of 3 seconds
     })
 }
 
@@ -238,11 +238,9 @@ export function useDeleteContract() {
             return deletedContract
         },
         onMutate: async ({ contractId, userId }) => {
-            // cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['contracts', userId] })
             await queryClient.cancelQueries({ queryKey: ['contract-count', userId] })
             
-            // get previous contract data
             const previousContracts = queryClient.getQueryData(['contracts', userId])
             const previousCount = queryClient.getQueryData(['contract-count', userId])
             
@@ -280,10 +278,14 @@ export function useCanCreateContract(userId: string) {
     const { data: subscription } = useUserSubscription(userId)
     const { data: contractCount } = useContractCount(userId)
     
+    // Default to free tier limits if no subscription data
+    const maxContracts = subscription?.maxContracts || 2
+    const currentCount = contractCount || 0
+    
     return {
-        canCreate: subscription && (contractCount || 0) < (subscription?.maxContracts || 0),
-        currentCount: contractCount || 0,
-        maxContracts: subscription?.maxContracts || 0,
+        canCreate: currentCount < maxContracts,
+        currentCount,
+        maxContracts,
         subscriptionStatus: subscription?.status || 'free'
     }
 }

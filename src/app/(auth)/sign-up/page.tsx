@@ -10,23 +10,25 @@ import Navbar from "@/components/navbar";
 export default async function Signup(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
 
-  const errorMessage = searchParams.error as string;
-  const generalMessage = searchParams.message as string;
-  
-  const hasError = errorMessage || generalMessage?.includes('error');
+  const errorMessage = searchParams.error as string | undefined;
+  const successMessage = searchParams.success as string | undefined;
+  const generalMessage = searchParams.message as string | undefined;
 
-  const message = errorMessage 
-    ? { error: errorMessage }
-    : generalMessage
-    ? { message: generalMessage }
-    : undefined;
+  let message: Message | undefined = undefined;
+  if (errorMessage) {
+    message = { error: errorMessage };
+  } else if (successMessage) {
+    message = { message: successMessage };
+  } else if (generalMessage) {
+    message = { message: generalMessage };
+  }
 
   return (
     <>
       <Navbar />
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
         <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
-          <form action={signUpAction} className="flex flex-col space-y-6">
+          <form  className="flex flex-col space-y-6">
             <div className="space-y-2 text-center">
               <h1 className="text-3xl font-semibold tracking-tight">Sign up</h1>
               <p className="text-sm text-muted-foreground">

@@ -28,16 +28,20 @@ export const signUpAction = async (formData: FormData) => {
 
   try {
     const supabase = await createClient();
-    
 
     const { data: { user }, error } = await supabase.auth.signUp({
       email,
       password,
+      options : {
+        data:{
+          full_name : fullName
+        }
+      }
     });
 
     if (error) {
       console.error("Supabase sign-up error:", error);
-      
+
       if (error.message.includes('already registered') || error.message.includes('already exists')) {
         return encodedRedirect(
           "error", 
@@ -45,7 +49,7 @@ export const signUpAction = async (formData: FormData) => {
           "An account with this email already exists. Please sign in instead."
         );
       }
-      
+
       return encodedRedirect("error", "/sign-up", error.message);
     }
 
@@ -53,21 +57,23 @@ export const signUpAction = async (formData: FormData) => {
       console.log("User created successfully:", user.id);
       console.log("User email confirmed:", user.email_confirmed_at);
       console.log("User email:", user.email);
-      
-      // Check if email confirmation is required
+
       if (!user.email_confirmed_at) {
         console.log("Email confirmation required - verification email should be sent");
       } else {
         console.log("Email already confirmed");
       }
-      
       return encodedRedirect(
         "success",
         "/sign-up",
         "Account created! Please check your email for verification.",
       );
     }
-  } catch (error) {
+  } catch (error: any) {
+    //deal with nextjs error
+    if (error.digest && error.digest.startsWith('NEXT_REDIRECT')) {
+      throw error; 
+    }
     console.error("Unexpected sign-up error:", error);
     return encodedRedirect(
       "error", 

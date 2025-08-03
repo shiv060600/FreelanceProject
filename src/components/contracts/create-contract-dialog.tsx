@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -12,6 +12,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { useCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
 import { useClients } from '@/hooks/use-clients'
+import { RichTextEditor } from '../rich-text-editor'
+
 
 interface CreateContractDialogProps {
     open: boolean
@@ -41,7 +43,10 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
             return
         }
 
-        if (!title.trim() || !content.trim() || !clientId) {
+        // Strip HTML tags for validation (ReactQuill outputs HTML)
+        const textContent = content.replace(/<[^>]*>/g, '').trim()
+        
+        if (!title.trim() || !textContent || !clientId) {
             toast({
                 title: "Error",
                 description: "Please fill in all fields",
@@ -57,7 +62,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                 user_id: user.id,
                 client_id: clientId,
                 title: title.trim(),
-                content: content.trim(),
+                content: content, // Keep HTML for storage
             })
 
             toast({
@@ -84,9 +89,12 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[1000px] mx-auto h-[600px]">
                 <DialogHeader>
                     <DialogTitle>Create New Contract</DialogTitle>
+                    <DialogDescription>
+                        Fill out the form below to create a new contract for your client.
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -116,20 +124,15 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                             </SelectContent>
                         </Select>
                     </div>
-
                     <div className="space-y-2">
-                        <Label htmlFor="content">Contract Content</Label>
-                        <Textarea
-                            id="content"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder="Enter contract content..."
-                            rows={10}
-                            required
-                        />
+                          <Label htmlFor="content">Contract Content</Label>
+                          <RichTextEditor
+                              value={content}
+                              onChange={setContent}
+                              placeholder="Enter contract content..."
+                          />
                     </div>
-
-                    <div className="flex justify-end space-x-2 pt-4">
+                    <div className="flex justify-end space-x-2 pt-4 mt-10">
                         <Button
                             type="button"
                             variant="outline"

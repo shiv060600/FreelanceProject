@@ -21,6 +21,8 @@ export default function ContractsPage() {
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  console.log(`createDialogOpen : ${createDialogOpen}`)
   
   const { data: user , isLoading: userLoading } = useUser();
   const { data: contracts , isLoading: contractsLoading,isFetching:contractsFetching } = useContracts(user?.id || '')
@@ -49,22 +51,34 @@ export default function ContractsPage() {
 
   if (contracts.length === 0){
     return(
-      <Card>
-      <CardContent className="flex flex-col items-center justify-center py-12">
-        <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No contracts yet</h3>
-        <p className="text-muted-foreground text-center mb-4">
-          Create your first contract to get started.
-        </p>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-          disabled={!canCreate}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Contract
-        </Button>
-      </CardContent>
-    </Card>
+      <div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No contracts yet</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Create your first contract to get started.
+            </p>
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              disabled={!canCreate}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Contract
+            </Button>
+            {!canCreate && 
+              <p className='text-sm font-bold text-red-500 mt-5'>
+                Your current subscription does not allow for contact creation
+              </p>}
+          </CardContent>
+        </Card>
+        <CreateContractDialog 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+        />
+      </div>
+    
+    
     )
   }
 
@@ -149,11 +163,15 @@ export default function ContractsPage() {
               <CardContent>
                 <div className="text-sm text-muted-foreground max-h-20 overflow-hidden">
                   {contract.content ? (
-                    <pre className="whitespace-pre-wrap font-sans">
-                      {contract.content.length > 200 
-                        ? `${contract.content.substring(0, 200)}...` 
-                        : contract.content}
-                    </pre>
+                    <div className="whitespace-pre-wrap font-sans">
+                      {/* Strip HTML for preview */}
+                      {(() => {
+                        const plainText = contract.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
+                        return plainText.length > 200 
+                          ? `${plainText.substring(0, 200)}...` 
+                          : plainText
+                      })()}
+                    </div>
                   ) : (
                     <em>No content</em>
                   )}
