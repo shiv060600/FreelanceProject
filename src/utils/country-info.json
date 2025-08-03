@@ -1,0 +1,52 @@
+{
+  "India": {
+    "e_signature_valid": true,
+    "language_required": "English accepted",
+    "notes": "Stamp paper often used; not strictly required for digital freelance agreements."
+  },
+  "USA": {
+    "e_signature_valid": true,
+    "language_required": "English",
+    "notes": "ESIGN and UETA Acts ensure enforceability; signatures can be typed."
+  },
+  "Philippines": {
+    "e_signature_valid": true,
+    "language_required": "English accepted",
+    "notes": "Freelancer contracts governed by Civil Code; e-signatures valid."
+  },
+  "Pakistan": {
+    "e_signature_valid": true,
+    "language_required": "English widely used",
+    "notes": "Stamp paper or notarization may strengthen contract enforceability."
+  },
+  "Bangladesh": {
+    "e_signature_valid": true,
+    "language_required": "English accepted",
+    "notes": "Legal recognition under ICT Act; cultural preference for written copies."
+  },
+  "UK": {
+    "e_signature_valid": true,
+    "language_required": "English",
+    "notes": "Digital contracts enforceable; ensure clarity and fairness."
+  },
+  "Ukraine": {
+    "e_signature_valid": true,
+    "language_required": "Ukrainian often required",
+    "notes": "English may work between parties, but Ukrainian translation may be needed in disputes."
+  },
+  "Russia": {
+    "e_signature_valid": false,
+    "language_required": "Russian required",
+    "notes": "E-signatures only valid with certified Russian providers; translation required."
+  },
+  "Brazil": {
+    "e_signature_valid": true,
+    "language_required": "Portuguese preferred",
+    "notes": "English valid with consent, but local consumer laws may override terms."
+  },
+  "Serbia": {
+    "e_signature_valid": true,
+    "language_required": "Serbian preferred",
+    "notes": "Translations may be required for court use; signatures are binding electronically."
+  }
+}

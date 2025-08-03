@@ -12,7 +12,6 @@ import InvoicePDF from './invoice-pdf'
 import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
 import { useState } from "react"
 import { DeleteInvoiceDialog } from "./delete-invoice-dialog"
-// React Query hooks
 import { useUser } from '@/hooks/use-user'
 import { useQueryClient } from '@tanstack/react-query'
 import { 

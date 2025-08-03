@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,14 +13,32 @@ import { DeleteContractDialog } from './delete-contract-dialog'
 import { useContracts, useCanCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
 import { useQueryClient } from '@tanstack/react-query'
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import countriesData from "../../utils/country-info.json"
+
+interface CountryInfo {
+  
+  e_signature_valid:boolean,
+  language_required:string,
+  notes:string
+} 
 
 export default function ContractsPage() {
+  const [selectedCountry,setSelectedCountry] = useState('');
+  const [selectedCountryInfo,setSelectedCountryInfo] = useState<CountryInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const countryNames: string[] = Object.keys(countriesData);
+  const countriesMap: Map<string,CountryInfo> | null = new Map(Object.entries(countriesData))
+  
+  useEffect((()=>{
+    setSelectedCountryInfo(countriesMap.get(selectedCountry) || null)
+  }),[selectedCountry])
 
   console.log(`createDialogOpen : ${createDialogOpen}`)
   
@@ -85,6 +103,51 @@ export default function ContractsPage() {
   
   return (
     <div className="space-y-6">
+      <div className='flex flex-col items-center gap-4'>
+        <Label htmlFor='country_info'>Select Country below to see genral contract information</Label>
+        <Select name="country_info" value={selectedCountry} onValueChange={setSelectedCountry}>
+          <SelectTrigger >
+            <SelectValue placeholder="Select a Country"/>
+            <SelectContent>
+              {countryNames.map((name,i) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectTrigger>
+        </Select>
+      </div>
+
+      {(selectedCountry != '') &&
+      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 shadow-md mb-6">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-blue-700 flex items-center gap-2">
+              <AwardIcon className="h-6 w-6 text-blue-400" />
+              {selectedCountry}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="font-semibold text-gray-700 mb-1">Electronic Signature Valid:</div>
+                <Badge variant={selectedCountryInfo?.e_signature_valid ? "default" : "destructive"}>
+                  {selectedCountryInfo?.e_signature_valid ? "Yes" : "No"}
+                </Badge>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-700 mb-1">Language(s) Required:</div>
+                <span className="text-blue-800">{selectedCountryInfo?.language_required}</span>
+              </div>
+              <div className="md:col-span-2">
+                <div className="font-semibold text-gray-700 mb-1">Notes:</div>
+                <p className="text-gray-600 bg-gradient-to-r from-blue-50 to-purple-50 rounded p-2">{selectedCountryInfo?.notes || "None"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      }
+
       <div className='flex justify-between'>
         <h1 className='text-2xl font-bold'>Contracts</h1>
         <Button 
@@ -94,92 +157,92 @@ export default function ContractsPage() {
           Add Contract
         </Button>
       </div>
-        <div className="grid gap-4">
-          {contracts.map((contract) => (
-            <Card key={contract.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{contract.title}</CardTitle>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary">
-                        {contract.clients?.name || `Unknown Client (${contract.client_id})`}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(contract.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
+      <div className="grid gap-4">
+        {contracts.map((contract) => (
+          <Card key={contract.id} className='bg-gradient-to-r from-blue-50 to-purple-50'>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">{contract.title}</CardTitle>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="secondary">
+                      {contract.clients?.name || `Unknown Client (${contract.client_id})`}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(contract.created_at).toLocaleDateString()}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {user && (
-                      <PDFDownloadLink
-                        document={
-                          <ContractPDF
-                            contract={{
-                              ...contract,
-                              clients: contract.clients ? [{
-                                ...contract.clients,
-                                company: contract.clients.company || undefined
-                              }] : []
-                            }}
-                            userName={user.user_metadata?.full_name || user.email || 'Unknown User'}
-                            userEmail={user.email || ''}
-                          />
-                        }
-                        fileName={`contract-${contract.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${contract.id.slice(0, 8)}.pdf`}
-                      >
-                        {({ loading }) => (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={loading}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </PDFDownloadLink>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditContract(contract)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteContract(contract)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
 
-
-                    
-                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground max-h-20 overflow-hidden">
-                  {contract.content ? (
-                    <div className="whitespace-pre-wrap font-sans">
-                      {/* Strip HTML for preview */}
-                      {(() => {
-                        const plainText = contract.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
-                        return plainText.length > 200 
-                          ? `${plainText.substring(0, 200)}...` 
-                          : plainText
-                      })()}
-                    </div>
-                  ) : (
-                    <em>No content</em>
+                <div className="flex items-center gap-2">
+                  {user && (
+                    <PDFDownloadLink
+                      document={
+                        <ContractPDF
+                          contract={{
+                            ...contract,
+                            clients: contract.clients ? [{
+                              ...contract.clients,
+                              company: contract.clients.company || undefined
+                            }] : []
+                          }}
+                          userName={user.user_metadata?.full_name || user.email || 'Unknown User'}
+                          userEmail={user.email || ''}
+                        />
+                      }
+                      fileName={`contract-${contract.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${contract.id.slice(0, 8)}.pdf`}
+                    >
+                      {({ loading }) => (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={loading}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </PDFDownloadLink>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditContract(contract)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteContract(contract)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+
+
+                  
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground max-h-20 overflow-hidden">
+                {contract.content ? (
+                  <div className="whitespace-pre-wrap font-sans">
+                    {/* Strip HTML for preview */}
+                    {(() => {
+                      const plainText = contract.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
+                      return plainText.length > 200 
+                        ? `${plainText.substring(0, 200)}...` 
+                        : plainText
+                    })()}
+                  </div>
+                ) : (
+                  <em>No content</em>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       {/* Dialogs */}
       <CreateContractDialog 
         open={createDialogOpen} 
