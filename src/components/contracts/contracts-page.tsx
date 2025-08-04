@@ -18,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import countriesData from "../../utils/country-info.json"
 
 interface CountryInfo {
-  
   e_signature_valid:boolean,
   language_required:string,
   notes:string

@@ -34,6 +34,7 @@
     "next": "14.2.23",
     "next-themes": "^0.2.1",
     "plotly": "^1.0.6",
+    "plotly.js-dist": "^3.0.3",
     "prettier": "^3.3.3",
     "quill": "^2.0.3",
     "radix-ui": "^1.1.3",

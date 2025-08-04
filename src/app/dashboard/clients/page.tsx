@@ -18,7 +18,6 @@ const ClientsPage = async () => {
     return redirect("/sign-in");
   }
 
-  // Fetch clients
   const { data: clients } = await supabase
     .from('clients')
     .select('*')
