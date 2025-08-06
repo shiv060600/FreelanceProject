@@ -11,7 +11,7 @@ interface Contract {
     title:string;
     content:string;
     created_at:string;
-    // Joined data (not in DB but added by your code)
+    // Joined data (not in DB but added)
     clients?: {
       id: string;
       name: string;
@@ -32,7 +32,7 @@ interface UpdateContractData {
     user_id: string;
     title?: string;
     content?: string;
-    client_id?: string;
+    client_id: string;
 }
 
 // 1. Fetch contracts with client data

@@ -155,14 +155,14 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
         .eq('id',clientId)
         .single()
 
-        if(clientDataT && !clientError){
-          setClientData(clientDataT)
+        if(!clientDataT || clientError){
+         throw new Error(`clientDataT not set${clientError?.message}`)
         }
-
+         setClientData(clientDataT);
       }
       fetchClientData(invoice?.client_id)
 
-    },[invoice?.client_id])
+    },[invoice.client_id])
 
     
     

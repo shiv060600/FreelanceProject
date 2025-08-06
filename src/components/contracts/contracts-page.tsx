@@ -16,12 +16,30 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import countriesData from "../../utils/country-info.json"
+import { SearchInput } from '../ui/search-input'
+import { useMemo } from 'react'
 
 interface CountryInfo {
   e_signature_valid:boolean,
   language_required:string,
   notes:string
 } 
+
+interface Contract {
+    id: string;
+    client_id:string;
+    user_id:string;
+    title:string;
+    content:string;
+    created_at:string;
+    //joined clients not from db
+    clients?: {
+      id: string;
+      name: string;
+      email: string;
+      company: string;
+    } | null;
+}
 
 export default function ContractsPage() {
   const [selectedCountry,setSelectedCountry] = useState('');
@@ -34,21 +52,30 @@ export default function ContractsPage() {
   const { toast } = useToast();
   const countryNames: string[] = Object.keys(countriesData);
   const countriesMap: Map<string,CountryInfo> | null = new Map(Object.entries(countriesData))
+  const [currentSearch,setCurrentSearch] = useState("")
   
   useEffect((()=>{
     setSelectedCountryInfo(countriesMap.get(selectedCountry) || null)
   }),[selectedCountry])
 
-  console.log(`createDialogOpen : ${createDialogOpen}`)
   
   const { data: user , isLoading: userLoading } = useUser();
-  const { data: contracts , isLoading: contractsLoading,isFetching:contractsFetching } = useContracts(user?.id || '')
-  const { canCreate, currentCount, maxContracts, subscriptionStatus } = useCanCreateContract(user?.id || '')
+  const { data: contracts , isLoading: contractsLoading,isFetching:contractsFetching } = useContracts(user?.id || '');
+  const { canCreate, currentCount, maxContracts, subscriptionStatus } = useCanCreateContract(user?.id || '');
 
   const handleEditContract = (contract: any) => {
     setSelectedContract(contract)
     setEditDialogOpen(true)
   }
+
+  const filteredContracts = useMemo(()=>{
+    if (!contracts) return [];
+
+    return contracts.filter((contract)=> {
+      return (contract?.clients?.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
+              contract?.title.toLowerCase().includes(currentSearch.toLocaleLowerCase()))
+    })
+  },[contracts,currentSearch]);
 
   const handleDeleteContract = (contract: any) => {
     setSelectedContract(contract)
@@ -148,7 +175,10 @@ export default function ContractsPage() {
       }
 
       <div className='flex justify-between'>
-        <h1 className='text-2xl font-bold'>Contracts</h1>
+        <div className='flex items-center gap-4'>
+          <h1 className='text-2xl font-bold'>Contracts</h1>
+          <SearchInput placeholder='Search contracts by name' value = {currentSearch} onChange={setCurrentSearch} className='h-10'/>
+        </div>
         <Button 
           disabled = {!canCreate}
           onClick={() => {setCreateDialogOpen(true)}}>          
@@ -157,7 +187,7 @@ export default function ContractsPage() {
         </Button>
       </div>
       <div className="grid gap-4">
-        {contracts.map((contract) => (
+        {filteredContracts.map((contract) => (
           <Card key={contract.id} className='bg-gradient-to-r from-blue-50 to-purple-50'>
             <CardHeader>
               <div className="flex justify-between items-start">

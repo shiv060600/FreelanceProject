@@ -4,7 +4,9 @@ import { InfoIcon, UserCircle, DollarSign, FileText } from "lucide-react";
 import { redirect } from "next/navigation";
 import '@/styles/components.css';
 import { stat } from "fs";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Delta } from "quill";
+import SalesBarChart from "@/components/ui/client-sales-barchart";
 
 interface ClientInfo {
   name: string | null;
@@ -20,19 +22,26 @@ interface EnrichedInvoice {
   total: number;
 }
 
+interface ClientYearlySales {
+  x: Array<string>;
+  y: Array<number>;
+  name: string;
+  type: 'bar';
+}
 
 export default async function Dashboard() {
   const supabase = await createClient();
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
+  const currentMonth = currentDate.getMonth() + 1;
   const previousYearDate = new Date(currentDate);
   previousYearDate.setFullYear(currentDate.getFullYear()-1)
   //parse date for supabase format
   const previousYearISO = previousYearDate.toISOString().slice(0,10);
   //create and build 12m rolling array
-  const twelveMonthRolling = new Array();
+  const twelveMonthRolling = new Map<number,number>();
+  const x = new Array();
   for(let i = 0 ; i < 12 ; i++){
     let calculatedMonth = currentMonth - i;
     let calculatedYear = currentYear;
@@ -40,7 +49,8 @@ export default async function Dashboard() {
       calculatedMonth += 12;
       calculatedYear -= 1;
     }
-    twelveMonthRolling.push(calculatedYear*100 + calculatedMonth)
+    twelveMonthRolling.set(calculatedYear*100 + calculatedMonth,i)
+    x.push(calculatedMonth.toString() + '-' + calculatedYear.toString());
   }
   const {data:{user}} = await supabase.auth.getUser();
 
@@ -110,38 +120,35 @@ export default async function Dashboard() {
         total: invoice.total,
       };
     });
-  const groupedByClientAndMonth = new Map<string, {
-    client_id: string,
-    client_name: string,
-    yearMonth: number,
-    total: number
-  }>();
 
-  enrichedInvoices.forEach((invoice) => {
-    // Defensive: clients may be null or missing name
-    let client_name: string;
-    if (invoice.clients && typeof invoice.clients.name === 'string') {
-      client_name = invoice.clients.name;
-    } else {
-      client_name = 'Unknown';
-    }
-    const client_id = invoice.client_id;
-    const yearMonth = invoice.due_date;
-    const uniqueKey = `${client_id}_${yearMonth}`;
-    if(!groupedByClientAndMonth.get(uniqueKey)){
-      groupedByClientAndMonth.set(uniqueKey,{
-        client_id : client_id,
-        client_name : client_name,
-        yearMonth : yearMonth,
-        total : 0
+  const clientsYearlySalesData = new Map<string,ClientYearlySales>();
+  
+  enrichedInvoices.forEach((invoice)=>{
+    if(!clientsYearlySalesData.get(invoice.client_id)){
+      clientsYearlySalesData.set(invoice.client_id,{
+        x: [...x],
+        y: new Array(12).fill(0),
+        name:invoice?.clients?.name ?? "Unknown",
+        type:'bar'
       })
     }
-    groupedByClientAndMonth.get(uniqueKey)!.total += invoice.total;
+    const currentClientData:ClientYearlySales = clientsYearlySalesData.get(invoice.client_id)!;
+    currentClientData.y[twelveMonthRolling.get(invoice.due_date)!] += invoice.total;
+    clientsYearlySalesData.set(invoice.client_id,currentClientData);
   });
-    
 
+  // Prepare data for recharts (after map is populated)
+  const rechartsData: Array<{ month: string } & { [client: string]: number }> = [];
+  for (let i = 0; i < x.length; i++) {
+    const monthObj: { month: string } & { [client: string]: number } = { month: x[i] };
+    for (const client of Array.from(clientsYearlySalesData.values())) {
+      monthObj[client.name] = client.y[i] || 0;
+    }
+    rechartsData.push(monthObj);
 
-
+  
+  };
+  console.log("*******************recharts data",rechartsData)
   return (
     <>
       <DashboardNavbar />
@@ -192,6 +199,10 @@ export default async function Dashboard() {
             </div>
           </div>
         </div>
+        <section className="flex flex-col w-full mt-8 items-center">
+          <h2 className="font-semibold text-xl mb-10">Client Invoices (Last 12 Months)</h2>
+          <SalesBarChart rechartsData={rechartsData} clientsYearlySalesData={clientsYearlySalesData}/>
+        </section>
       </main>
     </>
   );

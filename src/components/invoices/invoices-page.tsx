@@ -1,16 +1,18 @@
 'use client'
 
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { SearchInput } from "@/components/ui/search-input"
+import { SortHeader } from "@/components/ui/sort-header"
 import CreateInvoiceDialog from "./create-invoice-dialog"
 import EditInvoiceDialog from "./edit-invoice-dialog"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import InvoicePDF from './invoice-pdf'
 import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
-import { useState } from "react"
 import { DeleteInvoiceDialog } from "./delete-invoice-dialog"
 import { useUser } from '@/hooks/use-user'
 import { useQueryClient } from '@tanstack/react-query'
@@ -23,12 +25,31 @@ import {
   useUpdateInvoice
 } from '@/hooks/use-invoices'
 
+type SortDirection = 'asc' | 'desc' | null
+
 export default function InvoicesPage() {
   const router = useRouter()
   const { userInfo, loading: userInfoLoading } = useInvoicePDF()
   const queryClient = useQueryClient()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: SortDirection }>({
+    key: 'created_at',
+    direction: 'desc'
+  })
+
+  const handleSort = (key: string) => {
+    setSortConfig(prevConfig => {
+      if (prevConfig.key === key) {
+        // Cycle through: desc -> asc -> null -> desc
+        if (prevConfig.direction === 'desc') return { key, direction: 'asc' }
+        if (prevConfig.direction === 'asc') return { key: null, direction: null }
+        return { key, direction: 'desc' }
+      }
+      return { key, direction: 'desc' }
+    })
+  }
   
   // React Query hooks
   const { data: user, isLoading: userLoading } = useUser()
@@ -41,6 +62,60 @@ export default function InvoicesPage() {
 
   //master loading state
   const isLoading = userLoading || invoicesLoading
+
+  // Filter and sort invoices
+  const filteredAndSortedInvoices = useMemo(() => {
+    if (!invoices) return []
+    
+    let result = [...invoices]
+
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
+      result = result.filter(invoice =>
+        invoice.invoice_number.toLowerCase().includes(searchLower) ||
+        (invoice.invoice_items?.[0]?.invoice_name && 
+         invoice.invoice_items[0].invoice_name.toLowerCase().includes(searchLower)) ||
+        (invoice.clients?.name && 
+         invoice.clients.name.toLowerCase().includes(searchLower))
+      )
+    }
+
+    // Sort
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any
+        let bValue: any
+
+        switch (sortConfig.key) {
+          case 'issue_date':
+            aValue = new Date(a.issue_date).getTime()
+            bValue = new Date(b.issue_date).getTime()
+            break
+          case 'due_date':
+            aValue = new Date(a.due_date).getTime()
+            bValue = new Date(b.due_date).getTime()
+            break
+          case 'total':
+            aValue = a.total
+            bValue = b.total
+            break
+          case 'created_at':
+            aValue = new Date(a.created_at).getTime()
+            bValue = new Date(b.created_at).getTime()
+            break
+          default:
+            return 0
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+
+    return result
+  }, [invoices, searchTerm, sortConfig])
 
   const createNewInvoice = async () => {
     if (!user) {
@@ -219,6 +294,21 @@ export default function InvoicesPage() {
         </Alert>
       )}
 
+      {/* Search Bar */}
+      <div className="flex items-center gap-4">
+        <SearchInput
+          placeholder="Search by invoice #, invoice name, or client..."
+          value={searchTerm}
+          onChange={setSearchTerm}
+          className="max-w-md"
+        />
+        {searchTerm && (
+          <span className="text-sm text-muted-foreground">
+            {filteredAndSortedInvoices.length} of {invoices?.length || 0} invoices
+          </span>
+        )}
+      </div>
+
       {/* Invoices List */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="p-6">
@@ -229,22 +319,53 @@ export default function InvoicesPage() {
                   <th className="text-left py-3 px-4">Invoice #</th>
                   <th className="text-left py-3 px-4">Name</th>
                   <th className="text-left py-3 px-4">Client</th>
-                  <th className="text-left py-3 px-4">Start Date</th>
-                  <th className="text-left py-3 px-4">Due Date</th>
-                  <th className="text-left py-3 px-4">Amount</th>
+                  <th className="text-left py-3 px-4">
+                    <SortHeader 
+                      sortKey="issue_date" 
+                      currentSort={sortConfig} 
+                      onSort={handleSort}
+                      className="text-left"
+                    >
+                      Start Date
+                    </SortHeader>
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <SortHeader 
+                      sortKey="due_date" 
+                      currentSort={sortConfig} 
+                      onSort={handleSort}
+                      className="text-left"
+                    >
+                      Due Date
+                    </SortHeader>
+                  </th>
+                  <th className="text-left py-3 px-4">
+                    <SortHeader 
+                      sortKey="total" 
+                      currentSort={sortConfig} 
+                      onSort={handleSort}
+                      className="text-left"
+                    >
+                      Amount
+                    </SortHeader>
+                  </th>
                   <th className="text-left py-3 px-4">Status</th>
                   <th className="text-right py-3 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {!invoices || invoices.length === 0 ? (
+                {filteredAndSortedInvoices.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-8 text-gray-500">
-                      No invoices yet
+                      {!invoices || invoices.length === 0 ? (
+                        "No invoices yet"
+                      ) : (
+                        "No invoices found matching your search"
+                      )}
                     </td>
                   </tr>
                 ) : (
-                  invoices.map((invoice: any) => (
+                  filteredAndSortedInvoices.map((invoice: any) => (
                     <tr key={invoice.id} className="border-b">
                       <td className="py-3 px-4">{invoice.invoice_number}</td>
                       <td className="py-3 px-4">{invoice.invoice_items?.[0]?.invoice_name || 'N/A'}</td>
