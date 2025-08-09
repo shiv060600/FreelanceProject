@@ -1,12 +1,9 @@
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from "../../../supabase/server";
-import { InfoIcon, UserCircle, DollarSign, FileText } from "lucide-react";
+import { InfoIcon, DollarSign, FileText } from "lucide-react";
 import { redirect } from "next/navigation";
 import '@/styles/components.css';
-import { stat } from "fs";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Delta } from "quill";
-import SalesBarChart from "@/components/ui/client-sales-barchart";
+import AnalyticsSection from "@/components/dashboard/analytics-section";
 
 interface ClientInfo {
   name: string | null;
@@ -198,11 +195,12 @@ export default async function Dashboard() {
               </div>
             </div>
           </div>
+          
+          <AnalyticsSection 
+            rechartsData={rechartsData} 
+            clientsYearlySalesData={clientsYearlySalesData}
+          />
         </div>
-        <section className="flex flex-col w-full mt-8 items-center">
-          <h2 className="font-semibold text-xl mb-10">Client Invoices (Last 12 Months)</h2>
-          <SalesBarChart rechartsData={rechartsData} clientsYearlySalesData={clientsYearlySalesData}/>
-        </section>
       </main>
     </>
   );

@@ -27,9 +27,27 @@ interface EditInvoiceDialogProps {
 export default function EditInvoiceDialog({ children, invoice, onSuccess }: EditInvoiceDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [unitPrice, setUnitPrice] = useState('')
+  const [taxRate, setTaxRate] = useState(0)
   const router = useRouter()
   const supabase = createClient()
   const { clients, loading: clientsLoading } = useClients()
+
+  // Initialize form with current invoice data
+  useEffect(() => {
+    if (invoice && invoice.invoice_items?.[0]) {
+      const item = invoice.invoice_items[0]
+      setQuantity(item.quantity || 1)
+      setUnitPrice(item.unit_price ? item.unit_price.toString() : '')
+      setTaxRate(invoice.tax_rate || 0)
+    }
+  }, [invoice])
+
+  // Calculate subtotal and total
+  const subtotal = quantity * (parseFloat(unitPrice) || 0);
+  const taxAmount = subtotal * (taxRate / 100)
+  const total = subtotal + taxAmount
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -50,8 +68,10 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
         .update({
           due_date: formData.get('due_date'),
           status: formData.get('status'),
-          tax_rate: parseFloat(formData.get('tax_rate') as string) || 0,
-          total: parseFloat(formData.get('total') as string) || 0,
+          tax_rate: taxRate,
+          tax_amount: taxAmount,
+          total: total,
+          subtotal: subtotal,
           notes: formData.get('notes') as string,
           updated_at: new Date().toISOString()
         })
@@ -62,12 +82,16 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
         return
       }
 
-      // Update invoice item name only if it was changed
+      // Update invoice item with new pricing details
       const newInvoiceName = formData.get('invoice_name') as string
-      if (newInvoiceName && newInvoiceName !== invoice.invoice_items[0]?.invoice_name) {
+      if (invoice.invoice_items?.[0]) {
         const { error: itemError } = await supabase
           .from('invoice_items')
           .update({
+            description: newInvoiceName,
+            quantity: quantity,
+            unit_price: parseFloat(unitPrice) || 0,
+            total: subtotal,
             invoice_name: newInvoiceName,
           })
           .eq('invoice_id', invoice.id)
@@ -95,14 +119,14 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Invoice</DialogTitle>
           <DialogDescription>
             Update the invoice details below.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4 pb-6">
           <div className="space-y-2">
             <Label htmlFor="invoice_name">Invoice Name</Label>
             <Input
@@ -124,18 +148,68 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity *</Label>
+              <Input
+                id="quantity"
+                name="quantity"
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                value={quantity}
+                onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                placeholder="1.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit_price">Unit Price ($) *</Label>
+              <Input
+                id="unit_price"
+                name="unit_price"
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+                placeholder="100.00"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="total">Amount *</Label>
+            <Label htmlFor="tax_rate">Tax Rate (%)</Label>
             <Input
-              id="total"
-              name="total"
+              id="tax_rate"
+              name="tax_rate"
               type="number"
               step="0.01"
               min="0"
-              required
-              defaultValue={invoice.total}
+              max="100"
+              value={taxRate}
+              onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
               placeholder="0.00"
             />
+          </div>
+
+          {/* Display calculated amounts */}
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="flex justify-between">
+              <span className="font-medium">Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            {taxRate > 0 && (
+              <div className="flex justify-between">
+                <span className="font-medium">Tax ({taxRate}%):</span>
+                <span>${taxAmount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t pt-2">
+              <span className="font-bold">Total:</span>
+              <span className="font-bold">${total.toFixed(2)}</span>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -149,20 +223,6 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
                 <SelectItem value="paid">Paid</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tax_rate">Tax Rate (%)</Label>
-            <Input
-              id="tax_rate"
-              name="tax_rate"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              defaultValue={invoice.tax_rate}
-              placeholder="0.00"
-            />
           </div>
 
           <div className="space-y-2">

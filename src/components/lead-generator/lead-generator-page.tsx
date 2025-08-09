@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from "react";
-import { useLeadGenerator } from "@/api/client/lead-generator";
+import { useLeadGenerator } from "@/hooks/use-lead-generator";
 import { Lead, LeadGeneratorParams } from "@/types/lead-generator";
 import { createClient } from "@/lib/supabase-browser";
 import { redirect } from "next/navigation";

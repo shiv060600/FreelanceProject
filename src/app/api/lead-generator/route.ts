@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchYelpBusinesses, transformYelpDataToLeads } from '@/api/server/external/yelp';
+import { fetchYelpBusinesses, transformYelpDataToLeads } from '@/lib/yelp';
 
 /**
  * API handler for lead generation requests

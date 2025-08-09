@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at timestamp with time zone,
     email text,
     name text,
-    full_name text
+    full_name text,
+    cash_app_username text DEFAULT NULL,
+    venmo_username text DEFAULT NULL
 );
 
 -- Add subscription_status and max_contracts columns if they don't exist
@@ -132,6 +134,7 @@ CREATE TABLE IF NOT EXISTS public.invoice_items (
     quantity decimal(10,2) DEFAULT 1,
     unit_price decimal(10,2) DEFAULT 0,
     total decimal(10,2) DEFAULT 0,
+    invoice_name text,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );

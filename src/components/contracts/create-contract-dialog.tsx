@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { useCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
 import { useClients } from '@/hooks/use-clients'
-import { RichTextEditor } from '../rich-text-editor'
+
 
 
 interface CreateContractDialogProps {
@@ -43,10 +43,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
             return
         }
 
-        // Strip HTML tags for validation (ReactQuill outputs HTML)
-        const textContent = content.replace(/<[^>]*>/g, '').trim()
-        
-        if (!title.trim() || !textContent || !clientId) {
+        if (!title.trim() || !content.trim() || !clientId) {
             toast({
                 title: "Error",
                 description: "Please fill in all fields",
@@ -62,7 +59,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                 user_id: user.id,
                 client_id: clientId,
                 title: title.trim(),
-                content: content, // Keep HTML for storage
+                content: content.trim(), // Store plain text
             })
 
             toast({
@@ -89,7 +86,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[1000px] mx-auto h-[600px]">
+            <DialogContent className="sm:max-w-[900px] mx-auto max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Create New Contract</DialogTitle>
                     <DialogDescription>
@@ -125,14 +122,21 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                         </Select>
                     </div>
                     <div className="space-y-2">
-                          <Label htmlFor="content">Contract Content</Label>
-                          <RichTextEditor
-                              value={content}
-                              onChange={setContent}
-                              placeholder="Enter contract content..."
-                          />
+                        <Label htmlFor="content">Contract Content</Label>
+                        <Textarea
+                            id="content"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            placeholder="Enter contract content..."
+                            className="min-h-[300px] font-mono text-sm"
+                            style={{ whiteSpace: 'pre-wrap' }}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Use line breaks and spacing as needed. Formatting will be preserved in the PDF.
+                        </p>
                     </div>
-                    <div className="flex justify-end space-x-2 pt-4 mt-10">
+                    
+                    <div className="flex justify-end space-x-2 pt-4">
                         <Button
                             type="button"
                             variant="outline"

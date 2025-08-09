@@ -52,18 +52,18 @@ export default function InvoicesPage() {
   }
   
   // React Query hooks
-  const { data: user, isLoading: userLoading } = useUser()
-  const { data: invoices, isLoading: invoicesLoading, error: invoicesError } = useInvoices(user?.id || '')
-  const { data: subscription } = useUserSubscription(user?.id || '')
-  const { data: invoiceCount } = useInvoiceCount(user?.id || '')
-  const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id || '')
+  const { data: user, isLoading: userLoading } = useUser();
+  const { data: invoices, isLoading: invoicesLoading, error: invoicesError } = useInvoices(user?.id || '');
+  const { data: subscription } = useUserSubscription(user?.id || '');
+  const { data: invoiceCount } = useInvoiceCount(user?.id || '');
+  const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id || '');
   const sendInvoice = useSendInvoice();
   const updateInvoice = useUpdateInvoice();
 
   //master loading state
   const isLoading = userLoading || invoicesLoading
 
-  // Filter and sort invoices
+  // Filter and sort invoices useMemo
   const filteredAndSortedInvoices = useMemo(() => {
     if (!invoices) return []
     
@@ -117,6 +117,7 @@ export default function InvoicesPage() {
     return result
   }, [invoices, searchTerm, sortConfig])
 
+  //Handled in create-invoice-dialog.tsx
   const createNewInvoice = async () => {
     if (!user) {
       router.push('/sign-in')
@@ -139,7 +140,7 @@ export default function InvoicesPage() {
     }
   }
 
-
+  //Update handled in edit-invoice-dialog.tsx
   const handleUpdateInvoice = async(invoiceId:string) => {
     if (!user){
       router.push('/sign-in')
@@ -157,7 +158,7 @@ export default function InvoicesPage() {
     }
   }
 
-  //display clean spinner if masterloading
+  //display spinner if loading
   if (userLoading) {
     return (
       <div className="space-y-6">
@@ -245,7 +246,7 @@ export default function InvoicesPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Invoices</h1>
           <div className="flex items-center gap-2">
-            <Button disabled>
+            <Button disabled = {!canCreate}>
               <Plus className="h-4 w-4 mr-2" />
               New Invoice
             </Button>
@@ -372,7 +373,7 @@ export default function InvoicesPage() {
                       <td className="py-3 px-4">{invoice.clients?.name || 'N/A'}</td>
                       <td className="py-3 px-4">{new Date(invoice.issue_date).toLocaleDateString()}</td>
                       <td className="py-3 px-4">{new Date(invoice.due_date).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">${invoice.total}</td>
+                      <td className="py-3 px-4">${invoice.subtotal}</td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           invoice.status === 'paid' ? 'bg-green-100 text-green-800' :

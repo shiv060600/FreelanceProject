@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { createClient } from '@/lib/supabase-browser'
+import QRCode from 'qrcode'
+import { useInvoicePDF } from '@/hooks/use-invoice-pdf'
 
 // Define styles for the PDF
 const styles = StyleSheet.create({
@@ -17,6 +19,34 @@ const styles = StyleSheet.create({
     borderBottom: 2,
     borderBottomColor: '#000000',
     paddingBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerLeft: {
+    flexDirection: 'column',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 30,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: '40%',
+  },
+  qrContainer: {
+    alignItems: 'center',
+    gap: 5,
+    flex: 1,
+  },
+  qrCode: {
+    width: 40,
+    height: 40,
+  },
+  qrLabel: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#333333',
+    textAlign: 'center',
   },
   title: {
     fontSize: 24,
@@ -27,6 +57,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 5,
     color: '#666666',
+  },
+  paymentIcon: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#0066cc',
+    textDecoration: 'underline',
   },
   section: {
     margin: 10,
@@ -97,6 +133,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
   },
+  paymentSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTop: 1,
+    borderTopColor: '#cccccc',
+  },
+  paymentTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#000000',
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  paymentLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  paymentLink: {
+    fontSize: 12,
+    color: '#0066cc',
+    textDecoration: 'underline',
+  },
 })
 
 interface InvoicePDFProps {
@@ -115,9 +178,6 @@ interface Client {
   company:string,
   addrres:string
 }
-
-
-
 
 const safeString = (value: any): string => {
   if (value === null || value === undefined || value === '') {
@@ -141,32 +201,102 @@ const formatDate = (dateValue: any): string => {
   }
 }
 
-
+const generateQRCode = async (text: string): Promise<string> => {
+  try {
+    const qrDataUrl = await QRCode.toDataURL(text, {
+      width: 160,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+    return qrDataUrl;
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    return '';
+  }
+}
 
 const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
-  const [clientData,setClientData] = useState<Client>()
+  const { userInfo: hookUserInfo, loading: userLoading } = useInvoicePDF()
+  const [clientData, setClientData] = useState<Client>()
+  const [cashAppQR, setCashAppQR] = useState<string>('')
+  const [venmoQR, setVenmoQR] = useState<string>('')
+  const [qrCodesGenerated, setQrCodesGenerated] = useState(false)
 
   useEffect(() => {
-      const fetchClientData = async(clientId:string) => {
+    const fetchClientData = async() => {
+      if (invoice?.client_id) {
         const supabase = createClient();
         const {data : clientDataT , error : clientError} = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id',clientId)
-        .single()
+          .from('clients')
+          .select('*')
+          .eq('id', invoice.client_id)
+          .single()
 
-        if(!clientDataT || clientError){
-         throw new Error(`clientDataT not set${clientError?.message}`)
+        if(!clientError && clientDataT) {
+          setClientData(clientDataT);
+        } else {
+          console.error("Error fetching client data:", clientError?.message)
         }
-         setClientData(clientDataT);
       }
-      fetchClientData(invoice?.client_id)
-
-    },[invoice.client_id])
-
+    }
     
-    
+    fetchClientData();
+  }, [invoice])
 
+  // Generate QR codes when user data is available
+  useEffect(() => {
+    const generateQRCodes = async () => {
+      if (!userLoading && hookUserInfo && !qrCodesGenerated) {
+        try {
+          console.log('Generating QR codes with user data:', hookUserInfo);
+          
+          // Generate Cash App QR code
+          if (hookUserInfo.cashapp_username) {
+            console.log('Generating Cash App QR for:', hookUserInfo.cashapp_username);
+            const cashAppUrl = `https://cash.app/$${hookUserInfo.cashapp_username}`;
+            const qrCode = await generateQRCode(cashAppUrl);
+            setCashAppQR(qrCode);
+            console.log('Cash App QR generated successfully');
+          } else {
+            console.log('No Cash App username found');
+          }
+          
+          // Generate Venmo QR code
+          if (hookUserInfo.venmo_username) {
+            console.log('Generating Venmo QR for:', hookUserInfo.venmo_username);
+            const venmoUrl = `https://venmo.com/${hookUserInfo.venmo_username}`;
+            const qrCode = await generateQRCode(venmoUrl);
+            setVenmoQR(qrCode);
+            console.log('Venmo QR generated successfully');
+          } else {
+            console.log('No Venmo username found');
+          }
+          
+          setQrCodesGenerated(true);
+        } catch (error) {
+          console.error('Error generating QR codes:', error);
+        }
+      }
+    }
+    
+    generateQRCodes();
+  }, [userLoading, hookUserInfo, qrCodesGenerated])
+
+  // Show loading state if any data is not ready
+  if (userLoading || !qrCodesGenerated) {
+    return (
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Loading Invoice...</Text>
+          </View>
+        </Page>
+      </Document>
+    );
+  }
 
   // Ensure we have valid data with fallbacks
   const safeInvoice = {
@@ -183,9 +313,10 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
     status: safeString(invoice?.status) || 'draft'
   };
 
+  // Use hook user data or fallback to props
   const safeUserInfo = {
-    name: safeString(userInfo?.name) || 'Your Company',
-    email: safeString(userInfo?.email) || 'your@email.com',
+    name: safeString(hookUserInfo?.name || userInfo?.name) || 'Your Company',
+    email: safeString(hookUserInfo?.email || userInfo?.email) || 'your@email.com',
     address: safeString(userInfo?.address) || 'Your Address'
   };
 
@@ -197,8 +328,32 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>INVOICE</Text>
-          <Text style={styles.invoiceNumber}>#{safeInvoice.invoice_number}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>INVOICE</Text>
+            <Text style={styles.invoiceNumber}>#{safeInvoice.invoice_number}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <View style={styles.qrContainer}>
+              {cashAppQR ? (
+                <>
+                  <Image src={cashAppQR} style={styles.qrCode} />
+                  <Text style={styles.qrLabel}>Cash App</Text>
+                </>
+              ) : (
+                <Text style={styles.qrLabel}>No Cash App</Text>
+              )}
+            </View>
+            <View style={styles.qrContainer}>
+              {venmoQR ? (
+                <>
+                  <Image src={venmoQR} style={styles.qrCode} />
+                  <Text style={styles.qrLabel}>Venmo</Text>
+                </>
+              ) : (
+                <Text style={styles.qrLabel}>No Venmo</Text>
+              )}
+            </View>
+          </View>
         </View>
 
         {/* Company and Client Info */}
@@ -215,7 +370,6 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
             <Text style={styles.text}>{clientData?.email || 'Not Set'}</Text>
             <Text style={styles.text}>{clientData?.phone || 'Not Set'}</Text>
             <Text style={styles.text}>{clientData?.company || 'Not Set'}</Text>
-            
           </View>
         </View>
 
@@ -247,8 +401,8 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
               <View key={index} style={styles.tableRow}>
                 <Text style={styles.tableCell}>{safeString(item.description || item.invoice_name) || 'Service'}</Text>
                 <Text style={styles.tableCell}>{formatCurrency(item.quantity || 1)}</Text>
-                <Text style={styles.tableCell}>${formatCurrency(item.unit_price || safeInvoice.total)}</Text>
-                <Text style={styles.tableCell}>${formatCurrency(item.amount || safeInvoice.total)}</Text>
+                <Text style={styles.tableCell}>${formatCurrency(item.unit_price || 0)}</Text>
+                <Text style={styles.tableCell}>${formatCurrency(item.total || 0)}</Text>
               </View>
             ))
           ) : (
@@ -263,7 +417,7 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
 
         {/* Totals */}
         <View style={styles.total}>
-          {safeInvoice.subtotal > 0 && safeInvoice.subtotal !== safeInvoice.total && (
+          {safeInvoice.subtotal > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Subtotal:</Text>
               <Text style={styles.text}>${formatCurrency(safeInvoice.subtotal)}</Text>
@@ -278,7 +432,8 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
           )}
           
           <View style={styles.totalRow}>
-            <Text style={styles.totalAmount}>Total: ${formatCurrency(safeInvoice.total)}</Text>
+            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalAmount}>${formatCurrency(safeInvoice.total)}</Text>
           </View>
         </View>
 

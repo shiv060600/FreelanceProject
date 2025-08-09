@@ -1,12 +1,14 @@
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from "../../../../supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserCircle, Calendar, Mail, CreditCard } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import { UserCircle, Calendar, Mail, CreditCard,DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getSubscriptionAccess } from "@/utils/subscription";
+import PaymentLinksForm from "@/components/profile/payment-links-form";
+import '@/styles/components.css';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -44,6 +46,7 @@ export default async function ProfilePage() {
     .single();
 
   const subscriptionAccess = getSubscriptionAccess(subscriptionData);
+
 
   return (
     <>
@@ -88,36 +91,37 @@ export default async function ProfilePage() {
               </CardContent>
             </Card>
             <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Subscription Details
-            </CardTitle>
-            <CardDescription>Your current plan and invoice limits</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
-              <p className="text-lg">{subscriptionAccess.planName}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Status</p>
-              <p className="text-lg capitalize">{subscriptionAccess.status}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Invoice Limit</p>
-              <p className="text-lg">{subscriptionAccess.invoiceLimit}</p>
-            </div>
-            <div className="pt-4">
-              <Link href="/pricing">
-                <Button>Manage Subscription</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Subscription Details
+                </CardTitle>
+                <CardDescription>Your current plan and invoice limits</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
+                  <p className="text-lg">{subscriptionAccess.planName}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  <p className="text-lg capitalize">{subscriptionAccess.status}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Invoice Limit</p>
+                  <p className="text-lg">{subscriptionAccess.invoiceLimit}</p>
+                </div>
+                <div className="pt-4">
+                  <Link href="/pricing">
+                    <Button>Manage Subscription</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+          <PaymentLinksForm userId={user.id} />
         </div>
-      </main>
-    </>
+        </main>
+      </>
   );
 } 

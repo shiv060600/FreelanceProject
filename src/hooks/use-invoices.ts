@@ -1,5 +1,6 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
 import { createClient} from "@/lib/supabase-browser";
+import { parse } from "path";
 
 const supabase = createClient();
 
@@ -30,7 +31,7 @@ interface Invoice {
       description: string;
       quantity: number;
       unit_price: number;
-      amount: number;
+      total: number;
       invoice_name?: string;
     }>;
   }
@@ -85,7 +86,7 @@ export function useInvoices (userId:string){
 
                 supabase
                     .from('invoice_items')
-                    .select('invoice_id,id,invoice_name,description,quantity,unit_price,amount')
+                    .select('invoice_id,id,invoice_name,description,quantity,unit_price,total')
                     .in('invoice_id',invoiceIds)
             ]);
 
@@ -184,7 +185,7 @@ export function useUserSubscription(userId: string) {
   })
 }
 
-// 3. Fetch invoice count
+// Fetch invoice count
 export function useInvoiceCount(userId: string) {
   return useQuery({
     queryKey: ['invoice-count', userId],
@@ -281,7 +282,7 @@ export function useDeleteInvoice() {
   
   return useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
-      // First, delete all invoice items for this invoice
+      // delete all invoice items for this invoice
       const { error: itemsError } = await supabase
         .from('invoice_items')
         .delete()
@@ -289,7 +290,7 @@ export function useDeleteInvoice() {
 
       if (itemsError) throw itemsError
 
-      // Then, delete the invoice
+      // Delete the invoice
       const { data: deletedInvoice, error: invoiceError } = await supabase
         .from('invoices')
         .delete()
@@ -298,14 +299,13 @@ export function useDeleteInvoice() {
 
       if (invoiceError) throw invoiceError
 
+      //Get current invoice_count
+      const currentCount:number= queryClient.getQueryData(['invoice-count',userId]) || 0
+
       // Update invoice count
       await supabase
         .from('users')
-        .update({ invoice_count: (await supabase
-          .from('users')
-          .select('invoice_count')
-          .eq('user_id', userId)
-          .single()).data?.invoice_count - 1 })
+        .update({ invoice_count: Math.max(0,currentCount - 1) })
         .eq('user_id', userId)
 
       return deletedInvoice
@@ -358,7 +358,6 @@ export function useSendInvoice() {
       // TODO: Implement email sending logic
       console.log('Sending invoice:', id)
       
-      // For now, just update the status to 'sent'
       const { data, error } = await supabase
         .from('invoices')
         .update({ status: 'sent' })
@@ -381,6 +380,9 @@ export function useSendInvoice() {
 export function useCanCreateInvoice(userId: string) {
   const { data: subscription } = useUserSubscription(userId)
   const { data: invoiceCount } = useInvoiceCount(userId)
+
+  console.log("invoice count: ",invoiceCount)
+  console.log("invoice subscription", subscription)
   
   return {
     canCreate: (invoiceCount || 0) < (subscription?.maxInvoices || 2),

@@ -26,9 +26,17 @@ interface CreateInvoiceDialogProps {
 export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoiceDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [unitPrice, setUnitPrice] = useState('')
+  const [taxRate, setTaxRate] = useState('');
   const router = useRouter()
   const supabase = createClient()
   const { clients, loading: clientsLoading } = useClients()
+
+  // Calculate subtotal and total in real-time
+  const subtotal = quantity * (parseFloat(unitPrice) || 0)
+  const taxAmount = subtotal * ((parseFloat(taxRate)||0)/ 100)
+  const total = subtotal + taxAmount
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -43,14 +51,15 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
         return
       }
 
-      // Calculate amounts
-      const quantity = parseFloat(formData.get('quantity') as string) || 1
-      const unitPrice = parseFloat(formData.get('unit_price') as string) || 0
-      const taxRate = parseFloat(formData.get('tax_rate') as string) || 0
-      
-      const subtotal = quantity * unitPrice
-      const taxAmount = subtotal * (taxRate / 100)
-      const total = subtotal + taxAmount
+      // Use state values for calculations
+      const finalSubtotal = quantity * (parseFloat(unitPrice) || 0)
+      const finalTaxAmount = finalSubtotal * ((parseFloat(taxRate)||0)/ 100)
+      const finalTotal = finalSubtotal + finalTaxAmount
+
+      console.log('quantity',quantity);
+      console.log('unitPrice',unitPrice);
+      console.log('taxrate',taxRate);
+      console.log('taxamount',finalTaxAmount);
 
       // Create new invoice
       const { data: newInvoice, error } = await supabase
@@ -61,10 +70,10 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
           issue_date: formData.get('issue_date'),
           due_date: formData.get('due_date'),
           status: 'draft',
-          subtotal: subtotal,
+          subtotal: finalSubtotal,
           tax_rate: taxRate,
-          tax_amount: taxAmount,
-          total: total,
+          tax_amount: finalTaxAmount,
+          total: finalTotal,
           notes: formData.get('notes') as string,
           client_id: formData.get('client_id') as string
         })
@@ -84,8 +93,8 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
             invoice_id: newInvoice.id,
             description: formData.get('invoice_name') as string,
             quantity: quantity,
-            unit_price: unitPrice,
-            amount: subtotal,
+            unit_price: parseFloat(unitPrice) || 0,
+            total: finalSubtotal,
             invoice_name: formData.get('invoice_name') as string
           })
 
@@ -125,14 +134,14 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Invoice</DialogTitle>
           <DialogDescription>
             Fill in the invoice details below.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4 pb-6">
           <div className="space-y-2">
             <Label htmlFor="invoice_name">Invoice Name *</Label>
             <Input
@@ -192,8 +201,9 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
                 step="0.01"
                 min="0.01"
                 required
+                value={quantity}
+                onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
                 placeholder="1.00"
-                defaultValue="1"
               />
             </div>
             <div className="space-y-2">
@@ -205,6 +215,8 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
                 step="0.01"
                 min="0.01"
                 required
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
                 placeholder="100.00"
               />
             </div>
@@ -219,9 +231,28 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
               step="0.01"
               min="0"
               max="100"
+              value={taxRate}
+              onChange={(e) => setTaxRate(e.target.value || '')}
               placeholder="0.00"
-              defaultValue="0"
             />
+          </div>
+
+          {/* Display calculated amounts */}
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="flex justify-between">
+              <span className="font-medium">Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            {(parseFloat(taxRate)||0) > 0 && (
+              <div className="flex justify-between">
+                <span className="font-medium">Tax ({taxRate}%):</span>
+                <span>${taxAmount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t pt-2">
+              <span className="font-bold">Total:</span>
+              <span className="font-bold">${total.toFixed(2)}</span>
+            </div>
           </div>
 
           <div className="space-y-2">
