@@ -60,7 +60,7 @@ export default function InvoicesPage() {
   const sendInvoice = useSendInvoice();
   const updateInvoice = useUpdateInvoice();
 
-  //master loading state
+  //Master loading state
   const isLoading = userLoading || invoicesLoading
 
   // Filter and sort invoices useMemo
@@ -116,15 +116,7 @@ export default function InvoicesPage() {
 
     return result
   }, [invoices, searchTerm, sortConfig])
-
-  //Handled in create-invoice-dialog.tsx
-  const createNewInvoice = async () => {
-    if (!user) {
-      router.push('/sign-in')
-      return
-    }
-  }
-
+  
   const handleSendInvoice = async (invoiceId: string) => {
     if (!user) {
       router.push('/sign-in')
@@ -140,25 +132,7 @@ export default function InvoicesPage() {
     }
   }
 
-  //Update handled in edit-invoice-dialog.tsx
-  const handleUpdateInvoice = async(invoiceId:string) => {
-    if (!user){
-      router.push('/sign-in')
-      return
-    }
-    try {
-      await updateInvoice.mutateAsync({ 
-        id: invoiceId,
-        user_id: user.id,  // Use user_id to match the interface
-        status: 'paid'     
-      })
-
-    }catch(error){
-      console.error('Failed to update invoice:', error)
-    }
-  }
-
-  //display spinner if loading
+  //Display spinner if loading
   if (userLoading) {
     return (
       <div className="space-y-6">
@@ -278,7 +252,7 @@ export default function InvoicesPage() {
             // Invalidate and refetch invoices to show new invoice
             queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
           }}>
-            <Button onClick={createNewInvoice} disabled={!canCreate || isLoading}>
+            <Button disabled={!canCreate || isLoading}>
               <Plus className="h-4 w-4 mr-2" />
               New Invoice
             </Button>

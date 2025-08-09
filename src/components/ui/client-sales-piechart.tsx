@@ -98,7 +98,7 @@ export default function ClientSalesPieChart({ data, totalSales }: ClientSalesPie
             cy="50%"
             labelLine={false}
             label={({ name, value, percent }) => 
-              `${name}: ${(percent * 100).toFixed(1)}%`
+              `${name}: ${((percent??1.0) * 100).toFixed(1)}%`
             }
             outerRadius={120}
             fill="#8884d8"
