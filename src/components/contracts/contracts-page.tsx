@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
 import { ContractPDF } from './contract-pdf'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { CreateContractDialog } from './create-contract-dialog'
@@ -12,10 +11,6 @@ import { EditContractDialog } from './edit-contract-dialog'
 import { DeleteContractDialog } from './delete-contract-dialog'
 import { useContracts, useCanCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
-import { useQueryClient } from '@tanstack/react-query'
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import countriesData from "../../utils/country-info.json"
 import { SearchInput } from '../ui/search-input'
 import { useMemo } from 'react'
 
@@ -42,21 +37,12 @@ interface Contract {
 }
 
 export default function ContractsPage() {
-  const [selectedCountry,setSelectedCountry] = useState('');
-  const [selectedCountryInfo,setSelectedCountryInfo] = useState<CountryInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const countryNames: string[] = Object.keys(countriesData);
-  const countriesMap: Map<string,CountryInfo> | null = new Map(Object.entries(countriesData))
   const [currentSearch,setCurrentSearch] = useState("")
   
-  useEffect((()=>{
-    setSelectedCountryInfo(countriesMap.get(selectedCountry) || null)
-  }),[selectedCountry])
 
   
   const { data: user , isLoading: userLoading } = useUser();
@@ -73,7 +59,7 @@ export default function ContractsPage() {
 
     return contracts.filter((contract)=> {
       return (contract?.clients?.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
-              contract?.title.toLowerCase().includes(currentSearch.toLocaleLowerCase()))
+              contract?.title.toLowerCase().includes(currentSearch.toLowerCase()))
     })
   },[contracts,currentSearch]);
 
@@ -129,55 +115,10 @@ export default function ContractsPage() {
   
   return (
     <div className="space-y-6">
-      <div className='flex flex-col items-center gap-4'>
-        <Label htmlFor='country_info'>Select Country below to see genral contract information</Label>
-        <Select name="country_info" value={selectedCountry} onValueChange={setSelectedCountry}>
-          <SelectTrigger >
-            <SelectValue placeholder="Select a Country"/>
-            <SelectContent>
-              {countryNames.map((name,i) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </SelectTrigger>
-        </Select>
-      </div>
-
-      {(selectedCountry != '') &&
-      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 shadow-md mb-6">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-blue-700 flex items-center gap-2">
-              <AwardIcon className="h-6 w-6 text-blue-400" />
-              {selectedCountry}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="font-semibold text-gray-700 mb-1">Electronic Signature Valid:</div>
-                <Badge variant={selectedCountryInfo?.e_signature_valid ? "default" : "destructive"}>
-                  {selectedCountryInfo?.e_signature_valid ? "Yes" : "No"}
-                </Badge>
-              </div>
-              <div>
-                <div className="font-semibold text-gray-700 mb-1">Language(s) Required:</div>
-                <span className="text-blue-800">{selectedCountryInfo?.language_required}</span>
-              </div>
-              <div className="md:col-span-2">
-                <div className="font-semibold text-gray-700 mb-1">Notes:</div>
-                <p className="text-gray-600 bg-gradient-to-r from-blue-50 to-purple-50 rounded p-2">{selectedCountryInfo?.notes || "None"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      }
-
       <div className='flex justify-between'>
         <div className='flex items-center gap-4'>
           <h1 className='text-2xl font-bold'>Contracts</h1>
-          <SearchInput placeholder='Search contracts by name' value = {currentSearch} onChange={setCurrentSearch} className='h-10'/>
+          <SearchInput placeholder='Search contracts by name' value = {currentSearch} onChange={setCurrentSearch} className='h-9'/>
         </div>
         <Button 
           disabled = {!canCreate}
@@ -188,7 +129,7 @@ export default function ContractsPage() {
       </div>
       <div className="grid gap-4">
         {filteredContracts.map((contract) => (
-          <Card key={contract.id} className='bg-gradient-to-r from-blue-50 to-purple-50'>
+          <Card key={contract.id}>
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div className="flex-1">

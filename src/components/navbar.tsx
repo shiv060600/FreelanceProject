@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "../../supabase/server";
 import { Button } from "./ui/button";
 import { User, UserCircle } from "lucide-react";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
 import UserProfile from "./user-profile";
 import '@/styles/components.css'
 

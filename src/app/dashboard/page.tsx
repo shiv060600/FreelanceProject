@@ -145,7 +145,6 @@ export default async function Dashboard() {
 
   
   };
-  console.log("*******************recharts data",rechartsData)
   return (
     <>
       <DashboardNavbar />

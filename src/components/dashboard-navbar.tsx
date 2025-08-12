@@ -12,6 +12,7 @@ import { Button } from './ui/button'
 import { UserCircle, FileText, Users, BarChart, Zap, FileSignature } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { InfoCircledIcon } from '@radix-ui/react-icons'
 
 export default function DashboardNavbar() {
   const router = useRouter()
@@ -125,6 +126,10 @@ export default function DashboardNavbar() {
             <Link href="/dashboard/lead-generator" className={`nav-link ${isActive('/dashboard/lead-generator') ? 'nav-link-active' : ''}`}>
               <Zap className="h-5 w-5" />
               <span>Lead Generator</span>
+            </Link>
+            <Link href={"/dashboard/contracts-information"} className={`nav-link ${isActive('/dashboard/contracts-information') ? 'nav-link-active' : ''}`}>
+              <InfoCircledIcon className='h-5 w-5'/>
+              <span>Contract Information</span>
             </Link>
           </div>
         </div>

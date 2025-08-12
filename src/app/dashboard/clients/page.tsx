@@ -41,7 +41,7 @@ export default function ClientsPage() {
   if (userLoading) {
     return (
       <>
-        <DashboardNavbar />
+        <DashboardNavbar/>
         <main className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
             <div className="flex justify-between items-center">
