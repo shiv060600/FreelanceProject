@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { useEditContract } from '@/hooks/use-contracts'
 import { useClients } from '@/hooks/use-clients'
+import { useUser } from '@/hooks/use-user'
 
 
 interface Contract {
@@ -31,9 +32,14 @@ export function EditContractDialog({ contract, open, onOpenChange }: EditContrac
     const [content, setContent] = useState('')
     const [clientId, setClientId] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const {data:userData} = useUser();
+    const user = userData;
     
     const { toast } = useToast()
-    const { clients = [] } = useClients()
+    const {data:clients = [],isLoading} = useClients(user?.id!);
+
+
+
     const editContract = useEditContract()
 
     // Update form when contract changes
@@ -126,7 +132,7 @@ export function EditContractDialog({ contract, open, onOpenChange }: EditContrac
                                 <SelectValue placeholder="Select a client" />
                             </SelectTrigger>
                             <SelectContent>
-                                {clients.map((client: any) => (
+                                {clients?.map((client: any) => (
                                     <SelectItem key={client.id} value={client.id}>
                                         {client.name} {client.company && `(${client.company})`}
                                     </SelectItem>
