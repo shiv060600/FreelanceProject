@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useClients } from "@/hooks/use-clients"
+import { useUser } from "@/hooks/use-user"
 
 interface EditInvoiceDialogProps {
   children: React.ReactNode
@@ -32,7 +33,8 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
   const [taxRate, setTaxRate] = useState(0)
   const router = useRouter()
   const supabase = createClient()
-  const { clients, loading: clientsLoading } = useClients()
+  const { data: user } = useUser()
+  const { isLoading: clientsLoading } = useClients(user?.id || '')
 
   // Initialize form with current invoice data
   useEffect(() => {

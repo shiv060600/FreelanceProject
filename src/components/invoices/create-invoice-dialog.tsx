@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useClients } from "@/hooks/use-clients"
+import { useUser } from "@/hooks/use-user"
 
 interface CreateInvoiceDialogProps {
   children: React.ReactNode
@@ -31,7 +32,8 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
   const [taxRate, setTaxRate] = useState('');
   const router = useRouter()
   const supabase = createClient()
-  const { clients, loading: clientsLoading } = useClients()
+  const { data: user } = useUser()
+  const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
 
   // Calculate subtotal and total in real-time
   const subtotal = quantity * (parseFloat(unitPrice) || 0)
@@ -177,12 +179,18 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
 
           <div className="space-y-2">
             <Label htmlFor="client_id">Client *</Label>
-            <Select name="client_id" required disabled={clientsLoading}>
+            <Select name="client_id" required disabled={clientsLoading || clients.length===0}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a client" />
+                <SelectValue placeholder={clientsLoading ? 'Loading clients...' : (clients.length ? 'Select a client' : 'No clients available')} />
               </SelectTrigger>
               <SelectContent>
-                {clients.map((client) => (
+                {clientsLoading && (
+                  <SelectItem disabled value="loading">Loading...</SelectItem>
+                )}
+                {!clientsLoading && clients.length === 0 && (
+                  <SelectItem disabled value="none">No clients found</SelectItem>
+                )}
+                {!clientsLoading && clients.map((client:any) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
                   </SelectItem>
