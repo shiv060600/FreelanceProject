@@ -222,8 +222,7 @@ export default function ContractsPage() {
       <EditContractDialog 
         contract={selectedContract}
         open={editDialogOpen} 
-        onOpenChange={setEditDialogOpen}
-        userId={user.id} 
+  onOpenChange={setEditDialogOpen}
       />
       
       <DeleteContractDialog 

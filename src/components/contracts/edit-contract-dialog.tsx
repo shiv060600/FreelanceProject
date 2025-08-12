@@ -22,12 +22,12 @@ interface Contract {
 }
 
 interface EditContractDialogProps {
-    contract: Contract | null
-    open: boolean
+    contract: Contract | null,
+    open: boolean,
     onOpenChange: (open: boolean) => void
 }
 
-export function EditContractDialog({ contract, open, onOpenChange }: EditContractDialogProps) {
+export function EditContractDialog({ contract, open, onOpenChange}: EditContractDialogProps) {
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
     const [clientId, setClientId] = useState('')
