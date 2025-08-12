@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { createClient } from "../../../supabase/client"
 import { useRouter } from "next/navigation"
+import { useDeleteClient } from "@/hooks/use-clients"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,45 +28,20 @@ export default function DeleteClientDialog({ client, children }: DeleteClientDia
   const router = useRouter()
   const supabase = createClient()
 
+  const deleteClientMutation = useDeleteClient({clientId:client.id,userId:client.user_id as any})
+
   async function handleDelete() {
     setLoading(true)
-
-    // First check if client has any related time logs or invoices
-    const { data: relatedData, error: checkError } = await supabase
-      .from('time_logs')
-      .select('id')
-      .eq('client_id', client.id)
-      .limit(1);
-
-    if (checkError) {
-      console.error('Error checking for related data:', checkError);
-      setLoading(false);
-      return;
-    }
-
-    // If client has related data, don't allow deletion
-    if (relatedData && relatedData.length > 0) {
-      alert('Cannot delete client because they have time logs or invoices. Remove those first.');
-      setLoading(false);
-      setOpen(false);
-      return;
-    }
-
-    // If no related data, proceed with deletion
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', client.id);
-
-    setLoading(false)
-
-    if (error) {
-      console.error('Error deleting client:', error)
-      return
-    }
-
-    setOpen(false)
-    router.refresh()
+    deleteClientMutation.mutate(undefined,{
+      onSuccess: () => {
+        setLoading(false)
+        setOpen(false)
+        router.refresh()
+      },
+      onError: () => {
+        setLoading(false)
+      }
+    })
   }
 
   return (
@@ -85,10 +61,10 @@ export default function DeleteClientDialog({ client, children }: DeleteClientDia
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleDelete}
-            disabled={loading}
+            disabled={loading || deleteClientMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {loading ? 'Deleting...' : 'Delete Client'}
+            {loading || deleteClientMutation.isPending ? 'Deleting...' : 'Delete Client'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

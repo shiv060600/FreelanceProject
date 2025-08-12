@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "../../../supabase/client"
 import { useRouter } from "next/navigation"
+import { useCreateClient } from "@/hooks/use-clients"
 import {
   Dialog,
   DialogContent,
@@ -42,55 +43,29 @@ export default function AddClientDialog({ children }: AddClientDialogProps) {
     getUserId()
   }, [supabase])
 
+  const createClientMutation = useCreateClient()
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!userId) return
     setLoading(true)
-
-    if (!userId) {
-      console.error('User ID not available')
-      setLoading(false)
-      return
-    }
-
     const formData = new FormData(event.currentTarget)
-    const name = formData.get('name') as string
-    const email = formData.get('email') as string
-    const phone = formData.get('phone') as string
-    const company = formData.get('company') as string
-    const address = formData.get('address') as string
-    const notes = formData.get('notes') as string
-
-    const { error } = await supabase
-      .from('clients')
-      .insert([
-        {
-          user_id: userId,
-          name,
-          email,
-          phone,
-          company,
-          address,
-          notes,
-        },
-      ])
-
-    setLoading(false)
-
-    if (error) {
-      console.error('Error adding client:', error)
-      // Log more detailed error information
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        hint: error.hint,
-        details: error.details
-      })
-      alert(`Failed to add client: ${error.message}`)
-      return
-    }
-
-    setOpen(false)
-    router.refresh()
+    const name = (formData.get('name') as string) || ''
+    const email = (formData.get('email') as string) || ''
+    const phone = (formData.get('phone') as string) || ''
+    const company = (formData.get('company') as string) || ''
+    const address = (formData.get('address') as string) || ''
+    const notes = (formData.get('notes') as string) || ''
+  createClientMutation.mutate({ name,email,phone,company,address,notes,user_id:userId },{
+      onSuccess: () => {
+        setLoading(false)
+        setOpen(false)
+        router.refresh()
+      },
+      onError: () => {
+        setLoading(false)
+      }
+    })
   }
 
   return (
@@ -164,8 +139,8 @@ export default function AddClientDialog({ children }: AddClientDialogProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !userId}>
-              {loading ? 'Adding...' : 'Add Client'}
+            <Button type="submit" disabled={loading || !userId || createClientMutation.isPending}>
+              {loading || createClientMutation.isPending ? 'Adding...' : 'Add Client'}
             </Button>
           </div>
         </form>

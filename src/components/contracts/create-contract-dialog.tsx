@@ -28,8 +28,8 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
     
     const { toast } = useToast()
     const { data: user } = useUser()
-    const { clients = [] } = useClients()
     const createContract = useCreateContract()
+    const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -108,16 +108,22 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
 
                     <div className="space-y-2">
                         <Label htmlFor="client">Client</Label>
-                        <Select value={clientId} onValueChange={setClientId} required>
+                                                <Select value={clientId} onValueChange={setClientId} required disabled={clientsLoading || clients.length===0}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a client" />
+                                                                <SelectValue placeholder={clientsLoading ? 'Loading clients...' : (clients.length ? 'Select a client' : 'No clients available')} />
                             </SelectTrigger>
                             <SelectContent>
-                                {clients.map((client: any) => (
-                                    <SelectItem key={client.id} value={client.id}>
-                                        {client.name} {client.company && `(${client.company})`}
-                                    </SelectItem>
-                                ))}
+                                                                {clientsLoading && (
+                                                                    <SelectItem disabled value="loading">Loading...</SelectItem>
+                                                                )}
+                                                                {!clientsLoading && clients.length === 0 && (
+                                                                    <SelectItem disabled value="none">No clients found</SelectItem>
+                                                                )}
+                                                                {!clientsLoading && clients.map((client: any) => (
+                                                                    <SelectItem key={client.id} value={client.id}>
+                                                                        {client.name}{client.company ? ` (${client.company})` : ''}
+                                                                    </SelectItem>
+                                                                ))}
                             </SelectContent>
                         </Select>
                     </div>

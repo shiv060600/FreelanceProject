@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { createClient } from "../../../supabase/client"
 import { useRouter } from "next/navigation"
+import { useEditClient } from "@/hooks/use-clients"
 import {
   Dialog,
   DialogContent,
@@ -28,40 +29,28 @@ export default function EditClientDialog({ client, children }: EditClientDialogP
   const router = useRouter()
   const supabase = createClient()
 
+  const editClientMutation = useEditClient({clientId:client.id,userId:client.user_id as any})
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
-
     const formData = new FormData(event.currentTarget)
-    const name = formData.get('name') as string
-    const email = formData.get('email') as string
-    const phone = formData.get('phone') as string
-    const company = formData.get('company') as string
-    const address = formData.get('address') as string
-    const notes = formData.get('notes') as string
-
-    const { error } = await supabase
-      .from('clients')
-      .update({
-        name,
-        email,
-        phone,
-        company,
-        address,
-        notes,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', client.id)
-
-    setLoading(false)
-
-    if (error) {
-      console.error('Error updating client:', error)
-      return
-    }
-
-    setOpen(false)
-    router.refresh()
+    const name = (formData.get('name') as string) || ''
+    const email = (formData.get('email') as string) || ''
+    const phone = (formData.get('phone') as string) || ''
+    const company = (formData.get('company') as string) || ''
+    const address = (formData.get('address') as string) || ''
+    const notes = (formData.get('notes') as string) || ''
+    editClientMutation.mutate({ name,email,phone,company,address,notes },{
+      onSuccess: () => {
+        setLoading(false)
+        setOpen(false)
+        router.refresh()
+      },
+      onError: () => {
+        setLoading(false)
+      }
+    })
   }
 
   return (
@@ -105,8 +94,8 @@ export default function EditClientDialog({ client, children }: EditClientDialogP
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" disabled={loading || editClientMutation.isPending}>
+              {loading || editClientMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </form>

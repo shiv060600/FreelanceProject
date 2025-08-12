@@ -1,6 +1,7 @@
 import { ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import { useQuery,useQueryClient,useMutation } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase-browser";
+import { error } from "console";
 
 const supabase = createClient();
 
@@ -160,7 +161,7 @@ export function useContractCount(userId: string) {
 }
 
 export function useCreateContract() {
-    const queryClient = useQueryClient()
+    const queryClient = useQueryClient();
     
     return useMutation({
         mutationFn: async (contractData: CreateContractData) => {
@@ -218,13 +219,15 @@ export function useEditContract() {
         },
         onSuccess : (updatedContract) =>{
             queryClient.invalidateQueries({ queryKey: ['contracts', updatedContract.user_id] })
+        },
+        onError : () => {
+            throw new Error('error editing contract in use-contracts hook')
         }
     })
 }
 
 export function useDeleteContract() {
-    const queryClient = useQueryClient()
-    
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ contractId, userId }: { contractId: string; userId: string }) => {
             const { data: deletedContract, error: contractError } = await supabase
@@ -273,7 +276,6 @@ export function useDeleteContract() {
     })
 }
 
-// 7. Helper function to check if user can create more contracts
 export function useCanCreateContract(userId: string) {
     const { data: subscription } = useUserSubscription(userId)
     const { data: contractCount } = useContractCount(userId)

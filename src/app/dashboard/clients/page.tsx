@@ -6,32 +6,12 @@ import { Plus, RefreshCw } from "lucide-react";
 import ClientList from "@/components/clients/client-list";
 import AddClientDialog from "@/components/clients/add-client-dialog";
 import { useUser } from "@/hooks/use-user";
-import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase-browser";
+import { useClients } from "@/hooks/use-clients";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import '@/styles/components.css';
 
-const supabase = createClient();
-
-function useClients(userId: string) {
-  return useQuery({
-    queryKey: ['clients', userId],
-    queryFn: async () => {
-      if (!userId) throw new Error('User ID is required');
-      
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!userId,
-  });
-}
+ 
 
 export default function ClientsPage() {
   const { data: user, isLoading: userLoading } = useUser();
