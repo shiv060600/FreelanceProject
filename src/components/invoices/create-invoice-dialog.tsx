@@ -53,18 +53,19 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
         return
       }
 
-      // Use state values for calculations
-      const finalSubtotal = quantity * (parseFloat(unitPrice) || 0)
-      const finalTaxAmount = finalSubtotal * ((parseFloat(taxRate)||0)/ 100)
-      const finalTotal = finalSubtotal + finalTaxAmount
+  // Use state values for calculations (coerce all numeric strings)
+  const finalQuantity = Number.isFinite(quantity) ? quantity : 0
+  const finalUnitPrice = parseFloat(unitPrice) || 0
+  const finalTaxRate = taxRate.trim() === '' ? 0 : (parseFloat(taxRate) || 0)
+  const finalSubtotal = finalQuantity * finalUnitPrice
+  const finalTaxAmount = finalSubtotal * (finalTaxRate / 100)
+  const finalTotal = finalSubtotal + finalTaxAmount
+  // Round to 2 decimals before insert to avoid floating drift
+  const r2 = (n:number) => Number(n.toFixed(2))
 
-      console.log('quantity',quantity);
-      console.log('unitPrice',unitPrice);
-      console.log('taxrate',taxRate);
-      console.log('taxamount',finalTaxAmount);
 
       // Create new invoice
-      const { data: newInvoice, error } = await supabase
+    const { data: newInvoice, error } = await supabase
         .from('invoices')
         .insert({
           user_id: user.id,
@@ -72,11 +73,11 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
           issue_date: formData.get('issue_date'),
           due_date: formData.get('due_date'),
           status: 'draft',
-          subtotal: finalSubtotal,
-          tax_rate: taxRate,
-          tax_amount: finalTaxAmount,
-          total: finalTotal,
-          notes: formData.get('notes') as string,
+      subtotal: r2(finalSubtotal),
+      tax_rate: r2(finalTaxRate),
+      tax_amount: r2(finalTaxAmount),
+      total: r2(finalTotal),
+      notes: (formData.get('notes') as string) || null,
           client_id: formData.get('client_id') as string
         })
         .select()
@@ -94,9 +95,9 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
           .insert({
             invoice_id: newInvoice.id,
             description: formData.get('invoice_name') as string,
-            quantity: quantity,
-            unit_price: parseFloat(unitPrice) || 0,
-            total: finalSubtotal,
+            quantity: finalQuantity,
+            unit_price: r2(finalUnitPrice),
+            total: r2(finalSubtotal),
             invoice_name: formData.get('invoice_name') as string
           })
 
@@ -211,6 +212,7 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                onWheel={(e) => e.currentTarget.blur()}
                 placeholder="1.00"
               />
             </div>
@@ -225,6 +227,7 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
                 required
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
                 placeholder="100.00"
               />
             </div>
@@ -241,6 +244,7 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
               max="100"
               value={taxRate}
               onChange={(e) => setTaxRate(e.target.value || '')}
+              onWheel={(e) => { e.currentTarget.blur()}}
               placeholder="0.00"
             />
           </div>

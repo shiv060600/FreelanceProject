@@ -10,16 +10,12 @@ export function useLeadGenerator() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  
-  //Generate leads based on provided parameters
    
   const generateLeads = async (params: LeadGeneratorParams) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Validate required parameters
       if (!params.businessType.trim()) {
         throw new Error("Please enter a business type");
       }

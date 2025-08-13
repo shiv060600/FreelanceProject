@@ -1,5 +1,4 @@
 'use client'
-
 import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw } from "lucide-react"
@@ -69,7 +68,6 @@ export default function InvoicesPage() {
     
     let result = [...invoices]
 
-    // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
       result = result.filter(invoice =>
@@ -251,6 +249,7 @@ export default function InvoicesPage() {
           <CreateInvoiceDialog onSuccess={() => {
             // Invalidate and refetch invoices to show new invoice
             queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
+            queryClient.invalidateQueries({queryKey:["invoice-count",user.id]})
           }}>
             <Button disabled={!canCreate || isLoading}>
               <Plus className="h-4 w-4 mr-2" />

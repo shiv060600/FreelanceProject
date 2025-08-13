@@ -56,7 +56,6 @@ export default function ContractsPage() {
 
   const filteredContracts = useMemo(()=>{
     if (!contracts) return [];
-
     return contracts.filter((contract)=> {
       return (contract?.clients?.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
               contract?.title.toLowerCase().includes(currentSearch.toLowerCase()))
@@ -107,12 +106,8 @@ export default function ContractsPage() {
         onOpenChange={setCreateDialogOpen}
         />
       </div>
-    
-    
     )
   }
-
-  
   return (
     <div className="space-y-6">
       <div className='flex justify-between'>
@@ -120,12 +115,20 @@ export default function ContractsPage() {
           <h1 className='text-2xl font-bold'>Contracts</h1>
           <SearchInput placeholder='Search contracts by name' value = {currentSearch} onChange={setCurrentSearch} className='h-9'/>
         </div>
-        <Button 
-          disabled = {!canCreate}
-          onClick={() => {setCreateDialogOpen(true)}}>          
-          <Plus className='h-4 w-4'/>
-          Add Contract
-        </Button>
+        <div className='flex items-center gap-4'>
+          {!canCreate && 
+            <p className='text-sm font-semibold text-red-500 flex items-center gap-2'>
+              <AwardIcon className='h-4 w-4'/>
+              Contract limit reached ({currentCount}/{maxContracts}) - upgrade to add more
+            </p>
+          }
+          <Button 
+            disabled = {!canCreate}
+            onClick={() => {setCreateDialogOpen(true)}}>          
+            <Plus className='h-4 w-4'/>
+            Add Contract
+          </Button>
+        </div>
       </div>
       <div className="grid gap-4">
         {filteredContracts.map((contract) => (

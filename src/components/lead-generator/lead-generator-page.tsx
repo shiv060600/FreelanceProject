@@ -69,7 +69,7 @@ export default function LeadGeneratorPage() {
     try {
       await generateLeads(formData);
     } catch (error) {
-      // Error is already handled in the useLeadGenerator hook
+      throw error;
     }
   };
 
