@@ -37,8 +37,6 @@ export function useLeadGenerator() {
         throw new Error(data.error || data.message || 'Failed to generate leads');
       }
       
-      
-      
       if (!Array.isArray(data)) {
         console.error('Unexpected API response format:', data);
         throw new Error('Unexpected response format from API');

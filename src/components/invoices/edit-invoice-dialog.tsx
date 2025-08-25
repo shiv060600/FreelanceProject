@@ -36,7 +36,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
   const { data: user } = useUser()
   const { isLoading: clientsLoading } = useClients(user?.id || '')
 
-  // Initialize form with current invoice data
+  // get initial formdata
   useEffect(() => {
     if (invoice && invoice.invoice_items?.[0]) {
       const item = invoice.invoice_items[0]
@@ -44,9 +44,9 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
       setUnitPrice(item.unit_price ? item.unit_price.toString() : '')
       setTaxRate(invoice.tax_rate || 0)
     }
-  }, [invoice])
+  }, [invoice,open])
 
-  // Calculate subtotal and total
+  // calculate subtotal
   const subtotal = quantity * (parseFloat(unitPrice) || 0);
   const taxAmount = subtotal * (taxRate / 100)
   const total = subtotal + taxAmount
@@ -208,6 +208,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
                 <span>${taxAmount.toFixed(2)}</span>
               </div>
             )}
+
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total:</span>
               <span className="font-bold">${total.toFixed(2)}</span>

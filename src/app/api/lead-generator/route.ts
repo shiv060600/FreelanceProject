@@ -17,7 +17,6 @@ export async function GET(request: Request) {
   }
 
   try {
-
     const businesses = await fetchYelpBusinesses({
       term: businessType,
       location,
