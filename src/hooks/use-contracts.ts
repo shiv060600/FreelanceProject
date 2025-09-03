@@ -252,7 +252,7 @@ export function useDeleteContract() {
                 old.filter(contract => contract.id !== contractId)
             )
             
-            // Optimistically update count
+            // optimistically update count
             queryClient.setQueryData(['contract-count', userId], (old: number = 0) => 
                 Math.max(0, old - 1)
             )
@@ -291,6 +291,8 @@ export function useCanCreateContract(userId: string) {
         subscriptionStatus: subscription?.status || 'free'
     }
 }
+
+
 
 
 
