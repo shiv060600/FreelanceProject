@@ -12,6 +12,7 @@ import {
   BarChart4,
   Zap,
   Shield,
+  FileSignature
 } from "lucide-react";
 
 export default async function Home() {
@@ -67,11 +68,11 @@ export default async function Home() {
                   "Create professional PDF invoices from your time logs with customizable templates.",
               },
               {
-                icon: <Zap className="w-6 h-6" />,
-                title: "Streamlined Workflow",
-                description:
-                  "Minimize friction with our intuitive, modern interface designed for freelancers.",
-              },
+                icon: <FileSignature className="w-6 h-6" />,
+                title: "Contract Management",
+                description: "Create contracts manually or using AI to protect you and your business."
+
+              }
             ].map((feature, index) => (
               <div
                 key={index}
@@ -130,9 +131,9 @@ export default async function Home() {
                 <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   4
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Generate Leads</h3>
+                <h3 className="text-xl font-semibold mb-2">All-in-One Business Hub</h3>
                 <p className="text-gray-600">
-                  Get relevant business leads and start making connections
+                  Manage clients, contracts, invoices, and finances from one unified dashboard designed for freelancers.
                 </p>
             </div>
             
@@ -168,7 +169,7 @@ export default async function Home() {
               Choose the perfect plan for your freelance business needs.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-20 max-w-5xl mx-auto">
             {filteredplans?.map((item: any) => (
               <PricingCard key={item.id} item={item} user={user} />
             ))}

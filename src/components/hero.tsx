@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Check, Clock, Users, FileText } from "lucide-react";
+import { ArrowUpRight, Check, Clock, Users, FileText, FileSignature} from "lucide-react";
 
 export default function Hero() {
   return (
@@ -29,6 +29,11 @@ export default function Hero() {
               <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <span className="font-medium">Invoice Generation</span>
+              </div>
+              <div className="flex items-center gap-3 bg-white px-5 rounded-full shadow-sm">
+                <FileSignature className="w-5 h-5 text-blue-600"/>
+                <span className="font-medium">Contract Generation</span>
+
               </div>
             </div>
 

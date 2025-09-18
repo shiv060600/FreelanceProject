@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Info, X } from 'lucide-react'
+import { Plus, Info, X, Loader2, Bot, FileText, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
@@ -15,6 +15,7 @@ import { useClients } from '@/hooks/use-clients'
 import { Stars } from 'lucide-react'
 import { Switch } from '../ui/switch'
 import { getPromptGuide } from './contract-prompt-guides'
+import { useAiContractGenerate } from '@/hooks/use-ai-contract-generate'
 
 
 
@@ -28,14 +29,16 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
     const [content, setContent] = useState('');
     const [clientId, setClientId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [regularContract,setRegularContract] = useState(true);
-    const [contractType,setContractType] = useState<string>('freelance-service-agreement')
+    const [contractMode, setContractMode] = useState<'ai-prompt' | 'manual'>('manual');
+    const [contractType, setContractType] = useState<string>('freelance-service-agreement')
     const [showPromptGuide, setShowPromptGuide] = useState(false)
+    const [showSwitchConfirm, setShowSwitchConfirm] = useState(false)
     
     const { toast } = useToast()
     const { data: user } = useUser()
     const createContract = useCreateContract()
     const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
+    const { generateAiContract, loading: aiLoading, error: aiError } = useAiContractGenerate()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -65,15 +68,13 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                 user_id: user.id,
                 client_id: clientId,
                 title: title.trim(),
-                content: content.trim(), // Store plain text
+                content: content
             })
 
             toast({
                 title: "Success",
                 description: "Contract created successfully",
             })
-
-            
             setTitle('')
             setContent('')
             setClientId('')
@@ -90,16 +91,16 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
         }
     }
 
-    const handleAiGenerate = async(e : React.FormEvent) => {
+    const handleAiGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!user?.id){
+        if (!user?.id) {
             toast({
                 title: "Error",
                 description: "User not authenticated",
                 variant: "destructive",
-            })
-            return
+            });
+            return;
         }
 
         if (!title.trim() || !content.trim() || !clientId) {
@@ -107,37 +108,94 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                 title: "Error",
                 description: "Please fill in all fields",
                 variant: "destructive",
-            })
-            return
+            });
+            return;
         }
 
-    }
+        try {
+            const selectedClient = clients.find(c => c.id === clientId);
+            const generatedContract = await generateAiContract({
+                title: title.trim(),
+                contractType,
+                prompt: content.trim(),
+                clientName: selectedClient?.name || '',
+            });
+
+            // Set the generated contract as content and switch to manual mode
+            setContent(generatedContract);
+            setContractMode('manual');
+            
+            toast({
+                title: "Success",
+                description: "Contract generated successfully! Review and save when ready.",
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: aiError || "Failed to generate contract",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleModeSwitch = (toAiMode: boolean) => {
+        if (toAiMode) {
+            // Switching to AI mode
+            if (content.trim() && contractMode !== 'ai-prompt') {
+                // Show confirmation if there's content that will be wiped
+                setShowSwitchConfirm(true);
+            } else {
+                setContractMode('ai-prompt');
+            }
+        } else {
+            // Switching to manual mode
+            setContractMode('manual');
+        }
+    };
+
+    const confirmSwitchToAi = () => {
+        setContractMode('ai-prompt');
+        setContent('');
+        setShowSwitchConfirm(false);
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[900px] mx-auto max-h-[90vh] overflow-y-auto">
-                <div className='flex justify-between'>
-                    <DialogHeader>
-                        
-                        <DialogTitle>Create New Contract</DialogTitle>
-                        <DialogDescription>
-                            Fill out the form below to create a new contract for your client.
-                        </DialogDescription>
-                        
-                    </DialogHeader>
-                    <div className="flex items-center space-x-2">
-                        <Switch 
-                            checked={regularContract} 
-                            onCheckedChange={setRegularContract}
-                        />
-                        <Stars className="h-4 w-4" />
-                        <span className="text-sm text-muted-foreground">
-                            {regularContract ? 'Manual' : 'AI'}
-                        </span>
+                <DialogHeader>
+                    <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                                <DialogTitle>
+                                    {contractMode === 'ai-prompt' ? 'Generate AI Contract' : 'Create New Contract'}
+                                </DialogTitle>
+                                
+                                {/* Mode Toggle */}
+                                <div className="flex items-center gap-2 ml-auto">
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                        <FileText className="h-4 w-4" />
+                                        Manual
+                                    </div>
+                                    <Switch
+                                        checked={contractMode === 'ai-prompt'}
+                                        onCheckedChange={(checked) => handleModeSwitch(checked)}
+                                        disabled={aiLoading || isSubmitting}
+                                    />
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mr-5">
+                                        <Bot className="h-4 w-4" />
+                                        AI
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogDescription>
+                                {contractMode === 'ai-prompt' ? 'Provide details to generate a professional contract with AI' :
+                                 'Fill out the form below to create a new contract for your client.'}
+                            </DialogDescription>
+                        </div>
                     </div>
-                </div>
+                </DialogHeader>
                 
-                <form onSubmit={regularContract? handleSubmit : handleAiGenerate} className="space-y-4">
+                <form onSubmit={contractMode === 'ai-prompt' ? handleAiGenerate : handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="title">Contract Title</Label>
                         <Input
@@ -170,7 +228,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                             </SelectContent>
                         </Select>
                     </div>
-                    {!regularContract && 
+                    {contractMode === 'ai-prompt' && 
                     <div className='space-y-2'>
                         <Label> Contract Type </Label>
                         <Select value={contractType} onValueChange={setContractType}>
@@ -210,8 +268,10 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                     
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="content">{regularContract? 'Contract Content' : 'Prompt To Create Contract'}</Label>
-                            {!regularContract && (
+                            <Label htmlFor="content">
+                                {contractMode === 'ai-prompt' ? 'Prompt To Create Contract' : 'Contract Content'}
+                            </Label>
+                            {contractMode === 'ai-prompt' && (
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -227,15 +287,16 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                             id="content"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder={regularContract? "Enter contract content..." : "Enter prompt for AI generate"}
+                            placeholder={contractMode === 'ai-prompt' ? "Enter prompt for AI to generate contract..." : "Enter contract content..."}
                             className="min-h-[300px] font-mono text-sm"
                             style={{ whiteSpace: 'pre-wrap' }}
+                            disabled={aiLoading}
                         />
-                        { regularContract &&
-                        <p className="text-xs text-muted-foreground">
-                            Use line breaks and spacing as needed. Formatting will be preserved in the PDF.
-                        </p>
-                        }
+                        {contractMode !== 'ai-prompt' && (
+                            <p className="text-xs text-muted-foreground">
+                                Use line breaks and spacing as needed. Formatting will be preserved in the PDF.
+                            </p>
+                        )}
                     </div>
                     
                     <div className="flex justify-end space-x-2 pt-4">
@@ -243,12 +304,22 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                             type="button"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || aiLoading}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {regularContract? 'Create Contract' : 'Generate With AI'}
+                        <Button 
+                            type="submit" 
+                            disabled={aiLoading || (!title || !contractType || !content)}
+                        >
+                            {aiLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : (
+                                contractMode === 'ai-prompt' ? 'Generate With AI' : 'Create Contract'
+                            )}
                         </Button>
                     </div>
                 </form>
@@ -282,6 +353,41 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                                         Close
                                     </Button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Switch Mode Confirmation Dialog */}
+                {showSwitchConfirm && (
+                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+                        <div className="bg-white rounded-lg p-6 max-w-md m-4 shadow-xl border">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        Switch to AI Mode?
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mt-2">
+                                        Switching to AI mode will clear your current contract content. This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowSwitchConfirm(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={confirmSwitchToAi}
+                                >
+                                    Clear & Switch
+                                </Button>
                             </div>
                         </div>
                     </div>

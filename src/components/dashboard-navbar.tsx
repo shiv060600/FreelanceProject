@@ -123,10 +123,13 @@ export default function DashboardNavbar() {
               <FileSignature className="h-5 w-5" />
               <span>Contracts</span>
             </Link>
+            {/*
+            remove lead generator, not nessecary
+            
             <Link href="/dashboard/lead-generator" className={`nav-link ${isActive('/dashboard/lead-generator') ? 'nav-link-active' : ''}`}>
               <Zap className="h-5 w-5" />
               <span>Lead Generator</span>
-            </Link>
+            </Link>*/}
             <Link href={"/dashboard/contracts-information"} className={`nav-link ${isActive('/dashboard/contracts-information') ? 'nav-link-active' : ''}`}>
               <InfoCircledIcon className='h-5 w-5'/>
               <span>Contract Information</span>

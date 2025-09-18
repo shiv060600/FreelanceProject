@@ -93,6 +93,14 @@ ALTER TABLE public.clients
 ADD COLUMN IF NOT EXISTS lifetime_client_earnings decimal(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS lifetime_client_paid_invoices integer DEFAULT 0;
 
+-- Usage Tracker Table
+CREATE TABLE IF NOT EXISTS public.user_usage(
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id text REFERENCES public.users(user_id),
+  ai_uses integer DEFAULT 0,
+  last_update date DEFAULT CURRENT_DATE
+);
+
 -- Time logs table
 CREATE TABLE IF NOT EXISTS public.time_logs (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -174,6 +182,8 @@ CREATE INDEX IF NOT EXISTS invoice_items_invoice_id_idx ON public.invoice_items(
 CREATE INDEX IF NOT EXISTS invoice_items_time_log_id_idx ON public.invoice_items(time_log_id);
 CREATE INDEX IF NOT EXISTS contracts_user_id_idx ON public.contracts(user_id);
 CREATE INDEX IF NOT EXISTS contracts_client_id_idx ON public.contracts(client_id);
+CREATE INDEX IF NOT EXISTS user_usage_user_id_idx ON public.user_usage(user_id);
+CREATE INDEX IF NOT EXISTS user_usage_last_reset_date_idx ON public.user_usage(last_reset_date);
 
 -- ==========================================
 -- CONSTRAINTS
@@ -203,6 +213,7 @@ ALTER TABLE public.time_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_usage ENABLE ROW LEVEL SECURITY;
 
 -- ==========================================
 -- FUNCTIONS (Secure with proper search_path)
@@ -279,6 +290,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+CREATE OR REPLACE FUNCTION public.handle_ai_usage(user_id_param text)
+RETURNS INTEGER AS $$
+DECLARE current_usage integer;
+BEGIN
+  INSERT INTO public.user_usage (user_id,ai_uses,last_update)
+  VALUES (user_id_param, 1, CURRENT_DATE)
+  ON CONFLICT(user_id)
+  DO UPDATE SET
+    ai_uses = CASE WHEN user_usage.last_update < CURRENT_DATE THEN 1 
+    ELSE user_usage.ai_uses + 1
+    END,
+    last_update = CURRENT_DATE
+  RETURNING ai_uses INTO current_usage;
+
+  RETURN current_usage;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+ALTER TABLE public.user_usage ADD CONSTRAINT IF NOT EXISTS user_usage_user_id_unique UNIQUE (user_id);
+
 -- Function to update user subscription from subscription table
 CREATE OR REPLACE FUNCTION public.sync_user_subscription()
 RETURNS TRIGGER AS $$
@@ -335,7 +366,7 @@ BEGIN
             subscription = 'Free',
             subscription_status = NEW.status,
             max_invoices = 2,
-            max_contracts = 0
+            max_contracts = 2
         WHERE user_id = NEW.user_id;
     END IF;
 
@@ -465,6 +496,15 @@ CREATE TRIGGER trigger_handle_invoice_deletion
   EXECUTE FUNCTION public.handle_invoice_deletion();
 
 -- ==========================================
+-- CLEANUP TEST FUNCTIONS
+-- ==========================================
+
+-- Drop any test functions that may exist
+DROP FUNCTION IF EXISTS public.test_trigger();
+DROP FUNCTION IF EXISTS public.test_function();
+DROP FUNCTION IF EXISTS public.debug_function();
+
+-- ==========================================
 -- EMAIL VERIFICATION FUNCTIONS
 -- ==========================================
 
@@ -480,7 +520,7 @@ BEGIN
     
     RETURN user_record.email_confirmed_at IS NOT NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Function to manually trigger email verification (for logging purposes)
 CREATE OR REPLACE FUNCTION public.resend_verification_email(user_email text)
@@ -490,7 +530,7 @@ BEGIN
     -- For now, we'll just log the attempt
     RAISE LOG 'Resend verification email requested for: %', user_email;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Function to clear email confirmation status for development
 -- This should only be used in development environments
@@ -524,7 +564,7 @@ BEGIN
     
     RETURN result;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Grant execute permission to authenticated users (for development)
 GRANT EXECUTE ON FUNCTION public.clear_email_confirmation(text) TO authenticated;
