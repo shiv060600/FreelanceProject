@@ -21,6 +21,8 @@ export async function POST(request: NextRequest){
                     role: 'system',
                     content: `You are an expert legal contract writer. Generate a comprehensive, professional legal contract with proper formatting and all necessary legal clauses. 
 
+CRITICAL: This contract is for digital use only - DO NOT include any signature sections, signature lines, date fields, or manual completion areas.
+
 FORMATTING REQUIREMENTS:
 - Use clear section numbering (1., 1.1, 1.2, etc.)
 - Include proper legal headings and subheadings
@@ -28,11 +30,18 @@ FORMATTING REQUIREMENTS:
 - Include standard legal clauses (governing law, dispute resolution, etc.)
 - Format as complete legal document content
 - Use proper spacing and structure
-- NO signature lines, date fields, or blank fill-in spaces
-- NO empty lines like "______" or placeholder fields
-- Include specific company names, addresses, and details as provided
 
-The contract should be legally sound, comprehensive, and ready for PDF generation without any manual fill-ins required.`
+ABSOLUTELY FORBIDDEN - DO NOT INCLUDE:
+- Signature lines or signature blocks
+- Date fields or "Date: ____" sections
+- Any blank lines like "______" or "___________"
+- "Signed by:" sections
+- "Party A Signature:" or "Party B Signature:" fields
+- Any placeholder fields requiring manual completion
+- Witness signature areas
+- Notary sections
+
+The contract should be a complete, self-contained legal document that needs no additional completion.`
                 },
                 {
                     role: 'user',
@@ -50,9 +59,17 @@ Please ensure the contract includes:
 - Governing law
 - Complete legal content ready for PDF generation
 
-IMPORTANT: Do NOT include signature blocks, date fields, or any blank fill-in spaces like "______". The contract should be complete legal content without requiring any manual completion. All names, companies, and details should be filled in based on the provided information.
+CRITICAL REMINDER: This is a DIGITAL CONTRACT ONLY. Do NOT include:
+❌ Signature blocks or signature lines
+❌ Date fields or "Date: ____" sections  
+❌ Any "______" blank lines or fill-in spaces
+❌ "Signed by:" sections
+❌ Witness or notary sections
+❌ Any manual completion areas
 
-Make this a complete, professional legal contract with all content populated and ready for immediate use.`
+The contract should END with the final legal clause (like governing law or entire agreement clause) and nothing more. No signature areas whatsoever.
+
+Make this a complete, professional legal contract that is ready for immediate digital use.`
                 }
             ],
             max_completion_tokens : 3000,

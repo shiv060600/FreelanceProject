@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,8 @@ import { Stars } from 'lucide-react'
 import { Switch } from '../ui/switch'
 import { getPromptGuide } from './contract-prompt-guides'
 import { useAiContractGenerate } from '@/hooks/use-ai-contract-generate'
+import { useSubscriptionInfo } from '@/hooks/use-subscription-info'
+import { useUserAiUsage, useIncrementAiUsage } from '@/hooks/use-user-ai-usage'
 
 
 
@@ -31,14 +33,71 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [contractMode, setContractMode] = useState<'ai-prompt' | 'manual'>('manual');
     const [contractType, setContractType] = useState<string>('freelance-service-agreement')
-    const [showPromptGuide, setShowPromptGuide] = useState(false)
-    const [showSwitchConfirm, setShowSwitchConfirm] = useState(false)
+    const [showPromptGuide, setShowPromptGuide] = useState(false);
+    const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
+    const [subscriptionType, setSubscriptionType] = useState<string>('Free');
+    const [canUseAi,setCanUseAi] = useState(false);
     
     const { toast } = useToast()
     const { data: user } = useUser()
     const createContract = useCreateContract()
     const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
     const { generateAiContract, loading: aiLoading, error: aiError } = useAiContractGenerate()
+    const { data: aiUsage } = useUserAiUsage(user?.id!);
+    const { getSubscriptionType, loading: subscriptionLoading } = useSubscriptionInfo(user?.id!);
+    const incrementAiUsage = useIncrementAiUsage();
+
+    // Get subscription type
+    useEffect(() => {
+        if (!user?.id) return;
+        
+        const fetchSubscription = async () => {
+            try {
+                const subData = await getSubscriptionType(user.id);
+                if (subData && subData.length > 0) {
+                    setSubscriptionType(subData[0].subscription || 'Free');
+                }
+            } catch (error) {
+                console.error('Error fetching subscription:', error);
+                setSubscriptionType('Free');
+            }
+        };
+        
+        fetchSubscription();
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!user?.id || !subscriptionType || aiUsage === undefined) {
+            setCanUseAi(false);
+            return;
+        }
+        const currentUsage = aiUsage || 0;
+        let maxUsage = 0;
+
+        switch (subscriptionType){
+            case 'Expert Freelancer':
+                maxUsage = 50;
+                break;
+            
+            case 'Seasoned Freelancer':
+                maxUsage = 10
+                break;
+            
+            case 'New Freelancer':
+                maxUsage = 5
+                break;
+            
+            case 'Free':
+                maxUsage = 1
+                break;
+            
+            default:
+                maxUsage = 1
+                break;
+        }
+        setCanUseAi(currentUsage < maxUsage);
+    },[user,aiUsage])
+    
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -103,6 +162,15 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
             return;
         }
 
+        if (!canUseAi) {
+            toast({
+                title: "AI Usage Limit Reached",
+                description: "You've reached your AI usage limit. Please upgrade your subscription for more AI generations.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         if (!title.trim() || !content.trim() || !clientId) {
             toast({
                 title: "Error",
@@ -120,6 +188,9 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                 prompt: content.trim(),
                 clientName: selectedClient?.name || '',
             });
+
+            // Increment AI usage after successful generation
+            await incrementAiUsage.mutateAsync(user.id);
 
             // Set the generated contract as content and switch to manual mode
             setContent(generatedContract);
@@ -179,7 +250,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                                     <Switch
                                         checked={contractMode === 'ai-prompt'}
                                         onCheckedChange={(checked) => handleModeSwitch(checked)}
-                                        disabled={aiLoading || isSubmitting}
+                                        disabled={aiLoading || isSubmitting ||!canUseAi}
                                     />
                                     <div className="flex items-center gap-1 text-sm text-muted-foreground mr-5">
                                         <Bot className="h-4 w-4" />
@@ -187,7 +258,103 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                                     </div>
                                 </div>
                             </div>
-                            <DialogDescription>
+                            
+                            {/* AI Usage Counter */}
+                            {contractMode === 'ai-prompt' && (
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Bot className="h-4 w-4 text-blue-600" />
+                                            <span className="text-sm font-medium text-gray-700">
+                                                AI Usage Today
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            {subscriptionType} Plan
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        {/* Usage Bar */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div 
+                                                        className={`h-2 rounded-full transition-all duration-300 ${
+                                                            canUseAi 
+                                                                ? (aiUsage || 0) / (() => {
+                                                                    switch (subscriptionType) {
+                                                                        case 'Expert Freelancer': return 50;
+                                                                        case 'Seasoned Freelancer': return 10;
+                                                                        case 'New Freelancer': return 1;
+                                                                        default: return 1;
+                                                                    }
+                                                                })() < 0.8 
+                                                                    ? 'bg-green-500' 
+                                                                    : 'bg-yellow-500'
+                                                                : 'bg-red-500'
+                                                        }`}
+                                                        style={{ 
+                                                            width: `${Math.min(100, ((aiUsage || 0) / (() => {
+                                                                switch (subscriptionType) {
+                                                                    case 'Expert Freelancer': return 50;
+                                                                    case 'Seasoned Freelancer': return 10;
+                                                                    case 'New Freelancer': return 1;
+                                                                    default: return 1;
+                                                                }
+                                                            })()) * 100)}%` 
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="text-sm font-mono">
+                                                <span className={canUseAi ? 'text-gray-700' : 'text-red-600'}>
+                                                    {aiUsage || 0}
+                                                </span>
+                                                <span className="text-gray-400 mx-1">/</span>
+                                                <span className="text-gray-500">
+                                                    {(() => {
+                                                        switch (subscriptionType) {
+                                                            case 'Expert Freelancer': return 50;
+                                                            case 'Seasoned Freelancer': return 10;
+                                                            case 'New Freelancer': return 1;
+                                                            default: return 1;
+                                                        }
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Status Message */}
+                                        <div className="flex items-center gap-2">
+                                            {canUseAi ? (
+                                                <div className="flex items-center gap-1 text-xs text-green-600">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    Available
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 text-xs text-red-600">
+                                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                    Limit reached
+                                                </div>
+                                            )}
+                                            <div className="text-xs text-gray-500">
+                                                • Resets daily at 12:00 AM UTC
+                                            </div>
+                                        </div>
+                                        
+                                        {!canUseAi && subscriptionType === 'Free' && (
+                                            <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                                <p className="text-xs text-blue-700">
+                                                    💡 <strong>Upgrade your plan</strong> to get more AI generations per day
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <DialogDescription className='mt-2'>
                                 {contractMode === 'ai-prompt' ? 'Provide details to generate a professional contract with AI' :
                                  'Fill out the form below to create a new contract for your client.'}
                             </DialogDescription>

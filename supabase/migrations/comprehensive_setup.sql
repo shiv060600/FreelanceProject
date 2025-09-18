@@ -94,9 +94,9 @@ ADD COLUMN IF NOT EXISTS lifetime_client_earnings decimal(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS lifetime_client_paid_invoices integer DEFAULT 0;
 
 -- Usage Tracker Table
+-- Note on addition of user, postgres will auto add id column.
 CREATE TABLE IF NOT EXISTS public.user_usage(
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id text REFERENCES public.users(user_id),
+  user_id text REFERENCES public.users(user_id) PRIMARY KEY,
   ai_uses integer DEFAULT 0,
   last_update date DEFAULT CURRENT_DATE
 );
@@ -183,7 +183,7 @@ CREATE INDEX IF NOT EXISTS invoice_items_time_log_id_idx ON public.invoice_items
 CREATE INDEX IF NOT EXISTS contracts_user_id_idx ON public.contracts(user_id);
 CREATE INDEX IF NOT EXISTS contracts_client_id_idx ON public.contracts(client_id);
 CREATE INDEX IF NOT EXISTS user_usage_user_id_idx ON public.user_usage(user_id);
-CREATE INDEX IF NOT EXISTS user_usage_last_reset_date_idx ON public.user_usage(last_reset_date);
+CREATE INDEX IF NOT EXISTS user_usage_last_update_idx ON public.user_usage(last_update);
 
 -- ==========================================
 -- CONSTRAINTS
@@ -197,6 +197,16 @@ BEGIN
     ALTER TABLE public.invoices ADD CONSTRAINT invoices_status_check CHECK (status IN ('draft', 'paid'));
 EXCEPTION WHEN OTHERS THEN
     -- If table doesn't exist yet, ignore
+    NULL;
+END $$;
+
+-- Add unique constraint for user_usage table (needed for ON CONFLICT)
+DO $$
+BEGIN
+    ALTER TABLE public.user_usage DROP CONSTRAINT IF EXISTS user_usage_user_id_unique;
+    ALTER TABLE public.user_usage ADD CONSTRAINT user_usage_user_id_unique UNIQUE (user_id);
+EXCEPTION WHEN duplicate_object THEN
+    -- Constraint already exists, ignore
     NULL;
 END $$;
 
@@ -265,6 +275,12 @@ BEGIN
   );
   
   RAISE LOG 'User record created successfully for: %', NEW.id;
+  
+  -- Insert into user_usage table with correct syntax
+  INSERT INTO public.user_usage (user_id, ai_uses, last_update) 
+  VALUES (NEW.id::text, 0, CURRENT_DATE);
+  
+  RAISE LOG 'User ADDED TO USER_USAGE TABLE';
   RETURN NEW;
 EXCEPTION
   WHEN OTHERS THEN
@@ -307,8 +323,6 @@ BEGIN
   RETURN current_usage;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
-
-ALTER TABLE public.user_usage ADD CONSTRAINT IF NOT EXISTS user_usage_user_id_unique UNIQUE (user_id);
 
 -- Function to update user subscription from subscription table
 CREATE OR REPLACE FUNCTION public.sync_user_subscription()
@@ -499,10 +513,13 @@ CREATE TRIGGER trigger_handle_invoice_deletion
 -- CLEANUP TEST FUNCTIONS
 -- ==========================================
 
--- Drop any test functions that may exist
-DROP FUNCTION IF EXISTS public.test_trigger();
-DROP FUNCTION IF EXISTS public.test_function();
-DROP FUNCTION IF EXISTS public.debug_function();
+-- Drop any test triggers that may exist
+DROP TRIGGER IF EXISTS test_auth_trigger ON auth.users;
+
+-- Drop any test functions that may exist (use CASCADE to drop dependent objects)
+DROP FUNCTION IF EXISTS public.test_trigger() CASCADE;
+DROP FUNCTION IF EXISTS public.test_function() CASCADE;
+DROP FUNCTION IF EXISTS public.debug_function() CASCADE;
 
 -- ==========================================
 -- EMAIL VERIFICATION FUNCTIONS
@@ -584,7 +601,7 @@ CREATE POLICY "Users can update own data" ON public.users
 
 DROP POLICY IF EXISTS "Service role can manage all users" ON public.users;
 CREATE POLICY "Service role can manage all users" ON public.users
-    FOR ALL USING (auth.role() = 'service_role');
+    FOR ALL USING ((SELECT auth.role()) = 'service_role');
 
 -- Subscriptions policies
 DROP POLICY IF EXISTS "Users can view own subscriptions" ON public.subscriptions;
@@ -620,6 +637,11 @@ CREATE POLICY "Users can manage their own invoice items" ON public.invoice_items
 -- Contracts policies
 DROP POLICY IF EXISTS "Users can manage their own contracts" ON public.contracts;
 CREATE POLICY "Users can manage their own contracts" ON public.contracts
+    FOR ALL USING ((SELECT auth.uid())::text = user_id);
+
+-- User usage policies
+DROP POLICY IF EXISTS "Users can manage their own usage" ON public.user_usage;
+CREATE POLICY "Users can manage their own usage" ON public.user_usage
     FOR ALL USING ((SELECT auth.uid())::text = user_id);
 
 -- Webhook events policies (if needed for admin access)
