@@ -243,6 +243,11 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                                 
                                 {/* Mode Toggle */}
                                 <div className="flex items-center gap-2 ml-auto">
+                                    {!canUseAi && 
+                                        <div className='text-md font-weight-bold text-red-500'>
+                                            Out of AI uses for the day
+                                        </div>
+                                    }
                                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                         <FileText className="h-4 w-4" />
                                         Manual

@@ -1,13 +1,13 @@
 import { NextRequest,NextResponse } from "next/server";
 import OpenAI from "openai";
-const OPEN_AI_API_KEY = process.env.OPEN_AI_API_KEY
-const openAi = new OpenAI({apiKey : OPEN_AI_API_KEY})
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
 
 
 export async function POST(request: NextRequest){
-    if(!OPEN_AI_API_KEY){
+    if(!OPENAI_API_KEY){
         return NextResponse.json(
-            {message : 'Open AI API key not found'},
+            {message : 'OpenAI API key not found'},
             {status: 500}
         )
     }
