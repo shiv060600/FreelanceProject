@@ -97,8 +97,7 @@ ADD COLUMN IF NOT EXISTS lifetime_client_paid_invoices integer DEFAULT 0;
 -- Note on addition of user, postgres will auto add id column.
 CREATE TABLE IF NOT EXISTS public.user_usage(
   user_id text REFERENCES public.users(user_id) PRIMARY KEY,
-  ai_uses integer DEFAULT 0,
-  last_update date DEFAULT CURRENT_DATE
+  ai_uses integer DEFAULT 0
 );
 
 -- Time logs table
@@ -183,7 +182,6 @@ CREATE INDEX IF NOT EXISTS invoice_items_time_log_id_idx ON public.invoice_items
 CREATE INDEX IF NOT EXISTS contracts_user_id_idx ON public.contracts(user_id);
 CREATE INDEX IF NOT EXISTS contracts_client_id_idx ON public.contracts(client_id);
 CREATE INDEX IF NOT EXISTS user_usage_user_id_idx ON public.user_usage(user_id);
-CREATE INDEX IF NOT EXISTS user_usage_last_update_idx ON public.user_usage(last_update);
 
 -- ==========================================
 -- CONSTRAINTS
@@ -277,8 +275,8 @@ BEGIN
   RAISE LOG 'User record created successfully for: %', NEW.id;
   
   -- Insert into user_usage table with correct syntax
-  INSERT INTO public.user_usage (user_id, ai_uses, last_update) 
-  VALUES (NEW.id::text, 0, CURRENT_DATE);
+  INSERT INTO public.user_usage (user_id, ai_uses) 
+  VALUES (NEW.id::text, 0);
   
   RAISE LOG 'User ADDED TO USER_USAGE TABLE';
   RETURN NEW;
@@ -306,21 +304,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Function to increment AI usage for a user (called via supabase.rpc)
 CREATE OR REPLACE FUNCTION public.handle_ai_usage(user_id_param text)
 RETURNS INTEGER AS $$
 DECLARE current_usage integer;
 BEGIN
-  INSERT INTO public.user_usage (user_id,ai_uses,last_update)
-  VALUES (user_id_param, 1, CURRENT_DATE)
+  INSERT INTO public.user_usage (user_id, ai_uses)
+  VALUES (user_id_param, 1)
   ON CONFLICT(user_id)
-  DO UPDATE SET
-    ai_uses = CASE WHEN user_usage.last_update < CURRENT_DATE THEN 1 
-    ELSE user_usage.ai_uses + 1
-    END,
-    last_update = CURRENT_DATE
+  DO UPDATE SET ai_uses = user_usage.ai_uses + 1
   RETURNING ai_uses INTO current_usage;
 
   RETURN current_usage;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Function to reset all users' AI usage to 0 (called by cron job at midnight)
+CREATE OR REPLACE FUNCTION public.daily_reset()
+RETURNS INTEGER AS $$
+DECLARE
+  reset_count integer;
+BEGIN
+  -- Reset AI usage for all users to 0
+  UPDATE public.user_usage 
+  SET ai_uses = 0;
+  
+  GET DIAGNOSTICS reset_count = ROW_COUNT;
+  
+  -- Log the reset for monitoring
+  RAISE LOG 'Daily AI usage reset completed. Users reset: %', reset_count;
+  
+  RETURN reset_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
