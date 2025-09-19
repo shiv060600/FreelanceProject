@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useClients } from "@/hooks/use-clients"
 import { useUser } from "@/hooks/use-user"
+import { useUpdateInvoice } from "@/hooks/use-invoices"
 
 interface EditInvoiceDialogProps {
   children: React.ReactNode
@@ -35,6 +36,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
   const supabase = createClient()
   const { data: user } = useUser()
   const { isLoading: clientsLoading } = useClients(user?.id || '')
+  const updateInvoice = useUpdateInvoice()
 
   // get initial formdata
   useEffect(() => {
@@ -57,60 +59,36 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
 
     try {
       const formData = new FormData(e.currentTarget)
-      const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
         router.push('/sign-in')
         return
       }
 
-      // Update invoice
-      const { error: invoiceError } = await supabase
-        .from('invoices')
-        .update({
-          due_date: formData.get('due_date'),
-          status: formData.get('status'),
-          tax_rate: taxRate,
-          tax_amount: taxAmount,
-          total: total,
-          subtotal: subtotal,
-          notes: formData.get('notes') as string,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', invoice.id)
-
-      if (invoiceError) {
-        console.error('Error updating invoice:', invoiceError)
-        return
-      }
-
-      // Update invoice item with new pricing details
-      const newInvoiceName = formData.get('invoice_name') as string
-      if (invoice.invoice_items?.[0]) {
-        const { error: itemError } = await supabase
-          .from('invoice_items')
-          .update({
-            description: newInvoiceName,
-            quantity: quantity,
-            unit_price: parseFloat(unitPrice) || 0,
-            total: subtotal,
-            invoice_name: newInvoiceName,
-          })
-          .eq('invoice_id', invoice.id)
-          .eq('id', invoice.invoice_items[0].id)
-
-        if (itemError) {
-          console.error('Error updating invoice item:', itemError)
-          return
-        }
-      }
+      // Update Invoices and Invoice Items
+      await updateInvoice.mutateAsync({
+        id: invoice.id,
+        user_id: user.id,
+        due_date: formData.get('due_date') as string,
+        status: formData.get('status') as 'draft' | 'paid',
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
+        total: total,
+        subtotal: subtotal,
+        notes: formData.get('notes') as string,
+        invoice_name: formData.get('invoice_name') as string,
+        quantity: quantity,
+        unit_price: parseFloat(unitPrice),
+        invoice_items_subtotal: subtotal,
+        invoice_items_invoice_name: formData.get('invoice_name') as string
+      })
 
       setOpen(false)
       if (onSuccess) {
         onSuccess()
       }
     } catch (error) {
-      console.error('Error in editInvoice:', error)
+      console.error('Error updating invoice:', error)
     } finally {
       setLoading(false)
     }

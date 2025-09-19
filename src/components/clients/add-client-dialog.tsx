@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { createClient } from "../../../supabase/client"
 import { useRouter } from "next/navigation"
 import { useCreateClient } from "@/hooks/use-clients"
+import { useUser } from "@/hooks/use-user"
 import {
   Dialog,
   DialogContent,

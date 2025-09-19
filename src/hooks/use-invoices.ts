@@ -52,7 +52,16 @@ interface CreateInvoiceData {
   }
   
   interface UpdateInvoiceData extends Partial<CreateInvoiceData> {
-    id: string;
+    id: string, //Require invoiceId
+    user_id: string; //Require user_id
+    // Invoice items fields (for updating the first invoice item)
+    invoice_name?: string;
+    quantity?: number;
+    unit_price?: number;
+    description?: string;
+    invoice_items_subtotal?: number;
+    invoice_items_invoice_name?: string;
+  
 }
 
 export function useInvoices (userId:string){
@@ -174,11 +183,11 @@ export function useUserSubscription(userId: string) {
           }
           return { maxInvoices, status: 'active' }
         } else {
-          return { maxInvoices: 2, status: 'expired' }
+          return { maxInvoices: 2, status: 'inactive' }
         }
       }
       
-      return { maxInvoices: 2, status: 'free' }
+      return { maxInvoices: 2, status: 'inactive' }
     },
     enabled: !!userId,
     refetchInterval: 30000, // Check every 30 seconds for subscription changes
@@ -233,50 +242,66 @@ export function useUpdateInvoice() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async ({ id, ...updates }: UpdateInvoiceData) => {
-      const { data: updatedInvoice, error } = await supabase
+    mutationFn: async ({ id, user_id, ...updates }: UpdateInvoiceData) => {
+      // Separate invoice updates from invoice_items updates
+      const invoiceUpdates = {
+        due_date: updates.due_date,
+        status: updates.status,
+        subtotal: updates.subtotal,
+        tax_rate: updates.tax_rate,
+        tax_amount: updates.tax_amount,
+        total: updates.total,
+        notes: updates.notes,
+        updated_at: new Date().toISOString()
+      };
+
+      const invoiceItemsUpdates = {
+        description: updates.invoice_name || updates.description,
+        quantity: updates.quantity,
+        unit_price: updates.unit_price,
+        total: updates.invoice_items_subtotal || updates.subtotal,
+        invoice_name: updates.invoice_items_invoice_name || updates.invoice_name,
+      };
+
+      // Remove undefined values from updates
+      const cleanInvoiceUpdates = Object.fromEntries(
+        Object.entries(invoiceUpdates).filter(([_, value]) => value !== undefined)
+      );
+
+      const cleanInvoiceItemsUpdates = Object.fromEntries(
+        Object.entries(invoiceItemsUpdates).filter(([_, value]) => value !== undefined)
+      );
+
+      // Update invoice table
+      const { data: updatedInvoice, error: invoiceError } = await supabase
         .from('invoices')
-        .update(updates)
+        .update(cleanInvoiceUpdates)
         .eq('id', id)
+        .eq('user_id', user_id)
         .select()
         .single()
       
-      if (error) throw error
+      if (invoiceError) throw invoiceError
+
+      // Update invoice items
+      if (Object.keys(cleanInvoiceItemsUpdates).length > 0) {
+        const { error: itemsError } = await supabase
+          .from('invoice_items')
+          .update(cleanInvoiceItemsUpdates)
+          .eq('invoice_id', id)
+
+        if (itemsError) throw itemsError
+      }
+
       return updatedInvoice
     },
-    onMutate: async ({ id, ...updates }) => {
-      const userId = updates.user_id
-      
-      await queryClient.cancelQueries({ queryKey: ['invoices', userId] })
-      
-      // Snapshot the previous value
-      const previousInvoices = queryClient.getQueryData(['invoices', userId])
-      
-      // Optimistically update the invoice
-      queryClient.setQueryData(['invoices', userId], (old: Invoice[] = []) => 
-        old.map(invoice => 
-          invoice.id === id 
-            ? { ...invoice, ...updates, updated_at: new Date().toISOString() }
-            : invoice
-        )
-      )
-      
-      // Return context with the snapshotted value
-      return { previousInvoices }
-    },
-    onError: (err, { id }, context) => {
-      // use the prevInovoice data returned from onMutate to roll back
-      if (context?.previousInvoices) {
-        queryClient.invalidateQueries({ queryKey: ['invoices'] })
-      }
-    },
-    onSettled: (_, __, { id }) => {
+    onSettled: (_, __, { user_id }) => {
       // refetch since updated
-      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['invoices', user_id] });
+      queryClient.invalidateQueries({queryKey : ['client-stats', user_id]});
     },
   })
 }
-
 export function useDeleteInvoice() {
   const queryClient = useQueryClient()
   
@@ -310,41 +335,12 @@ export function useDeleteInvoice() {
 
       return deletedInvoice
     },
-    onMutate: async ({ id, userId }) => {
-      // stop any outgoing refetches 
-      await queryClient.cancelQueries({ queryKey: ['invoices', userId] })
-      await queryClient.cancelQueries({ queryKey: ['invoice-count', userId] })
-      
-      // save current data
-      const previousInvoices = queryClient.getQueryData(['invoices', userId])
-      const previousCount = queryClient.getQueryData(['invoice-count', userId])
-      
-      // optimistically update invoices
-      queryClient.setQueryData(['invoices', userId], (old: Invoice[] = []) => 
-        old.filter(invoice => invoice.id !== id)
-      )
-      
-      // optimistically update count
-      queryClient.setQueryData(['invoice-count', userId], (old: number = 0) => 
-        Math.max(0, old - 1)
-      )
-      
-      //  context with the snapshotted values
-      return { previousInvoices, previousCount }
-    },
-    onError: (err, { userId }, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousInvoices) {
-        queryClient.setQueryData(['invoices', userId], context.previousInvoices)
-      }
-      if (context?.previousCount) {
-        queryClient.setQueryData(['invoice-count', userId], context.previousCount)
-      }
-    },
+    //Descructure variables to get userId
     onSettled: (_, __, { userId }) => {
-      // refetch after error or success to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['invoices', userId] })
-      queryClient.invalidateQueries({ queryKey: ['invoice-count', userId] })
+      // refetch after deletion
+      queryClient.invalidateQueries({ queryKey: ['invoices', userId] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-count', userId] });
+      queryClient.invalidateQueries({queryKey : ['client-stats', userId]});
     },
   })
 }

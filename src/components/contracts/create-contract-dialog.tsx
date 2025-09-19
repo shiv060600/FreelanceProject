@@ -119,9 +119,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
             })
             return
         }
-
         setIsSubmitting(true)
-
         try {
             await createContract.mutateAsync({
                 user_id: user.id,

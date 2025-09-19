@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/dialog"
 import { Client } from "@/types/client"
 import { format } from "date-fns"
-import { createClient } from "../../../supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, Mail, Phone, MapPin, Calendar, ClipboardList } from "lucide-react"
+import { useUser } from "@/hooks/use-user"
+import { useLifeTimeClientStats } from "@/hooks/use-clients"
 
 interface ClientDetailDialogProps {
   client: Client;
@@ -22,46 +23,12 @@ interface ClientDetailDialogProps {
 
 export default function ClientDetailDialog({ client, children }: ClientDetailDialogProps) {
   const [open, setOpen] = useState(false)
-  const [stats, setStats] = useState<{
-    lifetime_client_earnings: number;
-    lifetime_client_paid_invoices: number;
-  } | null>(null)
-  const supabase = createClient()
-
-
-  async function fetchClientStats() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.log('Error fetching user in fetchClientStats')
-      return
-    }
-
-    // Fetch client lifetime stats from the clients table
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
-      .select('lifetime_client_earnings, lifetime_client_paid_invoices')
-      .eq('id', client.id)
-      .eq('user_id', user.id)
-      .single()
-    
-    if (clientError) {
-      console.error('Error fetching client stats:', clientError);
-      return;
-    }
-    
-    if (clientData) {
-      setStats({
-        lifetime_client_earnings: clientData.lifetime_client_earnings || 0,
-        lifetime_client_paid_invoices: clientData.lifetime_client_paid_invoices || 0
-      });
-    }
-  }
+  
+  const {data: user} = useUser();
+  const {data: stats} = useLifeTimeClientStats(user?.id!, client.id);
   
   function handleOpen(openState: boolean) {
     setOpen(openState);
-    if (openState) {
-      fetchClientStats();
-    }
   }
 
   return (

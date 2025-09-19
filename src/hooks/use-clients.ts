@@ -52,6 +52,26 @@ export function useClients(userId:string){
   })
 }
 
+export function useLifeTimeClientStats(userId:string,clientId:string){
+  return useQuery({
+    queryKey : ['client-stats',userId,clientId],
+    queryFn : async() => {
+      const {data,error} = await supabase
+      .from('clients')
+      .select('lifetime_client_earnings, lifetime_client_paid_invoices')
+      .eq('user_id',userId)
+      .eq('id',clientId)
+      .single()
+
+      if(!data || error){
+        throw error
+      }
+      return data
+    },
+    enabled : !!userId && !!clientId
+  })
+}
+
 export function useCreateClient(){
   const queryClient = useQueryClient()
   return useMutation({
@@ -82,7 +102,9 @@ export function useEditClient({clientId,userId}:{clientId:string,userId:string})
       if(error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey:['clients',userId]})
+      queryClient.invalidateQueries({queryKey:['clients',userId]});
+      queryClient.invalidateQueries({queryKey:['invoices',userId]});
+      queryClient.invalidateQueries({queryKey:['contracts',userId]});
     }
   })
 }
@@ -99,8 +121,12 @@ export function useDeleteClient({clientId,userId}:{clientId:string,userId:string
       if(error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey:['clients',userId]})
+      queryClient.invalidateQueries({queryKey:['clients',userId]});
+      queryClient.invalidateQueries({queryKey:['invoices',userId]});
+      queryClient.invalidateQueries({queryKey:['contracts',userId]});
     }
   })
 }
+
+
 
