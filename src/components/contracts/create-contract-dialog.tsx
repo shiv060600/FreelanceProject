@@ -342,7 +342,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
                                                 </div>
                                             )}
                                             <div className="text-xs text-gray-500">
-                                                • Resets daily at 12:00 AM UTC
+                                                • Resets daily at 12:00 AM GMT
                                             </div>
                                         </div>
                                         
