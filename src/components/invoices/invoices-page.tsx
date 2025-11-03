@@ -115,18 +115,37 @@ export default function InvoicesPage() {
     return result
   }, [invoices, searchTerm, sortConfig])
   
-  const handleSendInvoice = async (invoiceId: string) => {
+  const handleSendInvoice = async (invoice: any) => {
     if (!user) {
       router.push('/sign-in')
       return
     }
 
     try {
-      await sendInvoice.mutateAsync({ id: invoiceId, userId: user.id })
-      console.log('Invoice sent successfully')
+      const { pdf } = await import('@react-pdf/renderer')
+      
+      // Create the PDF document component
+      const invoicePdf = <InvoicePDF invoice={invoice} userInfo={userInfo} />
+      
+      // Generate blob from PDF component
+      const invoicePdfBlob = await pdf(invoicePdf).toBlob()
+      
+      // Create a blob URL that can be clicked to view the PDF
+      const blobUrl = URL.createObjectURL(invoicePdfBlob)
+      
+      // Create mailto link with the blob URL in the body
+      const subject = encodeURIComponent(`Invoice ${invoice.invoice_number} - ${invoice.invoice_items?.[0]?.invoice_name || 'Invoice'}`)
+      const body = encodeURIComponent(`Please review the invoice by clicking this link:\n\n${blobUrl}\n\nBest regards`)
+      const to = invoice.clients?.email || ''
+      const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`
+      
+      // Open default email client with the blob URL in the body
+      window.location.href = mailtoLink
+      
+      // Note: DO NOT revoke the URL - it needs to stay valid for the recipient to click
     } catch (error) {
       console.error('Error sending invoice:', error)
-      alert('Failed to send invoice. Please try again.')
+      alert('Failed to open email client')
     }
   }
 
@@ -385,6 +404,14 @@ export default function InvoicesPage() {
                               </Button>
                             )}
                           </PDFDownloadLink>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleSendInvoice(invoice)}
+                            disabled={userInfoLoading || !invoice?.id}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
