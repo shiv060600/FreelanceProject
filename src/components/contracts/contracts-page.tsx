@@ -3,7 +3,7 @@ import { useState,useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw } from 'lucide-react'
+import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail} from 'lucide-react'
 import { ContractPDF } from './contract-pdf'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { CreateContractDialog } from './create-contract-dialog'
@@ -67,6 +67,55 @@ export default function ContractsPage() {
     setDeleteDialogOpen(true)
   }
 
+  const handleSendContract = async (contract: any) => {
+    try {
+      const { pdf } = await import('@react-pdf/renderer')
+      
+      // Create the PDF document component
+      const contractPdf = <ContractPDF
+                              contract={{
+                                ...contract,
+                                clients: contract.clients ? [{
+                                  ...contract.clients,
+                                  company: contract.clients.company || undefined
+                                }] : []
+                              }}
+                              userName={user?.user_metadata?.full_name || user?.email || 'Unknown User'}
+                              userEmail={user?.email || ''}
+                            />
+      
+      // Generate blob from PDF component
+      const contractPdfBlob = await pdf(contractPdf).toBlob()
+      
+      // Create a blob URL that can be clicked to view the PDF
+      const blobUrl = URL.createObjectURL(contractPdfBlob)
+      
+      // Create mailto link with the blob URL in the body
+      const subject = encodeURIComponent(`Contract for ${contract.title}`)
+      const body = encodeURIComponent(`Please review the contract by clicking this link:\n\n${blobUrl}\n\nBest regards`)
+      const to = contract.clients?.email || ''
+      const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`
+      
+      // Open default email client with the blob URL in the body
+      window.location.href = mailtoLink
+      
+      // Note: DO NOT revoke the URL - it needs to stay valid for the recipient to click
+    } catch (error) {
+      console.error('Error sending contract:', error)
+      alert('Failed to send contract')
+    }
+  }
+
+  if (userLoading || contractsLoading || contractsFetching || !user || !contracts){
+    return(
+      <div className="flex flex-col items-center justify-start min-h-screen">
+        <div className="mt-16 flex items-center">
+          <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+          <span>Loading Contracts</span>
+        </div>
+    </div>
+    )
+  }
 
   if (contracts?.length === 0){
     return(
@@ -166,6 +215,12 @@ export default function ContractsPage() {
                       )}
                     </PDFDownloadLink>
                   )}
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => handleSendContract(contract)}>
+                    <Mail className='h-4 w-4'/>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
