@@ -3,13 +3,9 @@ import { createClient } from "../../supabase/client";
 import { useState } from "react";
 
 
-export function useSubscriptionInfo(userId:string){
+export function useSubscriptionInfo(userId: string | undefined){
     const [loading,setLoading] = useState<boolean>(false);
-    const supbabse = createClient();
-
-    if(!userId){
-        throw new Error('must include userId')
-    }
+    const supabase = createClient();
 
     //Want to return 
     //Subscription (as text)
@@ -18,24 +14,33 @@ export function useSubscriptionInfo(userId:string){
     //New Freelancer
     //Free
 
-    const getSubscriptionType = async(userId:string) => {
+    const getSubscriptionType = async(userIdParam: string) => {
+        if (!userIdParam) {
+            return null;
+        }
+
         setLoading(true);
-        const {data:subscription,error} = await supbabse
-        .from('users')
-        .select('subscription')
-        .eq('user_id',userId)
+        try {
+            const {data:userData,error} = await supabase
+                .from('users')
+                .select('subscription')
+                .eq('user_id', userIdParam)
+                .maybeSingle(); // Use maybeSingle() to handle case where user doesn't exist yet
 
-        if (error){
-            setLoading(false);
-            throw error
-        }
+            if (error){
+                console.error('Error fetching subscription:', error);
+                setLoading(false);
+                return null;
+            }
 
-        if (!subscription){
             setLoading(false);
-            throw new Error('failed to get subscription type')
+            // Return the subscription value, defaulting to 'Free' if not found
+            return userData ? [{ subscription: userData.subscription || 'Free' }] : [{ subscription: 'Free' }];
+        } catch (error) {
+            console.error('Error fetching subscription:', error);
+            setLoading(false);
+            return null;
         }
-        setLoading(false);
-        return subscription
     }
 
     return {

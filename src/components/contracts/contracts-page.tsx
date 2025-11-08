@@ -45,8 +45,8 @@ export default function ContractsPage() {
   
 
   
-  const { data: user , isLoading: userLoading } = useUser();
-  const { data: contracts , isLoading: contractsLoading,isFetching:contractsFetching } = useContracts(user?.id || '');
+  const { data: user , isLoading: userLoading, error: userError } = useUser();
+  const { data: contracts , isLoading: contractsLoading, isFetching: contractsFetching, error: contractsError } = useContracts(user?.id || '');
   const { canCreate, currentCount, maxContracts, subscriptionStatus } = useCanCreateContract(user?.id || '');
 
   const handleEditContract = (contract: any) => {
@@ -67,18 +67,8 @@ export default function ContractsPage() {
     setDeleteDialogOpen(true)
   }
 
-  if (userLoading || contractsLoading || contractsFetching || !user || !contracts){
-    return(
-      <div className="flex flex-col items-center justify-start min-h-screen">
-        <div className="mt-16 flex items-center">
-          <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-          <span>Loading Contracts</span>
-        </div>
-    </div>
-    )
-  }
 
-  if (contracts.length === 0){
+  if (contracts?.length === 0){
     return(
       <div>
         <Card>

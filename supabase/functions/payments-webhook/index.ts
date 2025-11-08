@@ -141,6 +141,14 @@ async function handleSubscriptionCreated(supabaseClient: any, event: any) {
     .eq('stripe_id', subscription.id)
     .maybeSingle();
 
+  // Optional: Clean up any free subscriptions (backwards compatibility)
+  // This is safe to run even if no free subscriptions exist
+  await supabaseClient
+    .from('subscriptions')
+    .delete()
+    .eq('user_id', userId)
+    .like('stripe_id', 'free_%');
+
   // Update subscription in database
   const { error } = await supabaseClient
     .from('subscriptions')

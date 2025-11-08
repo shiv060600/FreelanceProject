@@ -39,23 +39,26 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
     const [canUseAi,setCanUseAi] = useState(false);
     
     const { toast } = useToast()
-    const { data: user } = useUser()
+    const { data: user, isLoading: userLoading } = useUser()
     const createContract = useCreateContract()
     const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
     const { generateAiContract, loading: aiLoading, error: aiError } = useAiContractGenerate()
-    const { data: aiUsage } = useUserAiUsage(user?.id!);
-    const { getSubscriptionType, loading: subscriptionLoading } = useSubscriptionInfo(user?.id!);
+    const { data: aiUsage } = useUserAiUsage(user?.id || '');
+    const { getSubscriptionType, loading: subscriptionLoading } = useSubscriptionInfo(user?.id);
     const incrementAiUsage = useIncrementAiUsage();
 
     // Get subscription type
     useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.id || userLoading) return;
         
         const fetchSubscription = async () => {
             try {
                 const subData = await getSubscriptionType(user.id);
-                if (subData && subData.length > 0) {
-                    setSubscriptionType(subData[0].subscription || 'Free');
+                if (subData && subData.length > 0 && subData[0]?.subscription) {
+                    setSubscriptionType(subData[0].subscription);
+                } else {
+                    // Default to Free if no subscription data found
+                    setSubscriptionType('Free');
                 }
             } catch (error) {
                 console.error('Error fetching subscription:', error);
@@ -64,7 +67,8 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
         };
         
         fetchSubscription();
-    }, [user?.id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, userLoading]);
 
     useEffect(() => {
         if (!user?.id || !subscriptionType || aiUsage === undefined) {

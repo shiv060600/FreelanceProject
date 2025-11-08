@@ -41,7 +41,7 @@ export function useContracts (userId:string) {
         queryKey: ['contracts',userId],
         queryFn: async() : Promise<Contract[]> =>{
             if (!userId){
-                throw new Error('must include userId')
+                throw new Error('User ID required')
             }
 
             const {data : contracts ,error :contractsError} = await supabase
@@ -59,16 +59,17 @@ export function useContracts (userId:string) {
             .order('created_at', { ascending: false })
 
             if (contractsError){
-                throw new Error ('error fetching contracts')
+                console.error('Error fetching contracts:', contractsError);
+                throw new Error(`Error fetching contracts: ${contractsError.message}`)
             }
 
             // Transform the data to match our interface
-            return contracts.map(contract => ({
+            return contracts?.map(contract => ({
                 ...contract,
                 clients: Array.isArray(contract.clients) 
                     ? contract.clients[0] || null  // If array, take first item
                     : contract.clients              // If single object, use as is
-            }));
+            })) || [];
         },
         enabled: !!userId
     })
@@ -80,62 +81,63 @@ export function useUserSubscription(userId: string) {
         queryFn: async () => {
             if (!userId) throw new Error('User ID required')
 
-            // Check subscription directly from subscriptions table
-            const { data: subscriptionData, error: dbError } = await supabase
+            // Check for Stripe subscription - if none found, default to free tier
+            // Only get subscriptions with stripe_price_id (Stripe subscriptions, not free ones)
+            const { data: allSubscriptions, error: dbError } = await supabase
                 .from('subscriptions')
-                .select('stripe_price_id, status, current_period_end, cancel_at_period_end')
+                .select('stripe_price_id, status, current_period_end, cancel_at_period_end, stripe_id')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
 
+            // If error, default to free tier
             if (dbError) {
-                console.error('Subscription query error:', dbError)
-                return { maxContracts: 2, status: 'free' }
+                return { maxContracts: 2, maxInvoices: 2, status: 'free' }
+            }
+
+            // Find Stripe subscription (has stripe_price_id and doesn't start with 'free_')
+            const subscriptionData = allSubscriptions?.find(sub => 
+                sub.stripe_price_id && sub.stripe_id && !sub.stripe_id.startsWith('free_')
+            ) || null;
+
+            // If no Stripe subscription found, default to free tier
+            if (!subscriptionData) {
+                return { maxContracts: 2, maxInvoices: 2, status: 'free' }
             }
             
-            if (subscriptionData) {
-                const { stripe_price_id, status, current_period_end, cancel_at_period_end } = subscriptionData;
-                
-                // Check if subscription is active OR cancelled but still in billing period
-                const now = Math.floor(Date.now() / 1000); 
-                const hasAccess = status === 'active' || 
-                                (status === 'canceled' && cancel_at_period_end && current_period_end > now);
-                
-                if (hasAccess) {
-                    // Map price IDs to contract limits
-                    let maxContracts = 0 
-                    switch (stripe_price_id) {
-                        case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
-                            maxContracts = 8; // Expert Freelancer
-                            break;
-                        case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
-                            maxContracts = 4; // Seasoned Freelancer
-                            break;
-                        case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
-                            maxContracts = 2; // New Freelancer
-                            break;
-                        // Backwards compatibility with prod_id
-                        case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
-                            maxContracts = 8; // Expert Freelancer
-                            break;
-                        case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
-                            maxContracts = 4; // Seasoned Freelancer
-                            break;
-                        case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
-                            maxContracts = 2; // New Freelancer
-                            break;
-                    }
-                    return { maxContracts, status: 'active' }
-                } else {
-                    return { maxContracts: 0, status: 'expired' }
-                }
+            const { stripe_price_id, status, current_period_end, cancel_at_period_end } = subscriptionData;
+            
+            // Check if Stripe subscription is active OR cancelled but still in billing period
+            const now = Math.floor(Date.now() / 1000); 
+            const hasAccess = status === 'active' || 
+                            (status === 'canceled' && cancel_at_period_end && current_period_end > now);
+            
+            if (!hasAccess) {
+                // Subscription expired, return free tier
+                return { maxContracts: 2, maxInvoices: 2, status: 'free' }
             }
             
-            return { maxContracts: 0, status: 'free' }
+            // Map price IDs to plan limits
+            switch (stripe_price_id) {
+                case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
+                    return { maxContracts: 8, maxInvoices: 40, status: 'active' }; // Expert Freelancer
+                case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
+                    return { maxContracts: 4, maxInvoices: 20, status: 'active' }; // Seasoned Freelancer
+                case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
+                    return { maxContracts: 2, maxInvoices: 10, status: 'active' }; // New Freelancer
+                // Backwards compatibility with legacy price IDs
+                case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
+                    return { maxContracts: 8, maxInvoices: 40, status: 'active' }; // Expert Freelancer
+                case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
+                    return { maxContracts: 4, maxInvoices: 20, status: 'active' }; // Seasoned Freelancer
+                case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
+                    return { maxContracts: 2, maxInvoices: 10, status: 'active' }; // New Freelancer
+                default:
+                    // Unknown price ID, default to free tier
+                    return { maxContracts: 2, maxInvoices: 2, status: 'free' }
+            }
         },
         enabled: !!userId,
-        refetchInterval: 30000, // Reduce to 30 seconds instead of 3 seconds
+        refetchInterval: 30000,
     })
 }
 
@@ -144,14 +146,19 @@ export function useContractCount(userId: string) {
     return useQuery({
         queryKey: ['contract-count', userId],
         queryFn: async () => {
-            if (!userId) throw new Error('User ID required')
+            if (!userId) {
+                throw new Error('User ID required')
+            }
 
             const { count, error: dbError } = await supabase
                 .from('contracts')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', userId)
 
-            if (dbError) throw dbError
+            if (dbError) {
+                console.error('Error fetching contract count:', dbError)
+                throw dbError
+            }
 
             return count || 0
         },

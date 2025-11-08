@@ -163,6 +163,10 @@ CREATE TABLE IF NOT EXISTS public.contracts (
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Add content column to contracts table if it doesn't exist
+ALTER TABLE public.contracts
+ADD COLUMN IF NOT EXISTS content TEXT;
+
 -- ==========================================
 -- INDEXES
 -- ==========================================
@@ -279,10 +283,19 @@ BEGIN
   VALUES (NEW.id::text, 0);
   
   RAISE LOG 'User ADDED TO USER_USAGE TABLE';
+  
+  -- Note: We no longer create free subscriptions here
+  -- The app will default to free tier (2 contracts, 2 invoices) if no Stripe subscription is found
+  -- Stripe subscriptions are created via webhook when user subscribes
+  
   RETURN NEW;
 EXCEPTION
   WHEN OTHERS THEN
-    RAISE LOG 'Error in handle_new_user for user %: %', NEW.id, SQLERRM;
+    -- Log the error but don't fail user creation
+    -- Note: If user creation itself fails, we still want to log it
+    RAISE WARNING 'Error in handle_new_user for user %: % (SQLSTATE: %)', NEW.id, SQLERRM, SQLSTATE;
+    -- Don't re-raise - let user creation succeed even if other parts fail
+    -- The subscription can be created manually if needed
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
@@ -347,12 +360,14 @@ DECLARE
 BEGIN
     -- Check if subscription is truly active (not just 'active' status but also within billing period)
     -- For cancelled subscriptions, they should keep access until current_period_end
+    -- Free subscriptions should always be treated as active for limits
     is_subscription_active := (
         NEW.status = 'active' OR 
+        NEW.status = 'free' OR
         (NEW.status = 'canceled' AND NEW.cancel_at_period_end = true AND NEW.current_period_end > EXTRACT(epoch FROM NOW()))
     );
     
-    -- Only update if subscription is active or still in grace period
+    -- Only update if subscription is active, free, or still in grace period
     IF is_subscription_active THEN
         -- Map price IDs to plan names using stripe_price_id
         CASE NEW.stripe_price_id
@@ -383,7 +398,8 @@ BEGIN
                 WHEN plan_name = 'Expert Freelancer' THEN 8
                 WHEN plan_name = 'Seasoned Freelancer' THEN 4
                 WHEN plan_name = 'New Freelancer' THEN 1
-                ELSE 0
+                WHEN plan_name = 'Free' THEN 2
+                ELSE 2
             END
         WHERE user_id = NEW.user_id;
 
