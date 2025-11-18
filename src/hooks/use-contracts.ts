@@ -91,7 +91,7 @@ export function useUserSubscription(userId: string) {
 
             // If error, default to free tier
             if (dbError) {
-                return { maxContracts: 2, maxInvoices: 2, status: 'free' }
+                return { maxContracts: 100, maxInvoices: 100, status: 'free' }
             }
 
             // Find Stripe subscription (has stripe_price_id and doesn't start with 'free_')
@@ -101,7 +101,7 @@ export function useUserSubscription(userId: string) {
 
             // If no Stripe subscription found, default to free tier
             if (!subscriptionData) {
-                return { maxContracts: 2, maxInvoices: 2, status: 'free' }
+                return { maxContracts: 100, maxInvoices: 100, status: 'free' }
             }
             
             const { stripe_price_id, status, current_period_end, cancel_at_period_end } = subscriptionData;
@@ -113,27 +113,25 @@ export function useUserSubscription(userId: string) {
             
             if (!hasAccess) {
                 // Subscription expired, return free tier
-                return { maxContracts: 2, maxInvoices: 2, status: 'free' }
+                return { maxContracts: 100, maxInvoices: 100, status: 'free' }
             }
             
             // Map price IDs to plan limits
             switch (stripe_price_id) {
+                case 'price_1Ri13NDuVswTohZkIWvJp0x9':
+                    return { maxContracts: 999999, maxInvoices: 999999, status: 'active' }; // Unlimited Freelancer
                 case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
-                    return { maxContracts: 8, maxInvoices: 40, status: 'active' }; // Expert Freelancer
+                    return { maxContracts: 999999, maxInvoices: 999999, status: 'active' }; // Legacy → Unlimited Freelancer
+                // Backwards compatibility with legacy price IDs - all now map to Unlimited
                 case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
-                    return { maxContracts: 4, maxInvoices: 20, status: 'active' }; // Seasoned Freelancer
                 case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
-                    return { maxContracts: 2, maxInvoices: 10, status: 'active' }; // New Freelancer
-                // Backwards compatibility with legacy price IDs
                 case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
-                    return { maxContracts: 8, maxInvoices: 40, status: 'active' }; // Expert Freelancer
                 case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
-                    return { maxContracts: 4, maxInvoices: 20, status: 'active' }; // Seasoned Freelancer
                 case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
-                    return { maxContracts: 2, maxInvoices: 10, status: 'active' }; // New Freelancer
+                    return { maxContracts: 999999, maxInvoices: 999999, status: 'active' }; // Legacy → Unlimited
                 default:
                     // Unknown price ID, default to free tier
-                    return { maxContracts: 2, maxInvoices: 2, status: 'free' }
+                    return { maxContracts: 100, maxInvoices: 100, status: 'free' }
             }
         },
         enabled: !!userId,
@@ -287,7 +285,7 @@ export function useCanCreateContract(userId: string) {
     const { data: contractCount } = useContractCount(userId)
     
     // Default to free tier limits if no subscription data
-    const maxContracts = subscription?.maxContracts || 2
+    const maxContracts = subscription?.maxContracts || 100
     const currentCount = contractCount || 0
     
     return {

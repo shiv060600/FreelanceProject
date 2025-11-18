@@ -32,7 +32,7 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
     return {
       hasAccess: false,
       planName: 'Free',
-      invoiceLimit: 2,
+      invoiceLimit: 100,
       status: 'free'
     };
   }
@@ -48,7 +48,7 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
     return {
       hasAccess: false,
       planName: 'Free',
-      invoiceLimit: 2,
+      invoiceLimit: 100,
       status: status
     };
   }
@@ -59,51 +59,26 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
     case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
       return {
         hasAccess: true,
-        planName: 'Expert Freelancer',
-        invoiceLimit: 40,
+        planName: 'Unlimited Freelancer',
+        invoiceLimit: 999999,
         status: status
       };
     case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
-      return {
-        hasAccess: true,
-        planName: 'Seasoned Freelancer',
-        invoiceLimit: 20,
-        status: status
-      };
     case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
-      return {
-        hasAccess: true,
-        planName: 'New Freelancer',
-        invoiceLimit: 10,
-        status: status
-      };
-    // Legacy price IDs (keep for backwards compatibility)
     case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
-      return {
-        hasAccess: true,
-        planName: 'Expert Freelancer',
-        invoiceLimit: 40,
-        status: status
-      };
     case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
-      return {
-        hasAccess: true,
-        planName: 'Seasoned Freelancer',
-        invoiceLimit: 20,
-        status: status
-      };
     case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
       return {
         hasAccess: true,
-        planName: 'New Freelancer',
-        invoiceLimit: 10,
+        planName: 'Unlimited Freelancer',
+        invoiceLimit: 999999,
         status: status
       };
     default:
       return {
         hasAccess: false,
         planName: 'Free',
-        invoiceLimit: 2,
+        invoiceLimit: 100,
         status: status
       };
   }
@@ -114,36 +89,23 @@ export function getSubscriptionAccess(subscriptionData: SubscriptionData | null)
  */
 export function checkSubscriptionLimits(planName: string): { subscription: string; maxContracts: SubscriptionLimits } {
   switch (planName) {
-    case 'Expert Freelancer':
+    case 'Unlimited Freelancer':
+    case 'Expert Freelancer': // Legacy mapping
+    case 'Seasoned Freelancer': // Legacy mapping
+    case 'New Freelancer': // Legacy mapping
       return {
-        subscription: 'Expert Freelancer',
+        subscription: 'Unlimited Freelancer',
         maxContracts: {
-          invoices: 40,
-          contracts: 8
-        }
-      };
-    case 'Seasoned Freelancer':
-      return {
-        subscription: 'Seasoned Freelancer',
-        maxContracts: {
-          invoices: 20,
-          contracts: 4
-        }
-      };
-    case 'New Freelancer':
-      return {
-        subscription: 'New Freelancer',
-        maxContracts: {
-          invoices: 10,
-          contracts: 1
+          invoices: 999999,
+          contracts: 999999
         }
       };
     default:
       return {
         subscription: 'Free',
         maxContracts: {
-          invoices: 2,
-          contracts: 0
+          invoices: 100,
+          contracts: 100
         }
       };
   }

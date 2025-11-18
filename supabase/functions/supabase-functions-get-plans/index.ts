@@ -19,18 +19,19 @@ const corsHeaders = {
 // Map Stripe price IDs to human-readable plan names
 const getPlanName = (priceId: string): string => {
     const planNames: { [key: string]: string } = {
-        'prod_SNyclMOBTiNxdL': 'New Freelancer',
-        'prod_SVQriwONif10zJ': 'Seasoned Freelancer',
-        'prod_SVQsv2QIziGtRD': 'Expert Freelancer',
-        // Add more price ID mappings as needed
+        'prod_SdHcZw2GvfUEk6': 'Unlimited Freelancer',
+        // Legacy product mappings - all now map to Unlimited for existing customers
+        'prod_SNyclMOBTiNxdL': 'Unlimited Freelancer',
+        'prod_SVQriwONif10zJ': 'Unlimited Freelancer',
+        'prod_SVQsv2QIziGtRD': 'Unlimited Freelancer',
     };
     return planNames[priceId] || 'Unknown Plan';
 };
 
 // Determine if a plan should be marked as popular
 const isPopularPlan = (priceId: string): boolean => {
-    // Mark the Pro plan as popular
-    return priceId === 'price_1QTWcJHxZBGV8xKR6hgb8P5m';
+    // Mark the Unlimited Freelancer plan as popular
+    return priceId === 'price_1Ri13NDuVswTohZkIWvJp0x9';
 };
 
 serve(async (req) => {

@@ -31,7 +31,7 @@ export default async function Pricing() {
                 // Map price IDs to plan names
                 let planName = 'Free';
                 switch (stripe_price_id) {
-                    case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
+                    case 'prod_SdHcZw2GvfUEk6':
                         planName = 'Expert Freelancer';
                         break;
                     case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
@@ -68,14 +68,11 @@ export default async function Pricing() {
             <Navbar />
             <div className="container mx-auto px-4 py-16">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl font-bold mb-4">Simple, transparent pricing</h1>
+                    <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
                     <p className="text-xl text-muted-foreground">
-                        Choose the perfect plan for your needs
+                        Choose the perfect plan for your freelance business needs.
                     </p>
                 </div>
-
-
-
                 {/* Show current subscription status if user is logged in */}
                 {user && currentSubscription && (
                     <SubscriptionManagement 

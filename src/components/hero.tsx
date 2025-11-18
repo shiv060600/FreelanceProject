@@ -47,7 +47,7 @@ export default function Hero() {
               </Link>
 
               <Link
-                href="#pricing"
+                href="/pricing"
                 className="inline-flex items-center px-8 py-4 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-lg font-medium"
               >
                 View Pricing

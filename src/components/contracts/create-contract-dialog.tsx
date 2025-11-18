@@ -89,16 +89,8 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
         const currentUsage = aiUsage || 0;
         let maxUsage = 0;
         switch (subscriptionType) {
-            case 'Expert Freelancer':
-                maxUsage = 50;
-                break;
-            
-            case 'Seasoned Freelancer':
-                maxUsage = 10;
-                break;
-            
-            case 'New Freelancer':
-                maxUsage = 5;
+            case 'Unlimited Freelancer':
+                maxUsage = 999999;
                 break;
             
             case 'Free':
@@ -304,9 +296,8 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                                                             canUseAi 
                                                                 ? (aiUsage || 0) / (() => {
                                                                     switch (subscriptionType) {
-                                                                        case 'Expert Freelancer': return 50;
-                                                                        case 'Seasoned Freelancer': return 10;
-                                                                        case 'New Freelancer': return 1;
+                                                                        case 'Unlimited Freelancer': return 999999;
+                                                                        case 'Free': return 1;
                                                                         default: return 1;
                                                                     }
                                                                 })() < 0.8 
@@ -316,12 +307,11 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                                                         }`}
                                                         style={{ 
                                                             width: `${Math.min(100, ((aiUsage || 0) / (() => {
-                                                                switch (subscriptionType) {
-                                                                    case 'Expert Freelancer': return 50;
-                                                                    case 'Seasoned Freelancer': return 10;
-                                                                    case 'New Freelancer': return 1;
-                                                                    default: return 1;
-                                                                }
+                                                            switch (subscriptionType) {
+                                                                case 'Unlimited Freelancer': return 999999;
+                                                                case 'Free': return 1;
+                                                                default: return 1;
+                                                            }
                                                             })()) * 100)}%` 
                                                         }}
                                                     />

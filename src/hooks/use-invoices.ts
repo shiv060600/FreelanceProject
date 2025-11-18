@@ -159,26 +159,19 @@ export function useUserSubscription(userId: string) {
         
         if (hasAccess) {
           // Map price IDs to invoice limits
-          let maxInvoices = 2; // Default to free tier
+          let maxInvoices = 100; // Default to free tier
           switch (stripe_price_id) {
+            case 'price_1Ri13NDuVswTohZkIWvJp0x9':
             case 'price_1RaQ0KDBPJVWy5Mhrf7REir7':
-              maxInvoices = 40; // Expert Freelancer
-              break;
             case 'price_1RaPzpDBPJVWy5Mh7TS53Heu':
-              maxInvoices = 20; // Seasoned Freelancer
-              break;
             case 'price_1RTCfJDBPJVWy5MhqB5gMwWZ':
-              maxInvoices = 10; // New Freelancer
-              break;
-            // Legacy price IDs (keep for backwards compatibility)
             case 'price_1OqYLgDNtZHzJBITKyRoXhOD':
-              maxInvoices = 40; // Expert Freelancer
-              break;
             case 'price_1OqYLFDNtZHzJBITXVYfHbXt':
-              maxInvoices = 20; // Seasoned Freelancer
-              break;
             case 'price_1OqYKgDNtZHzJBITvDLbA6Vz':
-              maxInvoices = 10; // New Freelancer
+              maxInvoices = 999999; // All map to Unlimited Freelancer
+              break;
+            default:
+              maxInvoices = 100; // Free tier
               break;
           }
           return { maxInvoices, status: 'active' }

@@ -268,8 +268,8 @@ BEGIN
     NEW.updated_at,
     'Free',
     'inactive',
-    2,
-    2,
+    100,
+    100,
     0,
     0,
     0,
@@ -371,14 +371,15 @@ BEGIN
     IF is_subscription_active THEN
         -- Map price IDs to plan names using stripe_price_id
         CASE NEW.stripe_price_id
-            -- Current price IDs being used
-            WHEN 'price_1RaQ0KDBPJVWy5Mhrf7REir7' THEN plan_name := 'Expert Freelancer';
-            WHEN 'price_1RaPzpDBPJVWy5Mh7TS53Heu' THEN plan_name := 'Seasoned Freelancer';
-            WHEN 'price_1RTCfJDBPJVWy5MhqB5gMwWZ' THEN plan_name := 'New Freelancer';
-            -- Legacy price IDs (keep for backwards compatibility)
-            WHEN 'price_1OqYLgDNtZHzJBITKyRoXhOD' THEN plan_name := 'Expert Freelancer';
-            WHEN 'price_1OqYLFDNtZHzJBITXVYfHbXt' THEN plan_name := 'Seasoned Freelancer';
-            WHEN 'price_1OqYKgDNtZHzJBITvDLbA6Vz' THEN plan_name := 'New Freelancer';
+            -- Current price ID for Unlimited Freelancer
+            WHEN 'price_1Ri13NDuVswTohZkIWvJp0x9' THEN plan_name := 'Unlimited Freelancer';
+            -- Legacy price IDs - all now map to Unlimited for existing customers
+            WHEN 'price_1RaQ0KDBPJVWy5Mhrf7REir7' THEN plan_name := 'Unlimited Freelancer';
+            WHEN 'price_1RaPzpDBPJVWy5Mh7TS53Heu' THEN plan_name := 'Unlimited Freelancer';
+            WHEN 'price_1RTCfJDBPJVWy5MhqB5gMwWZ' THEN plan_name := 'Unlimited Freelancer';
+            WHEN 'price_1OqYLgDNtZHzJBITKyRoXhOD' THEN plan_name := 'Unlimited Freelancer';
+            WHEN 'price_1OqYLFDNtZHzJBITXVYfHbXt' THEN plan_name := 'Unlimited Freelancer';
+            WHEN 'price_1OqYKgDNtZHzJBITvDLbA6Vz' THEN plan_name := 'Unlimited Freelancer';
             ELSE plan_name := 'Free';
         END CASE;
 
@@ -389,17 +390,13 @@ BEGIN
             subscription_status = NEW.status,
             -- Update max_invoices and max_contracts based on subscription
             max_invoices = CASE 
-                WHEN plan_name = 'Expert Freelancer' THEN 40
-                WHEN plan_name = 'Seasoned Freelancer' THEN 20
-                WHEN plan_name = 'New Freelancer' THEN 10
-                ELSE 2
+                WHEN plan_name = 'Unlimited Freelancer' THEN 999999
+                ELSE 100
             END,
             max_contracts = CASE 
-                WHEN plan_name = 'Expert Freelancer' THEN 8
-                WHEN plan_name = 'Seasoned Freelancer' THEN 4
-                WHEN plan_name = 'New Freelancer' THEN 1
-                WHEN plan_name = 'Free' THEN 2
-                ELSE 2
+                WHEN plan_name = 'Unlimited Freelancer' THEN 999999
+                WHEN plan_name = 'Free' THEN 100
+                ELSE 100
             END
         WHERE user_id = NEW.user_id;
 
@@ -409,8 +406,8 @@ BEGIN
         SET 
             subscription = 'Free',
             subscription_status = NEW.status,
-            max_invoices = 2,
-            max_contracts = 2
+            max_invoices = 100,
+            max_contracts = 100
         WHERE user_id = NEW.user_id;
     END IF;
 
@@ -686,10 +683,11 @@ CREATE POLICY "Service can manage webhook events" ON public.webhook_events
 -- Update existing users' max_contracts based on their current subscription
 UPDATE public.users 
 SET max_contracts = CASE 
-    WHEN subscription = 'Expert Freelancer' THEN 8
-    WHEN subscription = 'Seasoned Freelancer' THEN 4
-    WHEN subscription = 'New Freelancer' THEN 1
-    ELSE 0
+    WHEN subscription = 'Unlimited Freelancer' THEN 999999
+    WHEN subscription = 'Expert Freelancer' THEN 999999  -- Legacy mapping
+    WHEN subscription = 'Seasoned Freelancer' THEN 999999  -- Legacy mapping  
+    WHEN subscription = 'New Freelancer' THEN 999999  -- Legacy mapping
+    ELSE 100
 END
 WHERE max_contracts = 0 OR max_contracts IS NULL;
 
