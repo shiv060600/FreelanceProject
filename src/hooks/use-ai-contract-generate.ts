@@ -37,20 +37,29 @@ export function useAiContractGenerate() {
                 body: JSON.stringify(params)
             });
 
-            const data = await response.json();
-
+            // Check if response is ok before trying to parse JSON
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to generate contract');
+                let errorMessage = 'Failed to generate contract';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch {
+                    // If JSON parsing fails, use status text
+                    errorMessage = response.statusText || `Server error (${response.status})`;
+                }
+                throw new Error(errorMessage);
             }
 
+            const data = await response.json();
+
             if (!data.success || !data.contract) {
-                throw new Error('Invalid response from AI service');
+                throw new Error(data.message || 'Invalid response from AI service');
             }
 
             return data.contract;
         } catch (error: any) {
             console.error('Failed to generate contract:', error);
-            const errorMessage = error.message || "Failed to generate AI contract";
+            const errorMessage = error?.message || "Failed to generate AI contract. Please check your connection and try again.";
             setError(errorMessage);
             throw error;
         } finally {

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail} from 'lucide-react'
 import { ContractPDF } from './contract-pdf'
 import { PDFDownloadLink } from '@react-pdf/renderer'
-import { CreateContractDialog } from './create-contract-dialog'
+import CreateContractDialog from './create-contract-dialog'
 import { EditContractDialog } from './edit-contract-dialog'
 import { DeleteContractDialog } from './delete-contract-dialog'
 import { useContracts, useCanCreateContract } from '@/hooks/use-contracts'
@@ -37,6 +37,8 @@ interface Contract {
 }
 
 export default function ContractsPage() {
+  console.log('=== ContractsPage component starting ===');
+  console.log('=== THIS LOG SHOULD SHOW UP IN BROWSER CONSOLE ===');
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -270,7 +272,7 @@ export default function ContractsPage() {
       <EditContractDialog 
         contract={selectedContract}
         open={editDialogOpen} 
-  onOpenChange={setEditDialogOpen}
+        onOpenChange={setEditDialogOpen}
       />
       
       <DeleteContractDialog 

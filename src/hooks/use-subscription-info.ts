@@ -25,7 +25,7 @@ export function useSubscriptionInfo(userId: string | undefined){
                 .from('users')
                 .select('subscription')
                 .eq('user_id', userIdParam)
-                .maybeSingle(); // Use maybeSingle() to handle case where user doesn't exist yet
+                .maybeSingle(); 
 
             if (error){
                 console.error('Error fetching subscription:', error);

@@ -6,13 +6,27 @@ const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
 
 export async function POST(request: NextRequest){
     if(!OPENAI_API_KEY){
+        console.error('OpenAI API key not found in environment variables');
         return NextResponse.json(
             {message : 'OpenAI API key not found'},
             {status: 500}
         )
     }
+    
     try {
-        const { title, contractType, clientName, prompt, clientCompany} = await request.json()
+        const body = await request.json();
+        const { title, contractType, clientName, prompt, clientCompany } = body;
+
+        // Validate required fields
+        if (!title || !contractType || !clientName || !prompt) {
+            console.error('Missing required fields:', { title, contractType, clientName, prompt: !!prompt });
+            return NextResponse.json(
+                {message: 'Missing required fields: title, contractType, clientName, and prompt are required'},
+                {status: 400}
+            );
+        }
+
+        console.log('Generating contract with params:', { title, contractType, clientName, promptLength: prompt.length });
 
         const response = await openAi.chat.completions.create({
             model:'gpt-4',
@@ -76,7 +90,17 @@ Make this a complete, professional legal contract that is ready for immediate di
             temperature : 0.2
         });
 
+        if (!response.choices || !response.choices[0] || !response.choices[0].message?.content) {
+            console.error('Invalid response from OpenAI:', response);
+            return NextResponse.json(
+                {message: 'Invalid response from AI service'},
+                {status: 500}
+            );
+        }
+
         const generatedContract = response.choices[0].message.content;
+
+        console.log('Contract generated successfully, length:', generatedContract.length);
 
         return NextResponse.json(
             {
@@ -87,13 +111,21 @@ Make this a complete, professional legal contract that is ready for immediate di
         );
 
     }
-    catch(error){
-        console.error(`error occured ${error}`)
+    catch(error: any){
+        console.error('Error generating contract:', {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack,
+            cause: error?.cause
+        });
+        
+        // Return a safe error message without exposing internal details
+        const errorMessage = error?.message || 'Failed to generate contract';
+        
         return NextResponse.json(
             {
-                message: 'Failed to generate contract',
-                error: error
-
+                message: errorMessage,
+                error: process.env.NODE_ENV === 'development' ? error?.message : undefined
             },
             {status : 500}
         );

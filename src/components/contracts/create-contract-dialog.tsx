@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -7,12 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Info, X, Loader2, Bot, FileText, AlertTriangle } from 'lucide-react'
+import { Info, X, Loader2, Bot, FileText, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
 import { useClients } from '@/hooks/use-clients'
-import { Stars } from 'lucide-react'
 import { Switch } from '../ui/switch'
 import { getPromptGuide } from './contract-prompt-guides'
 import { useAiContractGenerate } from '@/hooks/use-ai-contract-generate'
@@ -26,7 +24,7 @@ interface CreateContractDialogProps {
     onOpenChange: (open: boolean) => void
 }
 
-export function CreateContractDialog({ open, onOpenChange }: CreateContractDialogProps) {
+const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [clientId, setClientId] = useState('');
@@ -47,6 +45,13 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
     const { getSubscriptionType, loading: subscriptionLoading } = useSubscriptionInfo(user?.id);
     const incrementAiUsage = useIncrementAiUsage();
 
+    console.log('=== All hooks declared, now logging values ===')
+    console.log(`subscriptionType: ${subscriptionType}`)
+    console.log(`aiUsage: ${aiUsage}`)
+    console.log(`canUseAi: ${canUseAi}`)
+    console.log(`user?.id: ${user?.id}`)
+    console.log('=== End initial values ===')
+
     // Get subscription type
     useEffect(() => {
         if (!user?.id || userLoading) return;
@@ -54,6 +59,7 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
         const fetchSubscription = async () => {
             try {
                 const subData = await getSubscriptionType(user.id);
+                console.log(`subData ${subData}`)
                 if (subData && subData.length > 0 && subData[0]?.subscription) {
                     setSubscriptionType(subData[0].subscription);
                 } else {
@@ -67,40 +73,47 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
         };
         
         fetchSubscription();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id, userLoading]);
 
     useEffect(() => {
-        if (!user?.id || !subscriptionType || aiUsage === undefined) {
+        console.log('=== useEffect canUseAi check ===')
+        console.log(`user?.id: ${user?.id}`)
+        console.log(`aiUsage: ${aiUsage}`)
+        console.log(`subscriptionType: ${subscriptionType}`)
+        
+        if (!user?.id) {
+            console.log('No user ID, setting canUseAi to false')
             setCanUseAi(false);
             return;
         }
         const currentUsage = aiUsage || 0;
         let maxUsage = 0;
-
-        switch (subscriptionType){
+        switch (subscriptionType) {
             case 'Expert Freelancer':
                 maxUsage = 50;
                 break;
             
             case 'Seasoned Freelancer':
-                maxUsage = 10
+                maxUsage = 10;
                 break;
             
             case 'New Freelancer':
-                maxUsage = 5
+                maxUsage = 5;
                 break;
             
             case 'Free':
-                maxUsage = 1
+                maxUsage = 1;
                 break;
             
             default:
-                maxUsage = 1
+                maxUsage = 1;
                 break;
-        }
-        setCanUseAi(currentUsage < maxUsage);
-    },[user,aiUsage])
+        };
+        console.log(`currentUsage: ${currentUsage}, maxUsage: ${maxUsage}`)
+        const canUse = currentUsage < maxUsage;
+        console.log(`Setting canUseAi to: ${canUse}`)
+        setCanUseAi(canUse);
+    }, [user?.id, aiUsage, subscriptionType])
     
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -570,3 +583,5 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
         </Dialog>
     )
 } 
+
+export default CreateContractDialog;

@@ -28,7 +28,7 @@ import { useEffect, useState } from 'react'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
 import { cn } from '@/lib/utils'
 
-export default function DashboardNavbar() {
+export default function DashboardSidebar() {
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
