@@ -1,7 +1,21 @@
 import { NextRequest,NextResponse } from "next/server";
 import OpenAI from "openai";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const VERIFY_API_KEY = process.env.AI_CONTRACT_API_KEY
 const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
+
+ // CORS headers
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
+        'Access-Control-Max-Age': '86400',
+    };
+
+    // Handle preflight requests
+    export async function OPTIONS(request: NextRequest) {
+        return NextResponse.json({}, { headers: corsHeaders });
+    }
 
 
 export async function POST(request: NextRequest){
@@ -12,7 +26,13 @@ export async function POST(request: NextRequest){
             {status: 500}
         )
     }
-    
+    if(request.headers.get('x-api-key') != VERIFY_API_KEY){
+        return NextResponse.json(
+            {message: 'You do not have access to this route.'},
+            {status: 500,headers: corsHeaders}
+        )
+
+    } 
     try {
         const body = await request.json();
         const { title, contractType, clientName, prompt, clientCompany } = body;
@@ -22,7 +42,7 @@ export async function POST(request: NextRequest){
             console.error('Missing required fields:', { title, contractType, clientName, prompt: !!prompt });
             return NextResponse.json(
                 {message: 'Missing required fields: title, contractType, clientName, and prompt are required'},
-                {status: 400}
+                {status: 400,headers : corsHeaders}
             );
         }
 
@@ -94,7 +114,7 @@ Make this a complete, professional legal contract that is ready for immediate di
             console.error('Invalid response from OpenAI:', response);
             return NextResponse.json(
                 {message: 'Invalid response from AI service'},
-                {status: 500}
+                {status: 500, headers: corsHeaders}
             );
         }
 
@@ -107,7 +127,7 @@ Make this a complete, professional legal contract that is ready for immediate di
                 contract : generatedContract,
                 success : true
             },
-            {status: 200}
+            {status: 200,headers : corsHeaders}
         );
 
     }
@@ -127,7 +147,7 @@ Make this a complete, professional legal contract that is ready for immediate di
                 message: errorMessage,
                 error: process.env.NODE_ENV === 'development' ? error?.message : undefined
             },
-            {status : 500}
+            {status : 500, headers: corsHeaders}
         );
     }
 
