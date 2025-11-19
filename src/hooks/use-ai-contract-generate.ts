@@ -8,6 +8,12 @@ interface AiContractGenerateParams {
     clientName: string;
 }
 
+const KEY = process.env.AI_CONTRACT_API_KEY as string || '';
+
+if(KEY === ''){
+    throw new Error('Request to AI generate route has an empty string as key')
+};
+
 export function useAiContractGenerate() {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +38,8 @@ export function useAiContractGenerate() {
             const response = await fetch('/api/ai-contract-generate', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-api-key' : KEY
                 },
                 body: JSON.stringify(params)
             });
