@@ -376,8 +376,8 @@ export function useCanCreateInvoice(userId: string) {
   return {
     canCreate: (invoiceCount || 0) < (subscription?.maxInvoices || 2),
     currentCount: invoiceCount || 0,
-    maxInvoices: subscription?.maxInvoices || 2,
-    subscriptionStatus: subscription?.status || 'free'
+    maxInvoices: subscription?.maxInvoices || 100,
+    subscriptionStatus: subscription?.status || 'Free'
   }
 }
 
