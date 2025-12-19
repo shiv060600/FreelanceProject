@@ -8,11 +8,7 @@ interface AiContractGenerateParams {
     clientName: string;
 }
 
-const KEY = process.env.AI_CONTRACT_API_KEY as string || '';
-
-if(KEY === ''){
-    throw new Error('Request to AI generate route has an empty string as key')
-};
+const KEY = process.env.AI_CONTRACT_API_KEY as string
 
 export function useAiContractGenerate() {
     const [loading, setLoading] = useState<boolean>(false);
