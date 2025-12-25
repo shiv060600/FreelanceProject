@@ -6,7 +6,7 @@ interface AiContractGenerateParams {
     contractType: string;
     prompt: string;
     clientName: string;
-}
+};
 
 const KEY = process.env.AI_CONTRACT_API_KEY as string
 
@@ -40,7 +40,7 @@ export function useAiContractGenerate() {
                 body: JSON.stringify(params)
             });
 
-            // Check if response is ok before trying to parse JSON
+            // handle unexpected faliure
             if (!response.ok) {
                 let errorMessage = 'Failed to generate contract';
                 try {
