@@ -127,7 +127,6 @@ Make this a complete, professional legal contract that is ready for immediate di
         const generatedContract = response.choices[0].message.content;
 
         console.log('Contract generated successfully, length:', generatedContract.length);
-
         return NextResponse.json(
             {
                 contract : generatedContract,

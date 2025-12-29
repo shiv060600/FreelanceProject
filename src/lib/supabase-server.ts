@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 
 // Server client for server components (with cookie handling)
 export const createServerSupabaseClient = async () => {
-  const cookieStore = cookies();
+  // In Next.js 16, cookies() returns a Promise and must be awaited
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

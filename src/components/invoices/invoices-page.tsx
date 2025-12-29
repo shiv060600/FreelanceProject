@@ -9,7 +9,7 @@ import { SearchInput } from "@/components/ui/search-input"
 import { SortHeader } from "@/components/ui/sort-header"
 import CreateInvoiceDialog from "./create-invoice-dialog"
 import EditInvoiceDialog from "./edit-invoice-dialog"
-import { PDFDownloadLink } from '@react-pdf/renderer'
+import PDFDownloadWrapper from './pdf-download-wrapper'
 import InvoicePDF from './invoice-pdf'
 import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
 import { DeleteInvoiceDialog } from "./delete-invoice-dialog"
@@ -122,10 +122,12 @@ export default function InvoicesPage() {
     }
 
     try {
+      // Dynamically import pdf renderer to avoid SSR issues
       const { pdf } = await import('@react-pdf/renderer')
       
-      // Create the PDF document component
-      const invoicePdf = <InvoicePDF invoice={invoice} userInfo={userInfo} />
+      // Create the PDF document component with a key to prevent reconciler errors
+      const documentKey = `invoice-${invoice?.id || 'unknown'}-${invoice?.invoice_number || ''}`
+      const invoicePdf = <InvoicePDF key={documentKey} invoice={invoice} userInfo={userInfo} />
       
       // Generate blob from PDF component
       const invoicePdfBlob = await pdf(invoicePdf).toBlob()
@@ -390,20 +392,11 @@ export default function InvoicesPage() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </EditInvoiceDialog>
-                          <PDFDownloadLink
-                            document={<InvoicePDF invoice={invoice} userInfo={userInfo} />}
-                            fileName={`invoice-${invoice.invoice_number || 'unknown'}.pdf`}
-                          >
-                            {({ loading }) => (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={loading || userInfoLoading || !invoice?.id}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </PDFDownloadLink>
+                          <PDFDownloadWrapper
+                            invoice={invoice}
+                            userInfo={userInfo}
+                            userInfoLoading={userInfoLoading}
+                          />
                           <Button
                             variant="ghost"
                             size="icon"

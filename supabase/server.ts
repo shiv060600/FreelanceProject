@@ -9,7 +9,8 @@ export const createClient = async () => {
     throw new Error('Missing Supabase environment variables');
   }
 
-  const cookieStore = cookies();
+  // In Next.js 16, cookies() returns a Promise and must be awaited
+  const cookieStore = await cookies();
 
   return createServerClient(
     supabaseUrl,
