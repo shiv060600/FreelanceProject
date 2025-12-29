@@ -8,8 +8,6 @@ interface AiContractGenerateParams {
     clientName: string;
 };
 
-const KEY = process.env.AI_CONTRACT_API_KEY as string
-
 export function useAiContractGenerate() {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -35,7 +33,6 @@ export function useAiContractGenerate() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key' : KEY
                 },
                 body: JSON.stringify(params)
             });

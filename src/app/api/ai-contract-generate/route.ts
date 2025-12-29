@@ -1,14 +1,15 @@
 import { NextRequest,NextResponse } from "next/server";
 import OpenAI from "openai";
+import { createClient } from '../../../../supabase/server';
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-const VERIFY_API_KEY = process.env.AI_CONTRACT_API_KEY
 const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
 
  // CORS headers
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
+        'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Max-Age': '86400',
     };
 
@@ -19,6 +20,7 @@ const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
 
 
 export async function POST(request: NextRequest){
+    // Check OpenAI API key configuration
     if(!OPENAI_API_KEY){
         console.error('OpenAI API key not found in environment variables');
         return NextResponse.json(
@@ -26,12 +28,16 @@ export async function POST(request: NextRequest){
             {status: 500}
         )
     }
-    if(request.headers.get('x-api-key') != VERIFY_API_KEY){
-        return NextResponse.json(
-            {message: 'You do not have access to this route.'},
-            {status: 500,headers: corsHeaders}
-        )
 
+    // Authenticate user using Supabase session
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+        return NextResponse.json(
+            {message: 'Authentication required. Please sign in to continue.'},
+            {status: 401, headers: corsHeaders}
+        )
     } 
     try {
         const body = await request.json();
