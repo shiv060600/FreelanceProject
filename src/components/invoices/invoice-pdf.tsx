@@ -1,10 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
-import { createClient } from '@/lib/supabase-browser'
-import QRCode from 'qrcode'
-import { useInvoicePDF } from '@/hooks/use-invoice-pdf'
 
 // Define styles for the PDF
 const styles = StyleSheet.create({
@@ -162,21 +159,24 @@ const styles = StyleSheet.create({
   },
 })
 
-interface InvoicePDFProps {
-  invoice: any
-  userInfo?: {
-    name?: string
-    email?: string
-    address?: string
-  }
+interface Client {
+  name: string
+  email: string
+  phone: string
+  company: string
+  address: string
 }
 
-interface Client {
-  name:string,
-  email:string,
-  phone:string,
-  company:string,
-  addrres:string
+interface InvoicePDFProps {
+  invoice: any
+  userInfo: {
+    name: string
+    email: string
+    address: string
+  }
+  clientData?: Client
+  cashAppQR?: string
+  venmoQR?: string
 }
 
 const safeString = (value: any): string => {
@@ -201,103 +201,7 @@ const formatDate = (dateValue: any): string => {
   }
 }
 
-const generateQRCode = async (text: string): Promise<string> => {
-  try {
-    const qrDataUrl = await QRCode.toDataURL(text, {
-      width: 160,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
-    return qrDataUrl;
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    return '';
-  }
-}
-
-const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
-  const { userInfo: hookUserInfo, loading: userLoading } = useInvoicePDF()
-  const [clientData, setClientData] = useState<Client>()
-  const [cashAppQR, setCashAppQR] = useState<string>('')
-  const [venmoQR, setVenmoQR] = useState<string>('')
-  const [qrCodesGenerated, setQrCodesGenerated] = useState(false)
-
-  useEffect(() => {
-    const fetchClientData = async() => {
-      if (invoice?.client_id) {
-        const supabase = createClient();
-        const {data : clientDataT , error : clientError} = await supabase
-          .from('clients')
-          .select('*')
-          .eq('id', invoice.client_id)
-          .single()
-
-        if(!clientError && clientDataT) {
-          setClientData(clientDataT);
-        } else {
-          console.error("Error fetching client data:", clientError?.message)
-        }
-      }
-    }
-    
-    fetchClientData();
-  }, [invoice])
-
-  // Generate QR codes when user data is available
-  useEffect(() => {
-    const generateQRCodes = async () => {
-      if (!userLoading && hookUserInfo && !qrCodesGenerated) {
-        try {
-          console.log('Generating QR codes with user data:', hookUserInfo);
-          
-          // Generate Cash App QR code
-          if (hookUserInfo.cashapp_username) {
-            console.log('Generating Cash App QR for:', hookUserInfo.cashapp_username);
-            const cashAppUrl = `https://cash.app/$${hookUserInfo.cashapp_username}`;
-            const qrCode = await generateQRCode(cashAppUrl);
-            setCashAppQR(qrCode);
-            console.log('Cash App QR generated successfully');
-          } else {
-            console.log('No Cash App username found');
-          }
-          
-          // Generate Venmo QR code
-          if (hookUserInfo.venmo_username) {
-            console.log('Generating Venmo QR for:', hookUserInfo.venmo_username);
-            const venmoUrl = `https://venmo.com/${hookUserInfo.venmo_username}`;
-            const qrCode = await generateQRCode(venmoUrl);
-            setVenmoQR(qrCode);
-            console.log('Venmo QR generated successfully');
-          } else {
-            console.log('No Venmo username found');
-          }
-          
-          setQrCodesGenerated(true);
-        } catch (error) {
-          console.error('Error generating QR codes:', error);
-        }
-      }
-    }
-    
-    generateQRCodes();
-  }, [userLoading, hookUserInfo, qrCodesGenerated])
-
-  // Show loading state if any data is not ready
-  if (userLoading || !qrCodesGenerated) {
-    return (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Loading Invoice...</Text>
-          </View>
-        </Page>
-      </Document>
-    );
-  }
-
+const InvoicePDF = ({ invoice, userInfo, clientData, cashAppQR, venmoQR }: InvoicePDFProps) => {
   // Ensure we have valid data with fallbacks
   const safeInvoice = {
     invoice_number: safeString(invoice?.invoice_number) || 'N/A',
@@ -313,10 +217,9 @@ const InvoicePDF = ({ invoice, userInfo }: InvoicePDFProps) => {
     status: safeString(invoice?.status) || 'draft'
   };
 
-  // Use hook user data or fallback to props
   const safeUserInfo = {
-    name: safeString(hookUserInfo?.name || userInfo?.name) || 'Your Company',
-    email: safeString(hookUserInfo?.email || userInfo?.email) || 'your@email.com',
+    name: safeString(userInfo?.name) || 'Your Company',
+    email: safeString(userInfo?.email) || 'your@email.com',
     address: safeString(userInfo?.address) || 'Your Address'
   };
 

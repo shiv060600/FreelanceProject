@@ -78,7 +78,7 @@ export function useInvoices (userId:string){
             .order('created_at',{ascending:false});
 
             if (invoiceError) {
-                throw invoiceError; // Let React Query handle the error
+                throw invoiceError; 
             }
             if(!invoicesData || invoicesData.length === 0){
                 return [];
@@ -90,9 +90,8 @@ export function useInvoices (userId:string){
             const [clientsResponse, itemsResponse] = await Promise.all([
                 clientIds.length > 0 ? supabase
                 .from('clients')
-                .select('id,name')
+                .select('id,name,email,phone')
                 .in('id',clientIds) : Promise.resolve({ data: [], error: null }),
-
                 supabase
                     .from('invoice_items')
                     .select('invoice_id,id,invoice_name,description,quantity,unit_price,total')
@@ -113,7 +112,7 @@ export function useInvoices (userId:string){
             itemsResponse.data?.forEach(item => {
                 if(!itemsMap.has(item.invoice_id)){
                     itemsMap.set(item.invoice_id,[])
-                }
+                };
                 itemsMap.get(item.invoice_id).push(item)
             });
 

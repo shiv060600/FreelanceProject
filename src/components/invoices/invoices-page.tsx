@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -9,12 +9,13 @@ import { SearchInput } from "@/components/ui/search-input"
 import { SortHeader } from "@/components/ui/sort-header"
 import CreateInvoiceDialog from "./create-invoice-dialog"
 import EditInvoiceDialog from "./edit-invoice-dialog"
-import PDFDownloadWrapper from './pdf-download-wrapper'
+import { PDFDownloadLink } from '@react-pdf/renderer'
 import InvoicePDF from './invoice-pdf'
 import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
 import { DeleteInvoiceDialog } from "./delete-invoice-dialog"
 import { useUser } from '@/hooks/use-user'
 import { useQueryClient } from '@tanstack/react-query'
+import QRCode from 'qrcode'
 import { 
   useInvoices, 
   useUserSubscription, 
@@ -33,10 +34,53 @@ export default function InvoicesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [cashAppQR, setCashAppQR] = useState<string>('')
+  const [venmoQR, setVenmoQR] = useState<string>('')
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: SortDirection }>({
     key: 'created_at',
     direction: 'desc'
   })
+
+  // Generate QR codes when userInfo is available
+  useEffect(() => {
+    const generateQRCodes = async () => {
+      if (!userInfoLoading && userInfo) {
+        try {
+          // Generate Cash App QR code
+          if (userInfo.cashapp_username) {
+            const cashAppUrl = `https://cash.app/$${userInfo.cashapp_username}`;
+            const qrCode = await QRCode.toDataURL(cashAppUrl, {
+              width: 160,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            setCashAppQR(qrCode);
+          }
+          
+          // Generate Venmo QR code
+          if (userInfo.venmo_username) {
+            const venmoUrl = `https://venmo.com/${userInfo.venmo_username}`;
+            const qrCode = await QRCode.toDataURL(venmoUrl, {
+              width: 160,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            setVenmoQR(qrCode);
+          }
+        } catch (error) {
+          console.error('Error generating QR codes:', error);
+        }
+      }
+    }
+    
+    generateQRCodes();
+  }, [userInfoLoading, userInfo])
 
   const handleSort = (key: string) => {
     setSortConfig(prevConfig => {
@@ -127,12 +171,29 @@ export default function InvoicesPage() {
       
       // Create the PDF document component with a key to prevent reconciler errors
       const documentKey = `invoice-${invoice?.id || 'unknown'}-${invoice?.invoice_number || ''}`
-      const invoicePdf = <InvoicePDF key={documentKey} invoice={invoice} userInfo={userInfo} />
+      const invoicePdf = <InvoicePDF 
+        key={documentKey} 
+        invoice={invoice} 
+        userInfo={{
+          name: userInfo?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Your Company',
+          email: userInfo?.email || user?.email || 'your@email.com',
+          address: userInfo?.address || 'Your Business Address'
+        }}
+        clientData={invoice.clients ? {
+          name: invoice.clients.name || '',
+          email: invoice.clients.email || '',
+          phone: invoice.clients.phone || '',
+          company: invoice.clients.company || '',
+          address: invoice.clients.address || ''
+        } : undefined}
+        cashAppQR={cashAppQR}
+        venmoQR={venmoQR}
+      />
       
       // Generate blob from PDF component
       const invoicePdfBlob = await pdf(invoicePdf).toBlob()
       
-      // Create a blob URL that can be clicked to view the PDF
+      // Create a blob URL
       const blobUrl = URL.createObjectURL(invoicePdfBlob)
       
       // Create mailto link with the blob URL in the body
@@ -392,11 +453,38 @@ export default function InvoicesPage() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </EditInvoiceDialog>
-                          <PDFDownloadWrapper
-                            invoice={invoice}
-                            userInfo={userInfo}
-                            userInfoLoading={userInfoLoading}
-                          />
+                          <PDFDownloadLink
+                            document={
+                              <InvoicePDF 
+                                invoice={invoice} 
+                                userInfo={{
+                                  name: userInfo?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Your Company',
+                                  email: userInfo?.email || user?.email || 'your@email.com',
+                                  address: userInfo?.address || 'Your Business Address'
+                                }}
+                                clientData={invoice.clients ? {
+                                  name: invoice.clients.name || '',
+                                  email: invoice.clients.email || '',
+                                  phone: invoice.clients.phone || '',
+                                  company: invoice.clients.company || '',
+                                  address: invoice.clients.address || ''
+                                } : undefined}
+                                cashAppQR={cashAppQR}
+                                venmoQR={venmoQR}
+                              />
+                            }
+                            fileName={`invoice-${invoice.invoice_number || 'unknown'}.pdf`}
+                          >
+                            {({ loading }) => (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={loading || userInfoLoading}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </PDFDownloadLink>
                           <Button
                             variant="ghost"
                             size="icon"
