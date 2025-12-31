@@ -145,7 +145,7 @@ export function useUserSubscription(userId: string) {
 
       if (dbError) {
         console.error('Subscription query error:', dbError)
-        return { maxInvoices: 2, status: 'free' }
+        return { maxInvoices: 100, status: 'free' }
       }
       
       if (subscriptionData) {
@@ -175,11 +175,11 @@ export function useUserSubscription(userId: string) {
           }
           return { maxInvoices, status: 'active' }
         } else {
-          return { maxInvoices: 2, status: 'inactive' }
+          return { maxInvoices: 100, status: 'inactive' }
         }
       }
       
-      return { maxInvoices: 2, status: 'inactive' }
+      return { maxInvoices: 100, status: 'inactive' }
     },
     enabled: !!userId,
     refetchInterval: 30000, // Check every 30 seconds for subscription changes

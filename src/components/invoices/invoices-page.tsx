@@ -60,7 +60,7 @@ export default function InvoicesPage() {
     };
   const { data: subscription } = useUserSubscription(user?.id || '');
   const { data: invoiceCount } = useInvoiceCount(user?.id || '');
-  const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id || '');
+  const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id!);
   const sendInvoice = useSendInvoice();
   const updateInvoice = useUpdateInvoice();
 
