@@ -38,8 +38,6 @@ export default function PaymentLinksForm(props:{userId:string}){
             .eq('user_id',userId)
             .single();
 
-            console.log(existsData)
-
             if(!existsData || existsError){
                 console.error("error getting venmo cashapp username", existsError?.message)
                 return;
@@ -68,8 +66,6 @@ export default function PaymentLinksForm(props:{userId:string}){
         setIsSubmitting(true);
 
         try {
-            console.log("Submitting usernames:", { cashAppUserName, venmoUserName });
-            
             const {error:updateUserNameError} = await supabase
             .from('users')
             .update({
@@ -83,8 +79,6 @@ export default function PaymentLinksForm(props:{userId:string}){
                 console.error("error updating usernames", updateUserNameError.message)
                 throw new Error(updateUserNameError.message)
             }
-
-            console.log("Usernames updated successfully!");
             
             // Update local state to reflect the changes
             if(venmoUserName) setVenmoExists(true);

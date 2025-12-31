@@ -317,7 +317,7 @@ export function useDeleteInvoice() {
       if (invoiceError) throw invoiceError
 
       //Get current invoice_count
-      const currentCount:number= queryClient.getQueryData(['invoice-count',userId]) || 0
+      const currentCount: number= queryClient.getQueryData(['invoice-count',userId]) || 0
 
       // Update invoice count
       await supabase
@@ -344,7 +344,6 @@ export function useSendInvoice() {
   return useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
       // TODO: Implement email sending logic
-      console.log('Sending invoice:', id)
       
       const { data, error } = await supabase
         .from('invoices')
@@ -369,11 +368,9 @@ export function useCanCreateInvoice(userId: string) {
   const { data: subscription } = useUserSubscription(userId)
   const { data: invoiceCount } = useInvoiceCount(userId)
 
-  console.log("invoice count: ",invoiceCount)
-  console.log("invoice subscription", subscription)
   
   return {
-    canCreate: (invoiceCount || 0) < (subscription?.maxInvoices || 2),
+    canCreate: (invoiceCount || 0) < (subscription?.maxInvoices || 100),
     currentCount: invoiceCount || 0,
     maxInvoices: subscription?.maxInvoices || 100,
     subscriptionStatus: subscription?.status || 'Free'

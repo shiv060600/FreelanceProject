@@ -27,7 +27,6 @@ export async function SubscriptionCheck({
         .single();
 
     if (subError || !subscription) {
-        console.log('No active subscription found, redirecting to pricing');
         redirect(redirectTo);
     }
 

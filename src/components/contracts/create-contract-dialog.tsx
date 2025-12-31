@@ -45,13 +45,6 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
     const { getSubscriptionType, loading: subscriptionLoading } = useSubscriptionInfo(user?.id);
     const incrementAiUsage = useIncrementAiUsage();
 
-    console.log('=== All hooks declared, now logging values ===')
-    console.log(`subscriptionType: ${subscriptionType}`)
-    console.log(`aiUsage: ${aiUsage}`)
-    console.log(`canUseAi: ${canUseAi}`)
-    console.log(`user?.id: ${user?.id}`)
-    console.log('=== End initial values ===')
-
     // Get subscription type
     useEffect(() => {
         if (!user?.id || userLoading) return;
@@ -59,7 +52,6 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
         const fetchSubscription = async () => {
             try {
                 const subData = await getSubscriptionType(user.id);
-                console.log(`subData ${subData}`)
                 if (subData && subData.length > 0 && subData[0]?.subscription) {
                     setSubscriptionType(subData[0].subscription);
                 } else {
@@ -76,13 +68,7 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
     }, [user?.id, userLoading]);
 
     useEffect(() => {
-        console.log('=== useEffect canUseAi check ===')
-        console.log(`user?.id: ${user?.id}`)
-        console.log(`aiUsage: ${aiUsage}`)
-        console.log(`subscriptionType: ${subscriptionType}`)
-        
         if (!user?.id) {
-            console.log('No user ID, setting canUseAi to false')
             setCanUseAi(false);
             return;
         }
@@ -101,9 +87,7 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                 maxUsage = 1;
                 break;
         };
-        console.log(`currentUsage: ${currentUsage}, maxUsage: ${maxUsage}`)
         const canUse = currentUsage < maxUsage;
-        console.log(`Setting canUseAi to: ${canUse}`)
         setCanUseAi(canUse);
     }, [user?.id, aiUsage, subscriptionType])
     

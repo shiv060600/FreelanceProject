@@ -35,10 +35,6 @@ export default function AddClientDialog({ children }: AddClientDialogProps) {
       const { data } = await supabase.auth.getUser()
       if (data?.user) {
         setUserId(data.user.id)
-        console.log(data.user.id)
-      }
-      else{
-        console.log('data empty')
       }
     }
     getUserId()

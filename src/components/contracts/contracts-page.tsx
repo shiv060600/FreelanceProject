@@ -37,8 +37,6 @@ interface Contract {
 }
 
 export default function ContractsPage() {
-  console.log('=== ContractsPage component starting ===');
-  console.log('=== THIS LOG SHOULD SHOW UP IN BROWSER CONSOLE ===');
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)

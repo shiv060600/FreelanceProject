@@ -20,7 +20,7 @@ export default function LeadGeneratorPage() {
       setCurrentTier(data?.subscription || null)
       }
       catch(error){
-        console.log(`error getting subscription ${error}`)
+        // Error handled silently
       }finally{
         setIsLoading(false);
       }

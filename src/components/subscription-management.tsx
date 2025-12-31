@@ -19,7 +19,6 @@ interface SubscriptionManagementProps {
 
 export default function SubscriptionManagement({ user, subscription }: SubscriptionManagementProps) {
     const router = useRouter();
-    console.log(user.id)
     const handleManageSubscription = async () => {
     try {
         
@@ -29,9 +28,7 @@ export default function SubscriptionManagement({ user, subscription }: Subscript
         body: JSON.stringify({ userId: user.id }),
         });
 
-        console.log(`repsonse ${response}`)
         const data = await response.json();
-        console.log(`data (response.json): ${data}`)
 
         if (data.url && typeof data.url === "string") {
             window.open(data.url, "_blank");

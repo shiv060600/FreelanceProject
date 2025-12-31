@@ -63,7 +63,7 @@ export default function DashboardSidebar() {
       await supabase.auth.signOut()
       window.location.href = "/"
     } catch (error) {
-      console.log(`error signing out ${error}`)
+      // Error handled silently
     }
   }
 
