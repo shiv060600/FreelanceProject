@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Eye, Users } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,26 +88,28 @@ export default function ClientList({ clients }: ClientListProps) {
   return (
     <div className="space-y-4">
       {/* Search Bar */}
-      <div className="flex items-center gap-4">
-        <SearchInput
-          placeholder="Search clients by name, company, or email..."
-          value={searchTerm}
-          onChange={setSearchTerm}
-          className="max-w-md"
-        />
-        {searchTerm && (
-          <span className="text-sm text-muted-foreground">
-            {filteredAndSortedClients.length} of {clients.length} clients
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
+        <div className="flex items-center gap-4 flex-1">
+          <SearchInput
+            placeholder="Search clients by name, company, or email..."
+            value={searchTerm}
+            onChange={setSearchTerm}
+            className="max-w-md bg-white shadow-sm"
+          />
+          {searchTerm && (
+            <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
+              {filteredAndSortedClients.length} of {clients.length} clients
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>
+            <TableRow className="bg-gradient-to-r from-gray-50 to-gray-50/50 border-b border-gray-200">
+              <TableHead className="text-sm font-semibold text-gray-700 py-4 px-6">
                 <SortHeader 
                   sortKey="name" 
                   currentSort={sortConfig} 
@@ -116,7 +118,7 @@ export default function ClientList({ clients }: ClientListProps) {
                   Name
                 </SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-sm font-semibold text-gray-700 py-4 px-6">
                 <SortHeader 
                   sortKey="company" 
                   currentSort={sortConfig} 
@@ -125,7 +127,7 @@ export default function ClientList({ clients }: ClientListProps) {
                   Company
                 </SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-sm font-semibold text-gray-700 py-4 px-6">
                 <SortHeader 
                   sortKey="email" 
                   currentSort={sortConfig} 
@@ -134,8 +136,8 @@ export default function ClientList({ clients }: ClientListProps) {
                   Email
                 </SortHeader>
               </TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>
+              <TableHead className="text-sm font-semibold text-gray-700 py-4 px-6">Phone</TableHead>
+              <TableHead className="text-sm font-semibold text-gray-700 py-4 px-6">
                 <SortHeader 
                   sortKey="created_at" 
                   currentSort={sortConfig} 
@@ -144,36 +146,44 @@ export default function ClientList({ clients }: ClientListProps) {
                   Added
                 </SortHeader>
               </TableHead>
-              <TableHead className="w-[80px]">Actions</TableHead>
+              <TableHead className="text-sm font-semibold text-gray-700 py-4 px-6 text-right w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="divide-y divide-gray-100">
             {filteredAndSortedClients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12">
-                  {clients.length === 0 ? (
-                    <p className="text-muted-foreground">No clients yet. Add your first client to get started.</p>
-                  ) : (
-                    <p className="text-muted-foreground">No clients found matching your search.</p>
-                  )}
+                  <div className="flex flex-col items-center justify-center text-gray-400">
+                    {clients.length === 0 ? (
+                      <>
+                        <Users className="h-12 w-12 mb-3 opacity-50" />
+                        <p className="text-base font-medium">No clients yet. Add your first client to get started.</p>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-12 w-12 mb-3 opacity-50" />
+                        <p className="text-base font-medium">No clients found matching your search.</p>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               filteredAndSortedClients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">
+                <TableRow key={client.id} className="hover:bg-blue-50/30 transition-colors duration-150 border-b border-gray-100">
+                  <TableCell className="font-semibold text-gray-900 py-4 px-6">
                     <ClientDetailDialog client={client}>
-                      <button className="hover:underline text-left">{client.name}</button>
+                      <button className="hover:text-blue-600 transition-colors text-left">{client.name}</button>
                     </ClientDetailDialog>
                   </TableCell>
-                  <TableCell>{client.company || '-'}</TableCell>
-                  <TableCell>{client.email || '-'}</TableCell>
-                  <TableCell>{client.phone || '-'}</TableCell>
-                  <TableCell>{format(new Date(client.created_at), 'MMM d, yyyy')}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-gray-700 py-4 px-6">{client.company || '-'}</TableCell>
+                  <TableCell className="text-gray-700 py-4 px-6">{client.email || '-'}</TableCell>
+                  <TableCell className="text-gray-700 py-4 px-6">{client.phone || '-'}</TableCell>
+                  <TableCell className="text-gray-600 py-4 px-6">{format(new Date(client.created_at), 'MMM d, yyyy')}</TableCell>
+                  <TableCell className="py-4 px-6 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors">
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Open menu</span>
                         </Button>

@@ -151,45 +151,56 @@ export default async function Dashboard() {
       <main className="w-full">
         <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
           {/* Header Section */}
-          <header className="flex flex-col gap-4">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
-              <InfoIcon size="14" />
-              <span>Welcome back! Here's your overview.</span>
+          <header className="flex flex-col gap-4 pb-2">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                Welcome back! Here's your business overview.
+              </p>
+            </div>
+            <div className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 backdrop-blur-sm text-sm p-4 px-5 rounded-xl text-gray-700 flex gap-3 items-center border border-blue-100/50 shadow-sm">
+              <InfoIcon size="16" className="text-blue-600 flex-shrink-0" />
+              <span className="font-medium">Your business insights and analytics at a glance</span>
             </div>
           </header>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-card rounded-xl p-6 border shadow-sm">
-              <div className="flex items-center gap-4 mb-4">
-                <DollarSign className="h-8 w-8 text-green-600" />
-                <div>
-                  <h2 className="font-semibold text-xl">Lifetime Earnings</h2>
-                  <p className="text-3xl font-bold">${allMoneyStats?.totalMade.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">{allInvoiceStats?.paid} paid invoices</p>
+            <div className="bg-gradient-to-br from-white to-emerald-50/30 rounded-2xl p-6 border border-emerald-100 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-emerald-100 rounded-xl border border-emerald-200">
+                  <DollarSign className="h-7 w-7 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-semibold text-lg text-gray-700 mb-1">Lifetime Earnings</h2>
+                  <p className="text-4xl font-bold text-gray-900 mb-1">${allMoneyStats?.totalMade.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground font-medium">{allInvoiceStats?.paid} paid invoices</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-6 border shadow-sm">
-              <div className="flex items-center gap-4 mb-4">
-                <DollarSign className="h-8 w-8 text-orange-600" />
-                <div>
-                  <h2 className="font-semibold text-xl">Draft Revenue</h2>
-                  <p className="text-3xl font-bold">${allMoneyStats?.totalToBeMade.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">From draft invoices</p>
+            <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl p-6 border border-amber-100 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-100 rounded-xl border border-amber-200">
+                  <DollarSign className="h-7 w-7 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-semibold text-lg text-gray-700 mb-1">Draft Revenue</h2>
+                  <p className="text-4xl font-bold text-gray-900 mb-1">${allMoneyStats?.totalToBeMade.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground font-medium">From draft invoices</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-6 border shadow-sm">
-              <div className="flex items-center gap-4 mb-4">
-                <FileText className="h-8 w-8 text-blue-600" />
-                <div>
-                  <h2 className="font-semibold text-xl">Draft Invoices</h2>
-                  <p className="text-3xl font-bold">{allInvoiceStats?.draft}</p>
-                  <p className="text-sm text-muted-foreground">Ready to be sent</p>
+            <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-6 border border-blue-100 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-100 rounded-xl border border-blue-200">
+                  <FileText className="h-7 w-7 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-semibold text-lg text-gray-700 mb-1">Draft Invoices</h2>
+                  <p className="text-4xl font-bold text-gray-900 mb-1">{allInvoiceStats?.draft}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Ready to be sent</p>
                 </div>
               </div>
             </div>

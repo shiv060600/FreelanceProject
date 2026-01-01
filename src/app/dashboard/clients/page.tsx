@@ -24,12 +24,14 @@ export default function ClientsPage() {
         <DashboardNavbar/>
         <main className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-3xl font-bold">Clients</h1>
-                <p className="text-muted-foreground mt-1">Manage your client relationships</p>
+                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Manage your client relationships
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   <span>Loading...</span>
@@ -41,9 +43,9 @@ export default function ClientsPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200/60">
               <div className="p-6">
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-12 text-gray-500">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="h-6 w-6 animate-spin" />
                     <span>Loading user data...</span>
@@ -64,10 +66,12 @@ export default function ClientsPage() {
         <DashboardNavbar />
         <main className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-3xl font-bold">Clients</h1>
-                <p className="text-muted-foreground mt-1">Manage your client relationships</p>
+                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Manage your client relationships
+                </p>
               </div>
             </div>
             
@@ -90,18 +94,20 @@ export default function ClientsPage() {
         <DashboardNavbar />
         <main className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-3xl font-bold">Clients</h1>
-                <p className="text-muted-foreground mt-1">Manage your client relationships</p>
+                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Manage your client relationships
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   <span>Loading clients...</span>
                 </div>
                 <AddClientDialog>
-                  <Button>
+                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Client
                   </Button>
@@ -109,9 +115,9 @@ export default function ClientsPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200/60">
               <div className="p-6">
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-12 text-gray-500">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="h-6 w-6 animate-spin" />
                     <span>Loading clients...</span>
@@ -132,13 +138,15 @@ export default function ClientsPage() {
         <DashboardNavbar />
         <main className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-3xl font-bold">Clients</h1>
-                <p className="text-muted-foreground mt-1">Manage your client relationships</p>
+                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Manage your client relationships
+                </p>
               </div>
               <AddClientDialog>
-                <Button>
+                <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Client
                 </Button>
@@ -163,13 +171,15 @@ export default function ClientsPage() {
       <main className="w-full">
         <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
           {/* Header Section */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center pb-2">
             <div>
-              <h1 className="text-3xl font-bold">Clients</h1>
-              <p className="text-muted-foreground mt-1">Manage your client relationships</p>
+              <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                Manage your client relationships
+              </p>
             </div>
             <AddClientDialog>
-              <Button>
+              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Client
               </Button>

@@ -120,23 +120,27 @@ export default function ContractsPage() {
   if (contracts?.length === 0){
     return(
       <div>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No contracts yet</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Create your first contract to get started.
+        <Card className="border-2 border-dashed border-gray-200">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 bg-blue-100 rounded-full mb-4">
+              <FileText className="h-12 w-12 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-gray-900">No contracts yet</h3>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              Create your first contract to get started and protect your freelance business.
             </p>
             <Button
               onClick={() => setCreateDialogOpen(true)}
               disabled={!canCreate}
+              className="shadow-md"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Contract
             </Button>
             {!canCreate && 
-              <p className='text-sm font-bold text-red-500 mt-5'>
-                Your current subscription does not allow for contact creation
+              <p className='text-sm font-bold text-red-500 mt-5 flex items-center gap-2'>
+                <AwardIcon className='h-4 w-4'/>
+                Your current subscription does not allow for contract creation
               </p>}
           </CardContent>
         </Card>
@@ -149,44 +153,66 @@ export default function ContractsPage() {
   }
   return (
     <div className="space-y-6">
-      <div className='flex justify-between'>
-        <div className='flex items-center gap-4'>
-          <h1 className='text-2xl font-bold'>Contracts</h1>
-          <SearchInput placeholder='Search contracts by name' value = {currentSearch} onChange={setCurrentSearch} className='h-9'/>
+      <div className='flex justify-between items-center pb-2'>
+        <div>
+          <h1 className='text-3xl font-bold text-gray-900'>Contracts</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage and organize your client contracts
+          </p>
         </div>
-        <div className='flex items-center gap-4'>
+        <div className='flex items-center gap-3'>
           {!canCreate && 
-            <p className='text-sm font-semibold text-red-500 flex items-center gap-2'>
+            <p className='text-sm font-semibold text-red-500 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-md border border-red-200'>
               <AwardIcon className='h-4 w-4'/>
               Contract limit reached ({currentCount}/{maxContracts}) - upgrade to add more
             </p>
           }
           <Button 
             disabled = {!canCreate}
-            onClick={() => {setCreateDialogOpen(true)}}>          
-            <Plus className='h-4 w-4'/>
+            onClick={() => {setCreateDialogOpen(true)}}
+            className="shadow-sm"
+          >          
+            <Plus className='h-4 w-4 mr-2'/>
             Add Contract
           </Button>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
+        <SearchInput 
+          placeholder='Search contracts by name or client...' 
+          value={currentSearch} 
+          onChange={setCurrentSearch} 
+          className='max-w-md bg-white shadow-sm'
+        />
+        {currentSearch && (
+          <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
+            {filteredContracts.length} of {contracts?.length || 0} contracts
+          </span>
+        )}
+      </div>
       <div className="grid gap-4">
         {filteredContracts.map((contract) => (
-          <Card key={contract.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{contract.title}</CardTitle>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="secondary">
+          <Card key={contract.id} className="border border-gray-200/60 hover:shadow-lg transition-all duration-200 hover:border-blue-200">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-xl font-bold text-gray-900 mb-3">{contract.title}</CardTitle>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border border-blue-200 font-semibold">
                       {contract.clients?.name || `Unknown Client (${contract.client_id})`}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(contract.created_at).toLocaleDateString()}
+                    <span className="text-sm text-gray-500 font-medium">
+                      {new Date(contract.created_at).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
                     </span>
                   </div>
-
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {user && (
                     <PDFDownloadLink
                       document={
@@ -209,6 +235,7 @@ export default function ContractsPage() {
                           variant="outline"
                           size="sm"
                           disabled={loading}
+                          className="h-9 w-9 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -218,13 +245,16 @@ export default function ContractsPage() {
                   <Button
                     variant='outline'
                     size='sm'
-                    onClick={() => handleSendContract(contract)}>
+                    onClick={() => handleSendContract(contract)}
+                    className="h-9 w-9 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                  >
                     <Mail className='h-4 w-4'/>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditContract(contract)}
+                    className="h-9 w-9 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -232,19 +262,17 @@ export default function ContractsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteContract(contract)}
+                    className="h-9 w-9 hover:bg-red-100 hover:text-red-600 hover:border-red-300 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-
-
-                  
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground max-h-20 overflow-hidden">
+            <CardContent className="pt-0">
+              <div className="text-sm text-gray-600 max-h-24 overflow-hidden bg-gray-50/50 rounded-lg p-4 border border-gray-100">
                 {contract.content ? (
-                  <div className="whitespace-pre-wrap font-sans">
+                  <div className="whitespace-pre-wrap font-sans leading-relaxed">
                     {/* Strip HTML for preview */}
                     {(() => {
                       const plainText = contract.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
@@ -254,7 +282,7 @@ export default function ContractsPage() {
                     })()}
                   </div>
                 ) : (
-                  <em>No content</em>
+                  <em className="text-gray-400">No content</em>
                 )}
               </div>
             </CardContent>

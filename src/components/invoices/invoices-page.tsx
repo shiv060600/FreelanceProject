@@ -261,9 +261,14 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Invoices</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center pb-2">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage and track your invoice payments
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -275,7 +280,7 @@ export default function InvoicesPage() {
             queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
             queryClient.invalidateQueries({queryKey:["invoice-count",user.id]})
           }}>
-            <Button disabled={!canCreate || isLoading}>
+            <Button disabled={!canCreate || isLoading} className="shadow-sm">
               <Plus className="h-4 w-4 mr-2" />
               New Invoice
             </Button>
@@ -293,148 +298,169 @@ export default function InvoicesPage() {
       )}
 
       {/* Search Bar */}
-      <div className="flex items-center gap-4">
-        <SearchInput
-          placeholder="Search by invoice #, invoice name, or client..."
-          value={searchTerm}
-          onChange={setSearchTerm}
-          className="max-w-md"
-        />
-        {searchTerm && (
-          <span className="text-sm text-muted-foreground">
-            {filteredAndSortedInvoices.length} of {invoices?.length || 0} invoices
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
+        <div className="flex items-center gap-4 flex-1">
+          <SearchInput
+            placeholder="Search by invoice #, invoice name, or client..."
+            value={searchTerm}
+            onChange={setSearchTerm}
+            className="max-w-md bg-white shadow-sm"
+          />
+          {searchTerm && (
+            <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
+              {filteredAndSortedInvoices.length} of {invoices?.length || 0} invoices
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Invoices List */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Invoice #</th>
-                  <th className="text-left py-3 px-4">Name</th>
-                  <th className="text-left py-3 px-4">Client</th>
-                  <th className="text-left py-3 px-4">
-                    <SortHeader 
-                      sortKey="issue_date" 
-                      currentSort={sortConfig} 
-                      onSort={handleSort}
-                      className="text-left"
-                    >
-                      Start Date
-                    </SortHeader>
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <SortHeader 
-                      sortKey="due_date" 
-                      currentSort={sortConfig} 
-                      onSort={handleSort}
-                      className="text-left"
-                    >
-                      Due Date
-                    </SortHeader>
-                  </th>
-                  <th className="text-left py-3 px-4">
-                    <SortHeader 
-                      sortKey="total" 
-                      currentSort={sortConfig} 
-                      onSort={handleSort}
-                      className="text-left"
-                    >
-                      Amount
-                    </SortHeader>
-                  </th>
-                  <th className="text-left py-3 px-4">Status</th>
-                  <th className="text-right py-3 px-4">Actions</th>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-gradient-to-r from-gray-50 to-gray-50/50">
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Invoice #</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Name</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Client</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">
+                  <SortHeader 
+                    sortKey="issue_date" 
+                    currentSort={sortConfig} 
+                    onSort={handleSort}
+                    className="text-left"
+                  >
+                    Start Date
+                  </SortHeader>
+                </th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">
+                  <SortHeader 
+                    sortKey="due_date" 
+                    currentSort={sortConfig} 
+                    onSort={handleSort}
+                    className="text-left"
+                  >
+                    Due Date
+                  </SortHeader>
+                </th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">
+                  <SortHeader 
+                    sortKey="total" 
+                    currentSort={sortConfig} 
+                    onSort={handleSort}
+                    className="text-left"
+                  >
+                    Amount
+                  </SortHeader>
+                </th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Status</th>
+                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredAndSortedInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-12">
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <FileText className="h-12 w-12 mb-3 opacity-50" />
+                      <p className="text-base font-medium">
+                        {!invoices || invoices.length === 0 ? (
+                          "No invoices yet"
+                        ) : (
+                          "No invoices found matching your search"
+                        )}
+                      </p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-8 text-gray-500">
-                      {!invoices || invoices.length === 0 ? (
-                        "No invoices yet"
-                      ) : (
-                        "No invoices found matching your search"
-                      )}
+              ) : (
+                filteredAndSortedInvoices.map((invoice: any) => (
+                  <tr 
+                    key={invoice.id} 
+                    className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors duration-150 cursor-pointer group"
+                  >
+                    <td className="py-4 px-6">
+                      <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {invoice.invoice_number}
+                      </span>
                     </td>
-                  </tr>
-                ) : (
-                  filteredAndSortedInvoices.map((invoice: any) => (
-                    <tr key={invoice.id} className="border-b">
-                      <td className="py-3 px-4">{invoice.invoice_number}</td>
-                      <td className="py-3 px-4">{invoice.invoice_items?.[0]?.invoice_name || 'N/A'}</td>
-                      <td className="py-3 px-4">{invoice.clients?.name || 'N/A'}</td>
-                      <td className="py-3 px-4">{new Date(invoice.issue_date).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">{new Date(invoice.due_date).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">${invoice.subtotal}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                          'bg-orange-100 text-orange-800'
-                        }`}>
-                          {invoice.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex justify-end space-x-2">
-                          <EditInvoiceDialog 
-                            invoice={invoice}
-                            onSuccess={() => {
-                              // Invalidate and refetch invoices to show updated data
-                              queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
-                            }}
+                    <td className="py-4 px-6 text-gray-700">{invoice.invoice_items?.[0]?.invoice_name || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-700 font-medium">{invoice.clients?.name || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-600">{new Date(invoice.issue_date).toLocaleDateString()}</td>
+                    <td className="py-4 px-6 text-gray-600">{new Date(invoice.due_date).toLocaleDateString()}</td>
+                    <td className="py-4 px-6">
+                      <span className="font-semibold text-gray-900">
+                        ${parseFloat(invoice.total || invoice.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                        invoice.status === 'paid' 
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                          : 'bg-amber-100 text-amber-700 border border-amber-200'
+                      }`}>
+                        {invoice.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex justify-end gap-1">
+                        <EditInvoiceDialog 
+                          invoice={invoice}
+                          onSuccess={() => {
+                            // Invalidate and refetch invoices to show updated data
+                            queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
+                          }}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
                           >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </EditInvoiceDialog>
+                        <PDFDownloadLink
+                          document={<InvoicePDF invoice={invoice} userInfo={userInfoForPdf} />}
+                          fileName={`invoice-${invoice.invoice_number || 'unknown'}.pdf`}
+                        >
+                          {({ loading }) => (
                             <Button
                               variant="ghost"
                               size="icon"
+                              disabled={loading || userInfoLoading || !invoice?.id}
+                              className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Download className="h-4 w-4" />
                             </Button>
-                          </EditInvoiceDialog>
-                          <PDFDownloadLink
-                            document={<InvoicePDF invoice={invoice} userInfo={userInfoForPdf} />}
-                            fileName={`invoice-${invoice.invoice_number || 'unknown'}.pdf`}
-                          >
-                            {({ loading }) => (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={loading || userInfoLoading || !invoice?.id}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </PDFDownloadLink>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleSendInvoice(invoice)}
-                            disabled={userInfoLoading || !invoice?.id}
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedInvoice(invoice)
-                              setDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </PDFDownloadLink>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleSendInvoice(invoice)}
+                          disabled={userInfoLoading || !invoice?.id}
+                          className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedInvoice(invoice)
+                            setDeleteDialogOpen(true)
+                          }}
+                          className="h-8 w-8 hover:bg-red-100 hover:text-red-600 transition-colors"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
       <DeleteInvoiceDialog
