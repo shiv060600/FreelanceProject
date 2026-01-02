@@ -16,9 +16,10 @@ export default async function Contracts() {
     return (
         <>
             <DashboardNavbar />
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto mt-5">
                 <ContractsPage />
             </div>
         </>
     );
+    // container mx-auto px-4 py-8
 }
