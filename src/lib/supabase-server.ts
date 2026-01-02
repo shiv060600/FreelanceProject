@@ -12,13 +12,10 @@ export const createServerSupabaseClient = async () => {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll().map(({ name, value }) => ({
-            name,
-            value,
-          }));
+          return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
+          cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options: any }) => {
             cookieStore.set(name, value, options);
           });
         },

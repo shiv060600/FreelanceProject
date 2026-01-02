@@ -1,45 +1,31 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+interface CookieVals{
+  name : any,
+  value : any,
+  options : any
 
-export const createClient = async () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  // In Next.js 16, cookies() returns a Promise and must be awaited
-  const cookieStore = await cookies();
-
+}
+export async function createClient() {
+  const cookieStore = await cookies()
   return createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {
-          try {
-            return cookieStore.getAll().map(({ name, value }) => ({
-              name,
-              value,
-            }));
-          } catch (error) {
-            // If cookies() is called in an environment where it's not allowed
-            console.error("Error accessing cookies:", error);
-            return [];
-          }
+          return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet : Array<CookieVals>) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch (error) {
-            // If cookies() is called in an environment where it's not allowed
-            console.error("Error setting cookies:", error);
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
       },
     }
-  );
-};
+  )
+}
