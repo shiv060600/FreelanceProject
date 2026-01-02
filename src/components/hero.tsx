@@ -1,14 +1,28 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, Check, Clock, Users, FileText, FileSignature} from "lucide-react";
+import FreelanceFlowLogoIcon from './ui/freelance_flow_logo_website.png';
 
 export default function Hero() {
   return (
     <div className="relative overflow-hidden bg-white">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50 opacity-80" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%)]" />
+      
       <div className="relative pt-28 pb-36 sm:pt-36 sm:pb-44">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-5xl mx-auto">
+            {/* Static Logo above header */}
+            <div className="flex justify-center mb-6">
+              <Image 
+                src={FreelanceFlowLogoIcon} 
+                alt="FreelanceFlow Logo" 
+                width={200} 
+                height={200}
+                className="object-contain"
+              />
+            </div>
+            
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 tracking-tight">
               Freelance{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient">

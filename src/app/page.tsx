@@ -27,15 +27,6 @@ export default async function Home() {
 
   const filteredplans = plans?.filter((item:any) => {return item.name !== 'Shilajit Tea'})
 
-
-  // Debug: Log the plans data to see what we're getting
-  if (plans) {
-    console.log('Plans data:', plans);
-  }
-  if (error) {
-    console.log('Plans error:', error);
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
