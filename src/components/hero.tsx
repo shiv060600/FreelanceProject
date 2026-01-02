@@ -13,16 +13,6 @@ export default function Hero() {
         <div className="container mx-auto px-4">
           <div className="text-center max-w-5xl mx-auto">
             {/* Static Logo above header */}
-            <div className="flex justify-center mb-6">
-              <Image 
-                src={FreelanceFlowLogoIcon} 
-                alt="FreelanceFlow Logo" 
-                width={200} 
-                height={200}
-                className="object-contain"
-              />
-            </div>
-            
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 tracking-tight">
               Freelance{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient">

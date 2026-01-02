@@ -8,8 +8,12 @@ import QueryProvider from "@/components/providers/query-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Tempo - Modern SaaS Starter",
-  description: "A modern full-stack starter template powered by Next.js",
+  title: "Freelance Flow",
+  description: "Streamline your freelance business with intelligent invoicing, contracts, and client management",
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
