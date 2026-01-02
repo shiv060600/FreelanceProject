@@ -77,7 +77,6 @@ export default function DashboardSidebar() {
     { href: '/dashboard/invoices', icon: FileText, label: 'Invoices' },
     { href: '/dashboard/contracts', icon: FileSignature, label: 'Contracts' },
     { href: '/dashboard/lead-generator', icon: Zap, label: 'Lead Generator' },
-    { href: '/dashboard/contracts-information', icon: InfoCircledIcon, label: 'Contract Info' },
   ]
 
   if (isLoading || !user) {

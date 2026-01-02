@@ -3,7 +3,7 @@ import { useState,useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail} from 'lucide-react'
+import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail, Info} from 'lucide-react'
 import { ContractPDF } from './contract-pdf'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import CreateContractDialog from './create-contract-dialog'
@@ -12,6 +12,7 @@ import { DeleteContractDialog } from './delete-contract-dialog'
 import { useContracts, useCanCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
 import { SearchInput } from '../ui/search-input'
+import ContractInfo from './contract-info'
 import { useMemo } from 'react'
 
 interface CountryInfo {
@@ -41,9 +42,8 @@ export default function ContractsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
-  const [currentSearch,setCurrentSearch] = useState("")
-  
-
+  const [currentSearch, setCurrentSearch] = useState("")
+  const [contractsInfoOpen, setContractsInfoOpen] = useState(false);
   
   const { data: user , isLoading: userLoading, error: userError } = useUser();
   const { data: contracts , isLoading: contractsLoading, isFetching: contractsFetching, error: contractsError } = useContracts(user?.id || '');
@@ -152,47 +152,61 @@ export default function ContractsPage() {
     )
   }
   return (
-    <div className="space-y-6">
-      <div className='flex justify-between items-center pb-2'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900'>Contracts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage and organize your client contracts
-          </p>
-        </div>
-        <div className='flex items-center gap-3'>
-          {!canCreate && 
-            <p className='text-sm font-semibold text-red-500 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-md border border-red-200'>
-              <AwardIcon className='h-4 w-4'/>
-              Contract limit reached ({currentCount}/{maxContracts}) - upgrade to add more
-            </p>
-          }
-          <Button 
-            disabled = {!canCreate}
-            onClick={() => {setCreateDialogOpen(true)}}
-            className="shadow-sm"
-          >          
-            <Plus className='h-4 w-4 mr-2'/>
-            Add Contract
-          </Button>
-        </div>
-      </div>
+    <div className="relative flex gap-0 ml-4 mr-4">
+      {/* Main Content - 70% when panel open, 100% when closed */}
+      <div className={`transition-all duration-300 ease-in-out ${
+        contractsInfoOpen ? 'w-[70%] pr-4' : 'w-full'
+      }`}>
+        <div className="space-y-6">
+          <div className='flex justify-between items-center pb-2'>
+            <div>
+              <h1 className='text-3xl font-bold text-gray-900'>Contracts</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage and organize your client contracts
+              </p>
+            </div>
+            <div className='flex items-center gap-3'>
+              {!canCreate && 
+                <p className='text-sm font-semibold text-red-500 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-md border border-red-200'>
+                  <AwardIcon className='h-4 w-4'/>
+                  Contract limit reached ({currentCount}/{maxContracts}) - upgrade to add more
+                </p>
+              }
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setContractsInfoOpen(!contractsInfoOpen)}
+                className={contractsInfoOpen? `h-9 w-9 bg-blue-200` : `h-9 w-9 hover:bg-blue-100 hover:text-blue-900 hover:border-blue-300 transition-colors`}
+                title="Contract Information"
+              >
+                <Info className="h-4 w-4 " />
+              </Button>
+              <Button 
+                disabled = {!canCreate}
+                onClick={() => {setCreateDialogOpen(true)}}
+                className="shadow-sm bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              >          
+                <Plus className='h-4 w-4 mr-2'/>
+                Add Contract
+              </Button>
+            </div>
+          </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
-        <SearchInput 
-          placeholder='Search contracts by name or client...' 
-          value={currentSearch} 
-          onChange={setCurrentSearch} 
-          className='max-w-md bg-white shadow-sm'
-        />
-        {currentSearch && (
-          <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
-            {filteredContracts.length} of {contracts?.length || 0} contracts
-          </span>
-        )}
-      </div>
-      <div className="grid gap-4">
+          {/* Search Bar */}
+          <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
+            <SearchInput 
+              placeholder='Search contracts by name or client...' 
+              value={currentSearch} 
+              onChange={setCurrentSearch} 
+              className='max-w-md bg-white shadow-sm'
+            />
+            {currentSearch && (
+              <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
+                {filteredContracts.length} of {contracts?.length || 0} contracts
+              </span>
+            )}
+          </div>
+          <div className="grid gap-4">
         {filteredContracts.map((contract) => (
           <Card key={contract.id} className="border border-gray-200/60 hover:shadow-lg transition-all duration-200 hover:border-blue-200">
             <CardHeader className="pb-4">
@@ -286,9 +300,15 @@ export default function ContractsPage() {
                 )}
               </div>
             </CardContent>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
+        </div>
       </div>
+
+      {/* Contract Info Side Panel - 30% */}
+      <ContractInfo open={contractsInfoOpen} setOpen={setContractsInfoOpen} />
+
       {/* Dialogs */}
       <CreateContractDialog 
         open={createDialogOpen} 

@@ -130,10 +130,6 @@ export default function DashboardNavbar() {
               <Zap className="h-5 w-5" />
               <span>Lead Generator</span>
             </Link>*/}
-            <Link href={"/dashboard/contracts-information"} className={`nav-link ${isActive('/dashboard/contracts-information') ? 'nav-link-active' : ''}`}>
-              <InfoCircledIcon className='h-5 w-5'/>
-              <span>Contract Information</span>
-            </Link>
           </div>
         </div>
         <div className="nav-actions">
