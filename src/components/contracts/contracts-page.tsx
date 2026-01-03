@@ -3,7 +3,7 @@ import { useState,useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail, Info} from 'lucide-react'
+import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail, Info, Eye} from 'lucide-react'
 import { ContractPDF } from './contract-pdf'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import CreateContractDialog from './create-contract-dialog'
@@ -14,6 +14,7 @@ import { useUser } from '@/hooks/use-user'
 import { SearchInput } from '../ui/search-input'
 import ContractInfo from './contract-info'
 import { useMemo } from 'react'
+import ContractPreview from './contract-preview'
 
 interface CountryInfo {
   e_signature_valid:boolean,
@@ -44,6 +45,7 @@ export default function ContractsPage() {
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
   const [currentSearch, setCurrentSearch] = useState("")
   const [contractsInfoOpen, setContractsInfoOpen] = useState(false);
+  const [contractPreviewOpen, setContractPreviewOpen] = useState(false);
   
   const { data: user , isLoading: userLoading, error: userError } = useUser();
   const { data: contracts , isLoading: contractsLoading, isFetching: contractsFetching, error: contractsError } = useContracts(user?.id || '');
@@ -226,7 +228,7 @@ export default function ContractsPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {user && (
                     <PDFDownloadLink
                       document={
@@ -249,7 +251,7 @@ export default function ContractsPage() {
                           variant="outline"
                           size="sm"
                           disabled={loading}
-                          className="h-9 w-9 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                          className="h-10 w-10 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -260,7 +262,7 @@ export default function ContractsPage() {
                     variant='outline'
                     size='sm'
                     onClick={() => handleSendContract(contract)}
-                    className="h-9 w-9 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                    className="h-10 w-10 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
                   >
                     <Mail className='h-4 w-4'/>
                   </Button>
@@ -268,7 +270,7 @@ export default function ContractsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditContract(contract)}
-                    className="h-9 w-9 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                    className="h-10 w-10 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -276,10 +278,23 @@ export default function ContractsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteContract(contract)}
-                    className="h-9 w-9 hover:bg-red-100 hover:text-red-600 hover:border-red-300 transition-colors"
+                    className="h-10 w-10 hover:bg-red-100 hover:text-red-600 hover:border-red-300 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedContract(contract)
+                      setContractPreviewOpen(true)
+                    }}
+                    className="h-10 w-10 hover:bg-green-100 hover:text-green-600 hover:border-green-300 transition-colors"
+                    title="Quick Preview"
+                  >
+                    <Eye className="h-4 w-4" />
+                </Button>
                 </div>
               </div>
             </CardHeader>
@@ -326,6 +341,14 @@ export default function ContractsPage() {
         open={deleteDialogOpen} 
         onOpenChange={setDeleteDialogOpen} 
       />
+
+      <ContractPreview
+        selectedContract={selectedContract}
+        previewOpen= {contractPreviewOpen}
+        setPreviewOpen= {setContractPreviewOpen}
+        user = {user}
+      />
+
     </div>
   )
 

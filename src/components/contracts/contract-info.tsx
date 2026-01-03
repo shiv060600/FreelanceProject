@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { X, CheckCircle, XCircle, AlertTriangle, Globe, Scale, FileText, Users, Calendar, DollarSign } from 'lucide-react'
+import { X, CheckCircle, XCircle, AlertTriangle, Globe, Scale, FileText, Users, Calendar, DollarSign, FileSignature } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import countriesData from "../../utils/country-info.json"
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -104,11 +104,12 @@ Timeline: Sometime soon.`;
       <ScrollArea className="flex-1">
         <div className="p-4">
           <Tabs defaultValue="basics" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-9 mb-10 space-y-2">
-              <TabsTrigger value="basics" className="text-xs">Basics</TabsTrigger>
-              <TabsTrigger value="elements" className="text-xs">Elements</TabsTrigger>
-              <TabsTrigger value="examples" className="text-xs">Examples</TabsTrigger>
-              <TabsTrigger value="country" className="text-xs">Country</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-16 mb-4">
+              <TabsTrigger value="basics" className="text-[10px] leading-tight">Basics</TabsTrigger>
+              <TabsTrigger value="binding" className="text-[10px] leading-tight">Binding vs Non-Binding</TabsTrigger>
+              <TabsTrigger value="elements" className="text-[10px] leading-tight">Elements</TabsTrigger>
+              <TabsTrigger value="examples" className="text-[10px] leading-tight">Examples</TabsTrigger>
+              <TabsTrigger value="country" className="text-[10px] leading-tight">Country</TabsTrigger>
             </TabsList>
 
             {/* Legal Basics Tab */}
@@ -176,6 +177,152 @@ Timeline: Sometime soon.`;
                 <AlertTriangle className="h-3 w-3" />
                 <AlertDescription className="text-xs">
                   <strong>Disclaimer:</strong> Educational purposes only. Consult an attorney for legal advice.
+                </AlertDescription>
+              </Alert>
+            </TabsContent>
+
+            {/* Binding vs Non-Binding Tab */}
+            <TabsContent value="binding" className="space-y-3">
+              <Alert className="text-xs bg-yellow-50 border-yellow-200">
+                <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                <AlertDescription className="text-[10px] text-yellow-800">
+                  <strong>Disclaimer:</strong> Educational info only, not legal advice. Consult an attorney for your situation.
+                </AlertDescription>
+              </Alert>
+
+              <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-xs text-green-700">
+                    <CheckCircle className="h-3 w-3" />
+                    Binding Contracts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <p className="text-[10px] text-gray-700">
+                    Legally enforceable - parties can pursue legal action if terms aren't met.
+                  </p>
+                  <div>
+                    <h4 className="font-semibold text-[10px] text-green-700 mb-1">Required:</h4>
+                    <ul className="text-[10px] space-y-0.5">
+                      <li>• Offer & Acceptance</li>
+                      <li>• Consideration (value exchanged)</li>
+                      <li>• Mutual Intent to be bound</li>
+                      <li>• Legal purpose</li>
+                      <li>• Capacity to contract</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-xs text-blue-700">
+                    <FileText className="h-3 w-3" />
+                    Non-Binding Agreements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <p className="text-[10px] text-gray-700">
+                    Preliminary discussions without legal obligations. Either party can walk away.
+                  </p>
+                  <div>
+                    <h4 className="font-semibold text-[10px] text-blue-700 mb-1">Characteristics:</h4>
+                    <ul className="text-[10px] space-y-0.5">
+                      <li>• Missing binding elements</li>
+                      <li>• Contains "non-binding" language</li>
+                      <li>• Used for initial discussions</li>
+                      <li>• No legal enforcement</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-1.5 rounded border text-[9px]">
+                    <strong>Example:</strong> Letter of intent, MOU
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-purple-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-xs text-purple-700">
+                    <Users className="h-3 w-3" />
+                    Verbal Contracts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <p className="text-[10px] text-gray-700">
+                    Can be binding BUT very difficult to prove. Always get it in writing!
+                  </p>
+                  <div className="bg-red-50 p-1.5 rounded border border-red-200">
+                    <h4 className="font-semibold text-[10px] text-red-700 mb-0.5">Why Written is Better:</h4>
+                    <ul className="text-[9px] space-y-0.5">
+                      <li>• Hard to prove verbal terms</li>
+                      <li>• Memories differ</li>
+                      <li>• No documentation for disputes</li>
+                      <li>• Some contracts must be written by law</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-orange-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-xs text-orange-700">
+                    <AlertTriangle className="h-3 w-3" />
+                    When Informal Becomes Binding
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <div className="bg-orange-50 p-1.5 rounded border">
+                    <h4 className="font-semibold text-[10px] text-orange-700 mb-0.5">Watch Out For:</h4>
+                    <ul className="text-[9px] space-y-0.5">
+                      <li>• Acceptance language</li>
+                      <li>• Specific deadlines</li>
+                      <li>• "Good faith" terms</li>
+                      <li>• Value already exchanged</li>
+                    </ul>
+                  </div>
+                  <div className="bg-blue-50 p-1.5 rounded border">
+                    <h4 className="font-semibold text-[10px] text-blue-700 mb-0.5">Keep It Non-Binding:</h4>
+                    <ul className="text-[9px] space-y-0.5">
+                      <li>• Add "non-binding" language</li>
+                      <li>• Note "subject to formal agreement"</li>
+                      <li>• State "discussion purposes only"</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-indigo-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-xs text-indigo-700">
+                    <FileSignature className="h-3 w-3" />
+                    Electronic Signatures
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <p className="text-[10px] text-gray-700">
+                    E-signatures are valid in many countries but check your jurisdiction.
+                  </p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className="bg-green-50 p-1.5 rounded border text-[9px]">
+                      <div className="font-semibold text-green-700 mb-0.5">✓ Usually OK:</div>
+                      <div>Service contracts, NDAs, sales</div>
+                    </div>
+                    <div className="bg-yellow-50 p-1.5 rounded border text-[9px]">
+                      <div className="font-semibold text-yellow-700 mb-0.5">⚠️ May Need Physical:</div>
+                      <div>Wills, court docs, some real estate</div>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-gray-600 bg-white p-1.5 rounded border">
+                    Check "Country" tab for e-signature validity by region
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Alert className="text-xs bg-red-50 border-red-200">
+                <AlertTriangle className="h-3 w-3 text-red-600" />
+                <AlertDescription className="text-[10px] text-red-800">
+                  <strong>Legal Disclaimer:</strong> FreelanceFlow provides tools but is not a law firm. This is educational information only. 
+                  Consult a licensed attorney in your jurisdiction for legal advice.
                 </AlertDescription>
               </Alert>
             </TabsContent>

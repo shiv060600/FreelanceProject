@@ -5,22 +5,24 @@ import { createClient } from '../../../../supabase/server';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
 
- // CORS headers
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Max-Age': '86400',
-    };
 
-    // Handle preflight requests
-    export async function OPTIONS(request: NextRequest) {
-        return NextResponse.json({}, { headers: corsHeaders });
-    }
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+};
+
+
+// Handle preflight requests -required by next.js
+export async function OPTIONS(request: NextRequest) {
+    return NextResponse.json({}, { headers: corsHeaders });
+}
 
 
 export async function POST(request: NextRequest){
-    // Check OpenAI API key configuration
+
+    
     if(!OPENAI_API_KEY){
         console.error('OpenAI API key not found in environment variables');
         return NextResponse.json(
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest){
         const body = await request.json();
         const { title, contractType, clientName, prompt, clientCompany } = body;
 
-        // Validate required fields
+        // field validation
         if (!title || !contractType || !clientName || !prompt) {
             console.error('Missing required fields:', { title, contractType, clientName, prompt: !!prompt });
             return NextResponse.json(

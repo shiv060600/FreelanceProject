@@ -16,7 +16,7 @@ export default async function Contracts() {
     return (
         <>
             <DashboardNavbar />
-            <div className="container mx-auto mt-5">
+            <div className="pt-10 ml-10 mr-10">
                 <ContractsPage />
             </div>
         </>

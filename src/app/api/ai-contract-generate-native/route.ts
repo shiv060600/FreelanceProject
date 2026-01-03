@@ -20,7 +20,7 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest){
-    // Check OpenAI API key configuration
+
     if(!OPENAI_API_KEY){
         console.error('OpenAI API key not found in environment variables');
         return NextResponse.json(
@@ -29,7 +29,6 @@ export async function POST(request: NextRequest){
         )
     }
 
-    // Check if API key is configured for mobile access
     if(!AI_CONTRACT_API_KEY){
         console.error('AI_CONTRACT_API_KEY not found in environment variables');
         return NextResponse.json(
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest){
     // Get API key from request headers
     const verifyKey = request.headers.get('expo-api-key');
 
-    // Validate API key is provided
+
     if(!verifyKey || verifyKey.trim() === ''){
         return NextResponse.json(
             {message:'API key is required. Please provide expo-api-key header.'},
@@ -49,7 +48,6 @@ export async function POST(request: NextRequest){
         )
     }
 
-    // Validate API key matches
     if(verifyKey !== AI_CONTRACT_API_KEY){
         return NextResponse.json(
             {message:'Invalid API key. Access denied.'},
@@ -61,7 +59,6 @@ export async function POST(request: NextRequest){
         const body = await request.json();
         const { title, contractType, clientName, prompt, clientCompany } = body;
 
-        // Validate required fields
         if (!title || !contractType || !clientName || !prompt) {
             console.error('Missing required fields:', { title, contractType, clientName, prompt: !!prompt });
             return NextResponse.json(
