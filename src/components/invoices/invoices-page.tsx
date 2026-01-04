@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw } from "lucide-react"
+import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw, Eye} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
@@ -9,6 +9,7 @@ import { SearchInput } from "@/components/ui/search-input"
 import { SortHeader } from "@/components/ui/sort-header"
 import CreateInvoiceDialog from "./create-invoice-dialog"
 import EditInvoiceDialog from "./edit-invoice-dialog"
+import InvoicePreview from "./invoice-preview"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import InvoicePDF from './invoice-pdf'
 import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
@@ -31,6 +32,7 @@ export default function InvoicesPage() {
   const queryClient = useQueryClient()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState("")
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: SortDirection }>({
     key: 'created_at',
@@ -56,7 +58,9 @@ export default function InvoicesPage() {
   const userInfoForPdf = { 
       name: userInfo.name || 'not set',
       email: userInfo.email || 'not set',
-      address: userInfo.address || 'not set'
+      address: userInfo.address || 'not set',
+      venmo_username: userInfo.venmo_username,
+      cashapp_username: userInfo.cashapp_username
     };
   const { data: subscription } = useUserSubscription(user?.id || '');
   const { data: invoiceCount } = useInvoiceCount(user?.id || '');
@@ -129,8 +133,20 @@ export default function InvoicesPage() {
     try {
       const { pdf } = await import('@react-pdf/renderer')
       
-      // Create the PDF document component with userInfo already loaded
-      const invoicePdf = <InvoicePDF invoice={invoice} userInfo={userInfoForPdf} />
+      // Create the PDF document component with userInfo and client data
+      const invoicePdf = (
+        <InvoicePDF 
+          invoice={invoice} 
+          userInfo={userInfoForPdf}
+          clientData={invoice.clients ? {
+            name: invoice.clients.name || 'N/A',
+            email: invoice.clients.email || 'N/A',
+            phone: invoice.clients.phone || 'N/A',
+            company: invoice.clients.company || 'N/A',
+            address: invoice.clients.address || 'N/A'
+          } : undefined}
+        />
+      )
       
       // Generate blob from PDF component
       const invoicePdfBlob = await pdf(invoicePdf).toBlob()
@@ -420,14 +436,26 @@ export default function InvoicesPage() {
                           </Button>
                         </EditInvoiceDialog>
                         <PDFDownloadLink
-                          document={<InvoicePDF invoice={invoice} userInfo={userInfoForPdf} />}
+                          document={
+                            <InvoicePDF 
+                              invoice={invoice} 
+                              userInfo={userInfoForPdf}
+                              clientData={invoice.clients ? {
+                                name: invoice.clients.name || 'N/A',
+                                email: invoice.clients.email || 'N/A',
+                                phone: invoice.clients.phone || 'N/A',
+                                company: invoice.clients.company || 'N/A',
+                                address: invoice.clients.address || 'N/A'
+                              } : undefined}
+                            />
+                          }
                           fileName={`invoice-${invoice.invoice_number || 'unknown'}.pdf`}
                         >
                           {({ loading }) => (
                             <Button
                               variant="ghost"
                               size="icon"
-                              disabled={loading || userInfoLoading || !invoice?.id}
+                              disabled={loading || userInfoLoading || !invoice?.id || !invoice.clients}
                               className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
                             >
                               <Download className="h-4 w-4" />
@@ -438,10 +466,22 @@ export default function InvoicesPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleSendInvoice(invoice)}
-                          disabled={userInfoLoading || !invoice?.id}
+                          disabled={userInfoLoading || !invoice?.id || !invoice.clients}
                           className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
                         >
                           <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={()=>{
+                            setSelectedInvoice(invoice);
+                            setInvoicePreviewOpen(!invoicePreviewOpen);
+                          }}
+                          disabled={userInfoLoading || !invoice?.id || !invoice.clients}
+                          className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                        >
+                          <Eye className="h-4 w-4"/>
                         </Button>
                         <Button
                           variant="ghost"
@@ -467,6 +507,13 @@ export default function InvoicesPage() {
         invoice={selectedInvoice}
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}/>
+      
+      <InvoicePreview
+        invoice = {selectedInvoice}
+        open = {invoicePreviewOpen}
+        setOpen= {setInvoicePreviewOpen}
+        userInfoForPdf= {userInfoForPdf}
+      />
     </div>
   )
 } 

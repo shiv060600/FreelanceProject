@@ -173,6 +173,8 @@ interface InvoicePDFProps {
     name: string
     email: string
     address: string
+    venmo_username?: string
+    cashapp_username?: string
   }
   clientData?: Client
   cashAppQR?: string
@@ -236,26 +238,36 @@ const InvoicePDF = ({ invoice, userInfo, clientData, cashAppQR, venmoQR }: Invoi
             <Text style={styles.invoiceNumber}>#{safeInvoice.invoice_number}</Text>
           </View>
           <View style={styles.headerRight}>
-            <View style={styles.qrContainer}>
-              {cashAppQR ? (
-                <>
-                  <Image src={cashAppQR} style={styles.qrCode} />
-                  <Text style={styles.qrLabel}>Cash App</Text>
-                </>
-              ) : (
-                <Text style={styles.qrLabel}>No Cash App</Text>
-              )}
-            </View>
-            <View style={styles.qrContainer}>
-              {venmoQR ? (
-                <>
-                  <Image src={venmoQR} style={styles.qrCode} />
-                  <Text style={styles.qrLabel}>Venmo</Text>
-                </>
-              ) : (
-                <Text style={styles.qrLabel}>No Venmo</Text>
-              )}
-            </View>
+            {userInfo.cashapp_username && (
+              <View style={styles.qrContainer}>
+                {cashAppQR ? (
+                  <>
+                    <Image src={cashAppQR} style={styles.qrCode} />
+                    <Text style={styles.qrLabel}>Cash App</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.qrLabel}>Cash App:</Text>
+                    <Text style={styles.paymentLink}>${userInfo.cashapp_username}</Text>
+                  </>
+                )}
+              </View>
+            )}
+            {userInfo.venmo_username && (
+              <View style={styles.qrContainer}>
+                {venmoQR ? (
+                  <>
+                    <Image src={venmoQR} style={styles.qrCode} />
+                    <Text style={styles.qrLabel}>Venmo</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.qrLabel}>Venmo:</Text>
+                    <Text style={styles.paymentLink}>@{userInfo.venmo_username}</Text>
+                  </>
+                )}
+              </View>
+            )}
           </View>
         </View>
 
