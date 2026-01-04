@@ -1,5 +1,6 @@
 'use client'
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +45,7 @@ export default function ContractsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
   const [currentSearch, setCurrentSearch] = useState("")
+  const debouncedCurrentSearch = useDebounce(currentSearch, 300)
   const [contractsInfoOpen, setContractsInfoOpen] = useState(false);
   const [contractPreviewOpen, setContractPreviewOpen] = useState(false);
   
@@ -59,10 +61,10 @@ export default function ContractsPage() {
   const filteredContracts = useMemo(()=>{
     if (!contracts) return [];
     return contracts.filter((contract)=> {
-      return (contract?.clients?.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
-              contract?.title.toLowerCase().includes(currentSearch.toLowerCase()))
+      return (contract?.clients?.name.toLowerCase().includes(debouncedCurrentSearch.toLowerCase()) ||
+              contract?.title.toLowerCase().includes(debouncedCurrentSearch.toLowerCase()))
     })
-  },[contracts,currentSearch]);
+  },[contracts,debouncedCurrentSearch]);
 
   const handleDeleteContract = (contract: any) => {
     setSelectedContract(contract)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from "react"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Client } from "@/types/client"
 import {
   Table,
@@ -33,6 +34,7 @@ type SortDirection = 'asc' | 'desc' | null
 
 export default function ClientList({ clients }: ClientListProps) {
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: SortDirection }>({
     key: 'created_at',
     direction: 'desc'
@@ -54,11 +56,11 @@ export default function ClientList({ clients }: ClientListProps) {
     let result = [...clients]
 
     // Filter by search term
-    if (searchTerm) {
+    if (debouncedSearchTerm) {
       result = result.filter(client =>
-        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.email && client.email.toLowerCase().includes(searchTerm.toLowerCase()))
+        client.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (client.company && client.company.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        (client.email && client.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
       )
     }
 
@@ -84,7 +86,7 @@ export default function ClientList({ clients }: ClientListProps) {
     }
 
     return result
-  }, [clients, searchTerm, sortConfig])
+  }, [clients, debouncedSearchTerm, sortConfig])
   return (
     <div className="space-y-4">
       {/* Search Bar */}

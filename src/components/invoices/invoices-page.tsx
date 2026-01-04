@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from "react"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
 import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw, Eye} from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -34,6 +35,7 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: SortDirection }>({
     key: 'created_at',
     direction: 'desc'
@@ -77,8 +79,8 @@ export default function InvoicesPage() {
     
     let result = [...invoices]
 
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase()
       result = result.filter(invoice =>
         invoice.invoice_number.toLowerCase().includes(searchLower) ||
         (invoice.invoice_name && 
@@ -120,9 +122,10 @@ export default function InvoicesPage() {
         return 0
       })
     }
+    
 
     return result
-  }, [invoices, searchTerm, sortConfig])
+  }, [invoices, debouncedSearchTerm, sortConfig])
   
   const handleSendInvoice = async (invoice: any) => {
     if (!user) {
@@ -317,7 +320,7 @@ export default function InvoicesPage() {
       <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
         <div className="flex items-center gap-4 flex-1">
           <SearchInput
-            placeholder="Search by invoice #, invoice name, or client..."
+            placeholder="Search by name,#,client..."
             value={searchTerm}
             onChange={setSearchTerm}
             className="max-w-md bg-white shadow-sm"
