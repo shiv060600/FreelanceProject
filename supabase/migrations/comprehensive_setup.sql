@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.time_logs (
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Invoices table
+-- Invoices table (simplified - invoice items moved directly to invoices table)
 CREATE TABLE IF NOT EXISTS public.invoices (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id text REFERENCES public.users(user_id),
@@ -132,19 +132,13 @@ CREATE TABLE IF NOT EXISTS public.invoices (
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Invoice items table
-CREATE TABLE IF NOT EXISTS public.invoice_items (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    invoice_id uuid REFERENCES public.invoices(id) ON DELETE CASCADE,
-    time_log_id uuid REFERENCES public.time_logs(id),
-    description text NOT NULL,
-    quantity decimal(10,2) DEFAULT 1,
-    unit_price decimal(10,2) DEFAULT 0,
-    total decimal(10,2) DEFAULT 0,
-    invoice_name text,
-    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
-);
+-- Add invoice item fields directly to invoices table
+-- This eliminates the need for a separate invoice_items table and join operations
+ALTER TABLE public.invoices
+ADD COLUMN IF NOT EXISTS description text,
+ADD COLUMN IF NOT EXISTS quantity numeric DEFAULT 1,
+ADD COLUMN IF NOT EXISTS unit_price numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS invoice_name text;
 
 -- Contracts table
 CREATE TABLE IF NOT EXISTS public.contracts (
@@ -181,8 +175,6 @@ CREATE INDEX IF NOT EXISTS time_logs_user_id_idx ON public.time_logs(user_id);
 CREATE INDEX IF NOT EXISTS time_logs_client_id_idx ON public.time_logs(client_id);
 CREATE INDEX IF NOT EXISTS invoices_user_id_idx ON public.invoices(user_id);
 CREATE INDEX IF NOT EXISTS invoices_client_id_idx ON public.invoices(client_id);
-CREATE INDEX IF NOT EXISTS invoice_items_invoice_id_idx ON public.invoice_items(invoice_id);
-CREATE INDEX IF NOT EXISTS invoice_items_time_log_id_idx ON public.invoice_items(time_log_id);
 CREATE INDEX IF NOT EXISTS contracts_user_id_idx ON public.contracts(user_id);
 CREATE INDEX IF NOT EXISTS contracts_client_id_idx ON public.contracts(client_id);
 CREATE INDEX IF NOT EXISTS user_usage_user_id_idx ON public.user_usage(user_id);
@@ -223,7 +215,6 @@ ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.time_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_usage ENABLE ROW LEVEL SECURITY;
 
@@ -650,17 +641,6 @@ DROP POLICY IF EXISTS "Users can manage their own invoices" ON public.invoices;
 CREATE POLICY "Users can manage their own invoices" ON public.invoices
     FOR ALL USING ((SELECT auth.uid())::text = user_id);
 
--- Invoice items policies
-DROP POLICY IF EXISTS "Users can manage their own invoice items" ON public.invoice_items;
-CREATE POLICY "Users can manage their own invoice items" ON public.invoice_items
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.invoices
-            WHERE invoices.id = invoice_items.invoice_id
-            AND invoices.user_id = (SELECT auth.uid())::text
-        )
-    );
-
 -- Contracts policies
 DROP POLICY IF EXISTS "Users can manage their own contracts" ON public.contracts;
 CREATE POLICY "Users can manage their own contracts" ON public.contracts
@@ -749,8 +729,7 @@ END $$;
 -- Add comprehensive comments
 COMMENT ON TABLE public.users IS 'User accounts with subscription and billing information';
 COMMENT ON TABLE public.clients IS 'Client information for each user with lifetime stats';
-COMMENT ON TABLE public.invoices IS 'Invoice records with status tracking';
-COMMENT ON TABLE public.invoice_items IS 'Line items for invoices';
+COMMENT ON TABLE public.invoices IS 'Invoice records with status tracking and line item details (simplified - no separate invoice_items table)';
 
 COMMENT ON COLUMN public.users.lifetime_earnings IS 'Total money earned from invoices that were marked as paid. This value should NEVER decrease when paid invoices are deleted, only when payment status is changed from paid to unpaid.';
 COMMENT ON COLUMN public.users.total_paid_invoices IS 'Current count of invoices with paid status. This can decrease if paid invoices are deleted.';

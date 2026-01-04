@@ -188,6 +188,14 @@ const safeString = (value: any): string => {
   return String(value);
 }
 
+const safeNumber = (value: any): number => {
+  if (value === null || value === undefined || value === '') {
+    return 0;
+  }
+  const parsed = Number(value);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 const formatCurrency = (value: any): string => {
   const num = parseFloat(value) || 0;
   return num.toFixed(2);
@@ -214,7 +222,10 @@ const InvoicePDF = ({ invoice, userInfo, clientData, cashAppQR, venmoQR }: Invoi
     tax_amount: invoice?.tax_amount || 0,
     subtotal: invoice?.subtotal || 0,
     notes: safeString(invoice?.notes) || '',
-    invoice_items: Array.isArray(invoice?.invoice_items) ? invoice.invoice_items : [],
+    description: safeString(invoice?.description),
+    quantity: safeNumber(invoice?.quantity),
+    unit_price: safeNumber(invoice?.unit_price),
+    invoice_name: safeString(invoice?.invoice_name),
     clients: invoice?.clients || {},
     status: safeString(invoice?.status) || 'draft'
   };
@@ -226,7 +237,7 @@ const InvoicePDF = ({ invoice, userInfo, clientData, cashAppQR, venmoQR }: Invoi
   };
 
   const clientName = safeString(safeInvoice.clients?.name) || 'Client Name';
-  const invoiceName = safeString(safeInvoice.invoice_items?.[0]?.invoice_name) || 'Service';
+  const invoiceName = safeString(safeInvoice.invoice_name) || 'Service';
 
   return (
     <Document>
@@ -311,23 +322,12 @@ const InvoicePDF = ({ invoice, userInfo, clientData, cashAppQR, venmoQR }: Invoi
             <Text style={styles.tableCellHeader}>Amount</Text>
           </View>
           
-          {safeInvoice.invoice_items.length > 0 ? (
-            safeInvoice.invoice_items.map((item: any, index: number) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{safeString(item.description || item.invoice_name) || 'Service'}</Text>
-                <Text style={styles.tableCell}>{formatCurrency(item.quantity || 1)}</Text>
-                <Text style={styles.tableCell}>${formatCurrency(item.unit_price || 0)}</Text>
-                <Text style={styles.tableCell}>${formatCurrency(item.total || 0)}</Text>
-              </View>
-            ))
-          ) : (
-            <View style={styles.tableRow}>
-              <Text style={styles.tableCell}>{invoiceName}</Text>
-              <Text style={styles.tableCell}>1.00</Text>
-              <Text style={styles.tableCell}>${formatCurrency(safeInvoice.total)}</Text>
-              <Text style={styles.tableCell}>${formatCurrency(safeInvoice.total)}</Text>
-            </View>
-          )}
+          <View style={styles.tableRow}>
+            <Text style={styles.tableCell}>{safeString(safeInvoice.description || safeInvoice.invoice_name) || 'Service'}</Text>
+            <Text style={styles.tableCell}>{formatCurrency(safeInvoice.quantity || 1)}</Text>
+            <Text style={styles.tableCell}>${formatCurrency(safeInvoice.unit_price || safeInvoice.subtotal || 0)}</Text>
+            <Text style={styles.tableCell}>${formatCurrency(safeInvoice.subtotal || 0)}</Text>
+          </View>
         </View>
 
         {/* Totals */}

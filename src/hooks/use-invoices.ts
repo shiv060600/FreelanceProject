@@ -19,21 +19,15 @@ interface Invoice {
     notes?: string;
     created_at: string;
     updated_at: string;
+    description?: string;
+    quantity?: number;
+    unit_price?: number;
+    invoice_name?: string;
     //added from db query
     clients?: {
       id: string;
       name: string;
-    } | null; 
-    //same
-    invoice_items?: Array<{
-      id: string;
-      invoice_id: string;
-      description: string;
-      quantity: number;
-      unit_price: number;
-      total: number;
-      invoice_name?: string;
-    }>;
+    } | null;
   }
   
 
@@ -49,19 +43,16 @@ interface CreateInvoiceData {
     tax_amount: number;
     total: number;
     notes?: string;
+    // New fields
+    description?: string;
+    quantity?: number;
+    unit_price?: number;
+    invoice_name?: string;
   }
   
   interface UpdateInvoiceData extends Partial<CreateInvoiceData> {
     id: string, //Require invoiceId
     user_id: string; //Require user_id
-    // Invoice items fields (for updating the first invoice item)
-    invoice_name?: string;
-    quantity?: number;
-    unit_price?: number;
-    description?: string;
-    invoice_items_subtotal?: number;
-    invoice_items_invoice_name?: string;
-  
 }
 
 export function useInvoices (userId:string){
@@ -73,7 +64,7 @@ export function useInvoices (userId:string){
             }
             const { data:invoicesData, error:invoiceError} = await supabase
             .from('invoices')
-            .select('id, user_id, invoice_number, client_id, issue_date, due_date, subtotal, tax_rate, tax_amount, total, notes, status, created_at, updated_at')
+            .select('id, user_id, invoice_number, client_id, issue_date, due_date, subtotal, tax_rate, tax_amount, total, notes, status, created_at, updated_at, description, quantity, unit_price, invoice_name')
             .eq('user_id',userId)
             .order('created_at',{ascending:false});
 
@@ -85,41 +76,23 @@ export function useInvoices (userId:string){
             }
 
             const clientIds = Array.from(new Set(invoicesData.map(item => item.client_id).filter(Boolean)))
-            const invoiceIds = invoicesData.map(item => item.id)
 
-            const [clientsResponse, itemsResponse] = await Promise.all([
-                clientIds.length > 0 ? supabase
-                .from('clients')
-                .select('id,name,email,phone')
-                .in('id',clientIds) : Promise.resolve({ data: [], error: null }),
-                supabase
-                    .from('invoice_items')
-                    .select('invoice_id,id,invoice_name,description,quantity,unit_price,total')
-                    .in('invoice_id',invoiceIds)
-            ]);
+            const clientsResponse = clientIds.length > 0 
+                ? await supabase
+                    .from('clients')
+                    .select('id,name,email,phone')
+                    .in('id',clientIds)
+                : { data: [], error: null };
 
             if (clientsResponse.error) {
                 console.error('Error fetching clients:', clientsResponse.error)
               }
-              
-            if (itemsResponse.error) {
-                console.error('Error fetching invoice items:', itemsResponse.error)
-              }
 
             const clientsMap = new Map(clientsResponse.data?.map(client => [client.id,client]) || [])
-            const itemsMap = new Map()
-
-            itemsResponse.data?.forEach(item => {
-                if(!itemsMap.has(item.invoice_id)){
-                    itemsMap.set(item.invoice_id,[])
-                };
-                itemsMap.get(item.invoice_id).push(item)
-            });
 
             const enrichedInvoices: Invoice[] = invoicesData.map(invoice => ({
                 ...invoice,
                 clients: clientsMap.get(invoice.client_id) || null,
-                invoice_items: itemsMap.get(invoice.id) || []
               }));
 
             return enrichedInvoices;
@@ -235,7 +208,7 @@ export function useUpdateInvoice() {
   
   return useMutation({
     mutationFn: async ({ id, user_id, ...updates }: UpdateInvoiceData) => {
-      // Separate invoice updates from invoice_items updates
+      // All updates go directly to invoices table
       const invoiceUpdates = {
         due_date: updates.due_date,
         status: updates.status,
@@ -244,24 +217,16 @@ export function useUpdateInvoice() {
         tax_amount: updates.tax_amount,
         total: updates.total,
         notes: updates.notes,
-        updated_at: new Date().toISOString()
-      };
-
-      const invoiceItemsUpdates = {
-        description: updates.invoice_name || updates.description,
+        description: updates.description,
         quantity: updates.quantity,
         unit_price: updates.unit_price,
-        total: updates.invoice_items_subtotal || updates.subtotal,
-        invoice_name: updates.invoice_items_invoice_name || updates.invoice_name,
+        invoice_name: updates.invoice_name,
+        updated_at: new Date().toISOString()
       };
 
       // Remove undefined values from updates
       const cleanInvoiceUpdates = Object.fromEntries(
         Object.entries(invoiceUpdates).filter(([_, value]) => value !== undefined)
-      );
-
-      const cleanInvoiceItemsUpdates = Object.fromEntries(
-        Object.entries(invoiceItemsUpdates).filter(([_, value]) => value !== undefined)
       );
 
       // Update invoice table
@@ -274,16 +239,6 @@ export function useUpdateInvoice() {
         .single()
       
       if (invoiceError) throw invoiceError
-
-      // Update invoice items
-      if (Object.keys(cleanInvoiceItemsUpdates).length > 0) {
-        const { error: itemsError } = await supabase
-          .from('invoice_items')
-          .update(cleanInvoiceItemsUpdates)
-          .eq('invoice_id', id)
-
-        if (itemsError) throw itemsError
-      }
 
       return updatedInvoice
     },
@@ -299,15 +254,7 @@ export function useDeleteInvoice() {
   
   return useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
-      // delete all invoice items for this invoice
-      const { error: itemsError } = await supabase
-        .from('invoice_items')
-        .delete()
-        .eq('invoice_id', id)
-
-      if (itemsError) throw itemsError
-
-      // Delete the invoice
+      // Delete the invoice (no need to delete invoice_items anymore)
       const { data: deletedInvoice, error: invoiceError } = await supabase
         .from('invoices')
         .delete()

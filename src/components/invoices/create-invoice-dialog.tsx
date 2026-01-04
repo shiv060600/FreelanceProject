@@ -78,7 +78,11 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
       tax_amount: r2(finalTaxAmount),
       total: r2(finalTotal),
       notes: (formData.get('notes') as string) || null,
-          client_id: formData.get('client_id') as string
+          client_id: formData.get('client_id') as string,
+          description: formData.get('invoice_name') as string,
+          quantity: finalQuantity,
+          unit_price: r2(finalUnitPrice),
+          invoice_name: formData.get('invoice_name') as string
         })
         .select()
         .single()
@@ -86,25 +90,6 @@ export default function CreateInvoiceDialog({ children, onSuccess }: CreateInvoi
       if (error) {
         console.error('Error creating invoice:', error)
         return
-      }
-
-      // Create initial invoice item with the pricing details
-      if (newInvoice) {
-        const { error: itemError } = await supabase
-          .from('invoice_items')
-          .insert({
-            invoice_id: newInvoice.id,
-            description: formData.get('invoice_name') as string,
-            quantity: finalQuantity,
-            unit_price: r2(finalUnitPrice),
-            total: r2(finalSubtotal),
-            invoice_name: formData.get('invoice_name') as string
-          })
-
-        if (itemError) {
-          console.error('Error creating invoice item:', itemError)
-          return
-        }
       }
 
       // Update invoice count

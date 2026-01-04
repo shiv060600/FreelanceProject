@@ -81,8 +81,8 @@ export default function InvoicesPage() {
       const searchLower = searchTerm.toLowerCase()
       result = result.filter(invoice =>
         invoice.invoice_number.toLowerCase().includes(searchLower) ||
-        (invoice.invoice_items?.[0]?.invoice_name && 
-         invoice.invoice_items[0].invoice_name.toLowerCase().includes(searchLower)) ||
+        (invoice.invoice_name && 
+         invoice.invoice_name.toLowerCase().includes(searchLower)) ||
         (invoice.clients?.name && 
          invoice.clients.name.toLowerCase().includes(searchLower))
       )
@@ -155,7 +155,7 @@ export default function InvoicesPage() {
       const blobUrl = URL.createObjectURL(invoicePdfBlob)
       
       // Create mailto link with the blob URL in the body
-      const subject = encodeURIComponent(`Invoice ${invoice.invoice_number} - ${invoice.invoice_items?.[0]?.invoice_name || 'Invoice'}`)
+      const subject = encodeURIComponent(`Invoice ${invoice.invoice_number} - ${invoice.invoice_name || 'Invoice'}`)
       const body = encodeURIComponent(`Please review the invoice by clicking this link:\n\n${blobUrl}\n\nBest regards`)
       const to = invoice.clients?.email || ''
       const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`
@@ -400,7 +400,7 @@ export default function InvoicesPage() {
                         {invoice.invoice_number}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-gray-700">{invoice.invoice_items?.[0]?.invoice_name || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-700">{invoice.invoice_name || 'N/A'}</td>
                     <td className="py-4 px-6 text-gray-700 font-medium">{invoice.clients?.name || 'N/A'}</td>
                     <td className="py-4 px-6 text-gray-600">{new Date(invoice.issue_date).toLocaleDateString()}</td>
                     <td className="py-4 px-6 text-gray-600">{new Date(invoice.due_date).toLocaleDateString()}</td>

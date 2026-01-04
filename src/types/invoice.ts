@@ -1,13 +1,3 @@
-export interface InvoiceItem {
-  id: string
-  invoice_id: string
-  description: string
-  quantity: number
-  unit_price: number
-  total: number
-  invoice_name?: string
-}
-
 export interface Client {
   id: string
   name: string
@@ -30,7 +20,11 @@ export interface Invoice {
   updated_at: string
   // Related data from database queries
   clients?: Client | null
-  invoice_items?: InvoiceItem[]
+  // Moved from invoice_items table to invoices table
+  description?: string
+  quantity?: number
+  unit_price?: number
+  invoice_name?: string
 }
 
 export interface CreateInvoiceData {

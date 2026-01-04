@@ -40,10 +40,9 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
 
   // get initial formdata
   useEffect(() => {
-    if (invoice && invoice.invoice_items?.[0]) {
-      const item = invoice.invoice_items[0]
-      setQuantity(item.quantity || 1)
-      setUnitPrice(item.unit_price ? item.unit_price.toString() : '')
+    if (invoice) {
+      setQuantity(invoice.quantity || 1)
+      setUnitPrice(invoice.unit_price ? invoice.unit_price.toString() : '')
       setTaxRate(invoice.tax_rate || 0)
     }
   }, [invoice,open])
@@ -65,7 +64,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
         return
       }
 
-      // Update Invoices and Invoice Items
+      // Update Invoice
       await updateInvoice.mutateAsync({
         id: invoice.id,
         user_id: user.id,
@@ -77,10 +76,9 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
         subtotal: subtotal,
         notes: formData.get('notes') as string,
         invoice_name: formData.get('invoice_name') as string,
+        description: formData.get('invoice_name') as string,
         quantity: quantity,
-        unit_price: parseFloat(unitPrice),
-        invoice_items_subtotal: subtotal,
-        invoice_items_invoice_name: formData.get('invoice_name') as string
+        unit_price: parseFloat(unitPrice)
       })
 
       setOpen(false)
@@ -112,7 +110,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
             <Input
               id="invoice_name"
               name="invoice_name"
-              defaultValue={invoice.invoice_items?.[0]?.invoice_name}
+              defaultValue={invoice.invoice_name}
               placeholder="e.g., Website Development, Gardening Services"
             />
           </div>
