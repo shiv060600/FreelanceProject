@@ -156,10 +156,10 @@ export default function ContractsPage() {
     )
   }
   return (
-    <div className="relative flex gap-0 ml-4 mr-4">
-      {/* Main Content - 70% when panel open, 100% when closed */}
-      <div className={`transition-all duration-300 ease-in-out ${
-        contractsInfoOpen ? 'w-[70%] pr-4' : 'w-full'
+    <div className="relative flex gap-0">
+      {/* Main Content - 75% when panel open, 100% when closed */}
+      <div className={`transition-all duration-500 ease-in-out ${
+        contractsInfoOpen ? 'w-[75%] pr-5 pl-4' : 'w-full pl-10'
       }`}>
         <div className="space-y-6">
           <div className='flex justify-between items-center pb-2'>

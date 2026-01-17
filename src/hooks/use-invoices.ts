@@ -64,7 +64,7 @@ export function useInvoices (userId:string){
             }
             const { data:invoicesData, error:invoiceError} = await supabase
             .from('invoices')
-            .select('id, user_id, invoice_number, client_id, issue_date, due_date, subtotal, tax_rate, tax_amount, total, notes, status, created_at, updated_at, description, quantity, unit_price, invoice_name')
+            .select('*')
             .eq('user_id',userId)
             .order('created_at',{ascending:false});
 

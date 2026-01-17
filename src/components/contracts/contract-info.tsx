@@ -80,21 +80,24 @@ Payment: Some money upfront, rest later.
 
 Timeline: Sometime soon.`;
 
-  if (!open) return null;
-
   return (
-    <div className="w-[30%] bg-blue-200 border-l border-gray-200  flex flex-col h-screen sticky top-0 rounded-xl">
+    <div className={`w-[25%] flex flex-col h-screen sticky top-0 transition-all duration-500 ease-in-out ${
+      open 
+        ? 'opacity-100 translate-x-0' 
+        : 'opacity-0 translate-x-full pointer-events-none'
+    }`}>
+      <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 backdrop-blur-sm border-l border-gray-200/60 shadow-lg flex flex-col h-full rounded-l-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b //bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200/60 bg-white/40 backdrop-blur-sm">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Contract Guide</h2>
-          <p className="text-xs text-muted-foreground">Legal information & best practices</p>
+          <h2 className="text-xl font-bold text-gray-900">Contract Guide</h2>
+          <p className="text-sm text-muted-foreground">Legal information & best practices</p>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setOpen(false)}
-          className="h-8 w-8 hover:bg-gray-100"
+          className="h-8 w-8 hover:bg-gray-100/80 transition-colors"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -104,30 +107,30 @@ Timeline: Sometime soon.`;
       <ScrollArea className="flex-1">
         <div className="p-4">
           <Tabs defaultValue="basics" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-16 mb-4">
-              <TabsTrigger value="basics" className="text-[10px] leading-tight">Basics</TabsTrigger>
-              <TabsTrigger value="binding" className="text-[10px] leading-tight">Binding vs Non-Binding</TabsTrigger>
-              <TabsTrigger value="elements" className="text-[10px] leading-tight">Elements</TabsTrigger>
-              <TabsTrigger value="examples" className="text-[10px] leading-tight">Examples</TabsTrigger>
-              <TabsTrigger value="country" className="text-[10px] leading-tight">Country</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-auto mb-4 bg-white/60 backdrop-blur-sm border border-gray-200/50 gap-1 p-1">
+              <TabsTrigger value="basics" className="text-xs py-2 px-3">Basics</TabsTrigger>
+              <TabsTrigger value="binding" className="text-xs py-2 px-3">Legality</TabsTrigger>
+              <TabsTrigger value="elements" className="text-xs py-2 px-3">Elements</TabsTrigger>
+              <TabsTrigger value="examples" className="text-xs py-2 px-3">Examples</TabsTrigger>
+              <TabsTrigger value="country" className="text-xs py-2 px-3">Country</TabsTrigger>
             </TabsList>
 
             {/* Legal Basics Tab */}
             <TabsContent value="basics" className="space-y-3">
               <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Scale className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Scale className="h-5 w-5 text-blue-600" />
                     Legally Binding Requirements
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-0">
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-xs text-green-700 flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
+                    <h3 className="font-semibold text-sm text-green-700 flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" />
                       Essential Requirements
                     </h3>
-                    <ul className="space-y-1.5 text-xs">
+                    <ul className="space-y-1.5 text-sm">
                       <li className="flex items-start gap-1.5">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>
                         <span><strong>Offer:</strong> Specific terms proposed</span>
@@ -151,11 +154,11 @@ Timeline: Sometime soon.`;
                     </ul>
                   </div>
                   <div className="space-y-2 pt-2 border-t border-gray-200">
-                    <h3 className="font-semibold text-xs text-red-700 flex items-center gap-1">
-                      <XCircle className="h-3 w-3" />
+                    <h3 className="font-semibold text-sm text-red-700 flex items-center gap-1">
+                      <XCircle className="h-4 w-4" />
                       Invalidates Contracts
                     </h3>
-                    <ul className="space-y-1.5 text-xs">
+                    <ul className="space-y-1.5 text-sm">
                       <li className="flex items-start gap-1.5">
                         <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></div>
                         <span>Fraud or misrepresentation</span>
@@ -173,9 +176,9 @@ Timeline: Sometime soon.`;
                 </CardContent>
               </Card>
 
-              <Alert className="text-xs">
-                <AlertTriangle className="h-3 w-3" />
-                <AlertDescription className="text-xs">
+              <Alert className="text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
                   <strong>Disclaimer:</strong> Educational purposes only. Consult an attorney for legal advice.
                 </AlertDescription>
               </Alert>
@@ -183,27 +186,27 @@ Timeline: Sometime soon.`;
 
             {/* Binding vs Non-Binding Tab */}
             <TabsContent value="binding" className="space-y-3">
-              <Alert className="text-xs bg-yellow-50 border-yellow-200">
-                <AlertTriangle className="h-3 w-3 text-yellow-600" />
-                <AlertDescription className="text-[10px] text-yellow-800">
+              <Alert className="text-sm bg-yellow-50 border-yellow-200">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-sm text-yellow-800">
                   <strong>Disclaimer:</strong> Educational info only, not legal advice. Consult an attorney for your situation.
                 </AlertDescription>
               </Alert>
 
               <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-xs text-green-700">
-                    <CheckCircle className="h-3 w-3" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-green-700">
+                    <CheckCircle className="h-4 w-4" />
                     Binding Contracts
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <p className="text-[10px] text-gray-700">
+                  <p className="text-sm text-gray-700">
                     Legally enforceable - parties can pursue legal action if terms aren't met.
                   </p>
                   <div>
-                    <h4 className="font-semibold text-[10px] text-green-700 mb-1">Required:</h4>
-                    <ul className="text-[10px] space-y-0.5">
+                    <h4 className="font-semibold text-xs text-green-700 mb-1">Required:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• Offer & Acceptance</li>
                       <li>• Consideration (value exchanged)</li>
                       <li>• Mutual Intent to be bound</li>
@@ -216,25 +219,25 @@ Timeline: Sometime soon.`;
 
               <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-xs text-blue-700">
-                    <FileText className="h-3 w-3" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-blue-700">
+                    <FileText className="h-4 w-4" />
                     Non-Binding Agreements
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <p className="text-[10px] text-gray-700">
+                  <p className="text-sm text-gray-700">
                     Preliminary discussions without legal obligations. Either party can walk away.
                   </p>
                   <div>
-                    <h4 className="font-semibold text-[10px] text-blue-700 mb-1">Characteristics:</h4>
-                    <ul className="text-[10px] space-y-0.5">
+                    <h4 className="font-semibold text-xs text-blue-700 mb-1">Characteristics:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• Missing binding elements</li>
                       <li>• Contains "non-binding" language</li>
                       <li>• Used for initial discussions</li>
                       <li>• No legal enforcement</li>
                     </ul>
                   </div>
-                  <div className="bg-white p-1.5 rounded border text-[9px]">
+                  <div className="bg-white p-2 rounded border text-xs">
                     <strong>Example:</strong> Letter of intent, MOU
                   </div>
                 </CardContent>
@@ -242,18 +245,18 @@ Timeline: Sometime soon.`;
 
               <Card className="border-purple-200">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-xs text-purple-700">
-                    <Users className="h-3 w-3" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-purple-700">
+                    <Users className="h-4 w-4" />
                     Verbal Contracts
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <p className="text-[10px] text-gray-700">
+                  <p className="text-sm text-gray-700">
                     Can be binding BUT very difficult to prove. Always get it in writing!
                   </p>
-                  <div className="bg-red-50 p-1.5 rounded border border-red-200">
-                    <h4 className="font-semibold text-[10px] text-red-700 mb-0.5">Why Written is Better:</h4>
-                    <ul className="text-[9px] space-y-0.5">
+                  <div className="bg-red-50 p-2 rounded border border-red-200">
+                    <h4 className="font-semibold text-xs text-red-700 mb-0.5">Why Written is Better:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• Hard to prove verbal terms</li>
                       <li>• Memories differ</li>
                       <li>• No documentation for disputes</li>
@@ -265,24 +268,24 @@ Timeline: Sometime soon.`;
 
               <Card className="border-orange-200">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-xs text-orange-700">
-                    <AlertTriangle className="h-3 w-3" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-orange-700">
+                    <AlertTriangle className="h-4 w-4" />
                     When Informal Becomes Binding
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <div className="bg-orange-50 p-1.5 rounded border">
-                    <h4 className="font-semibold text-[10px] text-orange-700 mb-0.5">Watch Out For:</h4>
-                    <ul className="text-[9px] space-y-0.5">
+                  <div className="bg-orange-50 p-2 rounded border">
+                    <h4 className="font-semibold text-xs text-orange-700 mb-0.5">Watch Out For:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• Acceptance language</li>
                       <li>• Specific deadlines</li>
                       <li>• "Good faith" terms</li>
                       <li>• Value already exchanged</li>
                     </ul>
                   </div>
-                  <div className="bg-blue-50 p-1.5 rounded border">
-                    <h4 className="font-semibold text-[10px] text-blue-700 mb-0.5">Keep It Non-Binding:</h4>
-                    <ul className="text-[9px] space-y-0.5">
+                  <div className="bg-blue-50 p-2 rounded border">
+                    <h4 className="font-semibold text-xs text-blue-700 mb-0.5">Keep It Non-Binding:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• Add "non-binding" language</li>
                       <li>• Note "subject to formal agreement"</li>
                       <li>• State "discussion purposes only"</li>
@@ -293,34 +296,34 @@ Timeline: Sometime soon.`;
 
               <Card className="border-indigo-200">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-xs text-indigo-700">
-                    <FileSignature className="h-3 w-3" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-indigo-700">
+                    <FileSignature className="h-4 w-4" />
                     Electronic Signatures
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <p className="text-[10px] text-gray-700">
+                  <p className="text-sm text-gray-700">
                     E-signatures are valid in many countries but check your jurisdiction.
                   </p>
-                  <div className="grid grid-cols-2 gap-1">
-                    <div className="bg-green-50 p-1.5 rounded border text-[9px]">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-green-50 p-2 rounded border text-xs">
                       <div className="font-semibold text-green-700 mb-0.5">✓ Usually OK:</div>
                       <div>Service contracts, NDAs, sales</div>
                     </div>
-                    <div className="bg-yellow-50 p-1.5 rounded border text-[9px]">
+                    <div className="bg-yellow-50 p-2 rounded border text-xs">
                       <div className="font-semibold text-yellow-700 mb-0.5">⚠️ May Need Physical:</div>
                       <div>Wills, court docs, some real estate</div>
                     </div>
                   </div>
-                  <p className="text-[9px] text-gray-600 bg-white p-1.5 rounded border">
+                  <p className="text-xs text-gray-600 bg-white p-2 rounded border">
                     Check "Country" tab for e-signature validity by region
                   </p>
                 </CardContent>
               </Card>
 
-              <Alert className="text-xs bg-red-50 border-red-200">
-                <AlertTriangle className="h-3 w-3 text-red-600" />
-                <AlertDescription className="text-[10px] text-red-800">
+              <Alert className="text-sm bg-red-50 border-red-200">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-sm text-red-800">
                   <strong>Legal Disclaimer:</strong> FreelanceFlow provides tools but is not a law firm. This is educational information only. 
                   Consult a licensed attorney in your jurisdiction for legal advice.
                 </AlertDescription>
@@ -333,13 +336,13 @@ Timeline: Sometime soon.`;
                 {legalElements.map((element, index) => (
                   <Card key={index} className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
                     <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-sm">
+                      <CardTitle className="flex items-center gap-2 text-base">
                         {element.icon}
                         {element.title}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <p className="text-xs text-muted-foreground">{element.description}</p>
+                      <p className="text-sm text-muted-foreground">{element.description}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -347,12 +350,12 @@ Timeline: Sometime soon.`;
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Additional Clauses</CardTitle>
+                  <CardTitle className="text-base">Additional Clauses</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
                   <div>
-                    <h4 className="font-semibold text-xs text-blue-700 mb-1">Recommended:</h4>
-                    <ul className="text-xs space-y-0.5">
+                    <h4 className="font-semibold text-sm text-blue-700 mb-1">Recommended:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• IP ownership</li>
                       <li>• Confidentiality</li>
                       <li>• Termination terms</li>
@@ -361,8 +364,8 @@ Timeline: Sometime soon.`;
                     </ul>
                   </div>
                   <div className="pt-2 border-t">
-                    <h4 className="font-semibold text-xs text-purple-700 mb-1">For Freelancers:</h4>
-                    <ul className="text-xs space-y-0.5">
+                    <h4 className="font-semibold text-sm text-purple-700 mb-1">For Freelancers:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>• Kill fees</li>
                       <li>• Revision limits</li>
                       <li>• Portfolio rights</li>
@@ -383,12 +386,12 @@ Timeline: Sometime soon.`;
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <pre className="text-[10px] bg-white p-2 rounded border overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
+                  <pre className="text-xs bg-white p-3 rounded border overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
                     {goodContractExample}
                   </pre>
                   <div className="mt-2">
-                    <h4 className="font-semibold text-xs text-green-700 mb-1">Why This Works:</h4>
-                    <ul className="text-[10px] space-y-0.5">
+                    <h4 className="font-semibold text-sm text-green-700 mb-1">Why This Works:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>✓ Clear parties</li>
                       <li>✓ Specific scope</li>
                       <li>✓ Payment terms</li>
@@ -406,12 +409,12 @@ Timeline: Sometime soon.`;
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <pre className="text-[10px] bg-white p-2 rounded border overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
+                  <pre className="text-xs bg-white p-3 rounded border overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
                     {badContractExample}
                   </pre>
                   <div className="mt-2">
-                    <h4 className="font-semibold text-xs text-red-700 mb-1">Problems:</h4>
-                    <ul className="text-[10px] space-y-0.5">
+                    <h4 className="font-semibold text-sm text-red-700 mb-1">Problems:</h4>
+                    <ul className="text-sm space-y-0.5">
                       <li>✗ Vague scope</li>
                       <li>✗ No payment amounts</li>
                       <li>✗ No timeline</li>
@@ -426,21 +429,21 @@ Timeline: Sometime soon.`;
             <TabsContent value="country" className="space-y-3 mt-0">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Globe className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Globe className="h-5 w-5 text-blue-600" />
                     Country Requirements
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
                   <div>
-                    <Label htmlFor="country-select" className="text-xs">Select Country:</Label>
+                    <Label htmlFor="country-select" className="text-sm">Select Country:</Label>
                     <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                      <SelectTrigger id="country-select" className="w-full h-8 text-xs mt-1">
+                      <SelectTrigger id="country-select" className="w-full h-10 text-sm mt-1">
                         <SelectValue placeholder="Choose country..." />
                       </SelectTrigger>
                       <SelectContent>
                         {countryNames.map((name) => (
-                          <SelectItem key={name} value={name} className="text-xs">
+                          <SelectItem key={name} value={name} className="text-sm">
                             {name}
                           </SelectItem>
                         ))}
@@ -451,26 +454,26 @@ Timeline: Sometime soon.`;
                   {selectedCountry && selectedCountryInfo && (
                     <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-xs text-blue-700">
+                        <CardTitle className="text-base text-blue-700">
                           {selectedCountry}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0 space-y-2">
                         <div>
-                          <h4 className="font-semibold text-[10px] text-gray-700 mb-1">E-Signature:</h4>
-                          <Badge variant={selectedCountryInfo.e_signature_valid ? "default" : "destructive"} className="text-[10px]">
+                          <h4 className="font-semibold text-sm text-gray-700 mb-1">E-Signature:</h4>
+                          <Badge variant={selectedCountryInfo.e_signature_valid ? "default" : "destructive"} className="text-sm">
                             {selectedCountryInfo.e_signature_valid ? "✓ Valid" : "✗ Not Valid"}
                           </Badge>
                         </div>
                         <div>
-                          <h4 className="font-semibold text-[10px] text-gray-700 mb-1">Language:</h4>
-                          <span className="text-xs text-blue-800 font-medium">
+                          <h4 className="font-semibold text-sm text-gray-700 mb-1">Language:</h4>
+                          <span className="text-sm text-blue-800 font-medium">
                             {selectedCountryInfo.language_required}
                           </span>
                         </div>
                         <div>
-                          <h4 className="font-semibold text-[10px] text-gray-700 mb-1">Notes:</h4>
-                          <div className="bg-white p-2 rounded border text-[10px] max-h-24 overflow-y-auto">
+                          <h4 className="font-semibold text-sm text-gray-700 mb-1">Notes:</h4>
+                          <div className="bg-white p-3 rounded border text-sm max-h-24 overflow-y-auto">
                             <p className="text-gray-600">
                               {selectedCountryInfo.notes || "No additional notes."}
                             </p>
@@ -483,7 +486,7 @@ Timeline: Sometime soon.`;
                   {!selectedCountry && (
                     <div className="text-center py-6 text-muted-foreground">
                       <Globe className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">Select a country to view requirements</p>
+                      <p className="text-sm">Select a country to view requirements</p>
                     </div>
                   )}
                 </CardContent>
@@ -492,6 +495,7 @@ Timeline: Sometime soon.`;
           </Tabs>
         </div>
       </ScrollArea>
+      </div>
     </div>
   );
 }
