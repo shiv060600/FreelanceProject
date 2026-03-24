@@ -53,6 +53,7 @@ next-env.d.ts
 # IDEs and editors
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 
