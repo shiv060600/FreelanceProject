@@ -21,10 +21,10 @@ export default function InvoicePreview({open, setOpen, userInfoForPdf, invoice} 
                 <DialogHeader>
                     <DialogTitle>
                         Invoice Preview - {invoice.invoice_number}
-                        {invoice.clients?.name && <span className="text-sm font-normal text-gray-600 ml-2">({invoice.clients.name})</span>}
+                        {invoice.clients?.name && <span className="text-sm font-normal text-muted-foreground ml-2">({invoice.clients.name})</span>}
                     </DialogTitle>
                 </DialogHeader>
-                <div className="border rounded-lg bg-gray-50 overflow-hidden" style={{ height: '700px' }}>
+                <div className="border rounded-lg bg-muted/50 overflow-hidden" style={{ height: '700px' }}>
                     <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
                         <InvoicePDF
                            invoice={invoice}

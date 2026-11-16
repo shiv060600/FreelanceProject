@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload, totalSales }: CustomTooltipProps) => {
     const percentage = totalSales > 0 ? ((data.value / totalSales) * 100).toFixed(1) : '0.0';
     
     return (
-      <div className="bg-white p-3 border rounded-lg shadow-lg">
+      <div className="bg-card p-3 border rounded-lg shadow-lg">
         <p className="font-medium">{data.name}</p>
         <p className="text-sm text-muted-foreground">
           ${data.value.toLocaleString()} ({percentage}%)

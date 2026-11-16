@@ -1,561 +1,464 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Bot, FileText, Info, Loader2, Sparkles, Square, Wand2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Info, X, Loader2, Bot, FileText, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
 import { useCreateContract } from '@/hooks/use-contracts'
 import { useUser } from '@/hooks/use-user'
 import { useClients } from '@/hooks/use-clients'
-import { Switch } from '../ui/switch'
-import { getPromptGuide } from './contract-prompt-guides'
 import { useAiContractGenerate } from '@/hooks/use-ai-contract-generate'
 import { useSubscriptionInfo } from '@/hooks/use-subscription-info'
-import { useUserAiUsage, useIncrementAiUsage } from '@/hooks/use-user-ai-usage'
-
-
+import { useUserAiUsage } from '@/hooks/use-user-ai-usage'
+import {
+  CONTRACT_TYPES,
+  DEFAULT_CONTRACT_TYPE,
+  LENGTHS,
+  TONES,
+  getContractType,
+  type LengthId,
+  type ToneId,
+} from '@/lib/contracts/catalog'
+import { formatLimit, getAiDailyLimit } from '@/lib/contracts/limits'
+import countriesData from '@/utils/country-info.json'
+import { getPromptGuide } from './contract-prompt-guides'
+import { ContractEditor } from './contract-editor'
 
 interface CreateContractDialogProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+type Mode = 'manual' | 'ai'
+
+/** Small segmented control used for tone / length. */
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  value: T
+  onChange: (v: T) => void
+  options: readonly { id: T; label: string; hint: string }[]
+  disabled?: boolean
+}) {
+  return (
+    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-lg bg-muted p-1">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          disabled={disabled}
+          title={o.hint}
+          onClick={() => onChange(o.id)}
+          className={cn(
+            'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+            value === o.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps) => {
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [clientId, setClientId] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [contractMode, setContractMode] = useState<'ai-prompt' | 'manual'>('manual');
-    const [contractType, setContractType] = useState<string>('freelance-service-agreement')
-    const [showPromptGuide, setShowPromptGuide] = useState(false);
-    const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
-    const [subscriptionType, setSubscriptionType] = useState<string>('Free');
-    const [canUseAi,setCanUseAi] = useState(false);
-    
-    const { toast } = useToast()
-    const { data: user, isLoading: userLoading } = useUser()
-    const createContract = useCreateContract()
-    const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
-    const { generateAiContract, loading: aiLoading, error: aiError } = useAiContractGenerate()
-    const { data: aiUsage } = useUserAiUsage(user?.id || '');
-    const { getSubscriptionType, loading: subscriptionLoading } = useSubscriptionInfo(user?.id);
-    const incrementAiUsage = useIncrementAiUsage();
+  const [mode, setMode] = useState<Mode>('ai')
+  const [title, setTitle] = useState('')
+  const [clientId, setClientId] = useState('')
+  const [content, setContent] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
-    // Get subscription type
-    useEffect(() => {
-        if (!user?.id || userLoading) return;
-        
-        const fetchSubscription = async () => {
-            try {
-                const subData = await getSubscriptionType(user.id);
-                if (subData && subData.length > 0 && subData[0]?.subscription) {
-                    setSubscriptionType(subData[0].subscription);
-                } else {
-                    // Default to Free if no subscription data found
-                    setSubscriptionType('Free');
-                }
-            } catch (error) {
-                console.error('Error fetching subscription:', error);
-                setSubscriptionType('Free');
-            }
-        };
-        
-        fetchSubscription();
-    }, [user?.id, userLoading]);
+  // AI options
+  const [contractType, setContractType] = useState<string>(DEFAULT_CONTRACT_TYPE)
+  const [details, setDetails] = useState('')
+  const [jurisdiction, setJurisdiction] = useState('')
+  const [tone, setTone] = useState<ToneId>('formal')
+  const [length, setLength] = useState<LengthId>('standard')
+  const [showGuide, setShowGuide] = useState(false)
+  const [refineText, setRefineText] = useState('')
+  const [subscriptionType, setSubscriptionType] = useState('Free')
 
-    useEffect(() => {
-        if (!user?.id) {
-            setCanUseAi(false);
-            return;
-        }
-        const currentUsage = aiUsage || 0;
-        let maxUsage = 0;
-        switch (subscriptionType) {
-            case 'Unlimited Freelancer':
-                maxUsage = 999999;
-                break;
-            
-            case 'Free':
-                maxUsage = 1;
-                break;
-            
-            default:
-                maxUsage = 1;
-                break;
-        };
-        const canUse = currentUsage < maxUsage;
-        setCanUseAi(canUse);
-    }, [user?.id, aiUsage, subscriptionType])
-    
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { data: user, isLoading: userLoading } = useUser()
+  const createContract = useCreateContract()
+  const { data: clients = [], isLoading: clientsLoading } = useClients(user?.id || '')
+  const { generateAiContract, refineAiContract, cancel, loading: aiLoading } = useAiContractGenerate()
+  const { data: aiUsage } = useUserAiUsage(user?.id || '')
+  const { getSubscriptionType } = useSubscriptionInfo(user?.id)
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        
-        if (!user?.id) {
-            toast({
-                title: "Error",
-                description: "User not authenticated",
-                variant: "destructive",
-            })
-            return
-        }
+  useEffect(() => {
+    if (!user?.id || userLoading) return
+    getSubscriptionType(user.id)
+      .then((rows) => setSubscriptionType(rows?.[0]?.subscription || 'Free'))
+      .catch(() => setSubscriptionType('Free'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, userLoading])
 
-        if (!title.trim() || !content.trim() || !clientId) {
-            toast({
-                title: "Error",
-                description: "Please fill in all fields",
-                variant: "destructive",
-            })
-            return
-        }
-        setIsSubmitting(true)
-        try {
-            await createContract.mutateAsync({
-                user_id: user.id,
-                client_id: clientId,
-                title: title.trim(),
-                content: content
-            })
+  // Don't leave a generation running if the dialog is closed.
+  useEffect(() => {
+    if (!open) cancel()
+  }, [open, cancel])
 
-            toast({
-                title: "Success",
-                description: "Contract created successfully",
-            })
-            setTitle('')
-            setContent('')
-            setClientId('')
-            onOpenChange(false)
-        } catch (error) {
-            console.error('Error creating contract:', error)
-            toast({
-                title: "Error",
-                description: "Failed to create contract. Please try again.",
-                variant: "destructive",
-            })
-        } finally {
-            setIsSubmitting(false)
-        }
+  const limit = getAiDailyLimit(subscriptionType)
+  const used = aiUsage || 0
+  const canUseAi = used < limit
+  const usagePct = Number.isFinite(limit) ? Math.min(100, (used / limit) * 100) : 0
+  const selectedClient = clients.find((c: any) => c.id === clientId)
+  const typeDef = getContractType(contractType)
+  const hasDraft = content.trim().length > 0
+
+  const refreshUsage = () => {
+    if (user?.id) queryClient.invalidateQueries({ queryKey: ['user-ai-usage', user.id] })
+  }
+
+  const fail = (description: string) => toast({ title: 'Error', description, variant: 'destructive' })
+
+  const handleGenerate = async () => {
+    if (!title.trim() || !clientId || !details.trim()) {
+      return fail('Add a title, choose a client and describe the deal first.')
     }
+    if (!canUseAi) {
+      return fail("You've used all your AI generations for today. They reset daily at 00:00 GMT.")
+    }
+    setContent('')
+    try {
+      await generateAiContract(
+        {
+          title: title.trim(),
+          contractType,
+          details: details.trim(),
+          clientName: selectedClient?.name || '',
+          clientCompany: selectedClient?.company || undefined,
+          clientEmail: selectedClient?.email || undefined,
+          jurisdiction: jurisdiction.trim() || undefined,
+          tone,
+          length,
+        },
+        { onText: setContent },
+      )
+      toast({ title: 'Draft ready', description: 'Review it, fill in any highlighted gaps, then save.' })
+    } catch (e: any) {
+      fail(e.message)
+    } finally {
+      refreshUsage()
+    }
+  }
 
-    const handleAiGenerate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        if (!user?.id) {
-            toast({
-                title: "Error",
-                description: "User not authenticated",
-                variant: "destructive",
-            });
-            return;
-        }
+  const handleRefine = async () => {
+    if (!refineText.trim() || !hasDraft) return
+    if (!canUseAi) {
+      return fail("You've used all your AI generations for today. They reset daily at 00:00 GMT.")
+    }
+    const previous = content
+    try {
+      setContent('')
+      await refineAiContract({ currentContract: previous, instruction: refineText.trim() }, { onText: setContent })
+      setRefineText('')
+    } catch (e: any) {
+      setContent(previous) // don't lose the draft if the change fails
+      fail(e.message)
+    } finally {
+      refreshUsage()
+    }
+  }
 
-        if (!canUseAi) {
-            toast({
-                title: "AI Usage Limit Reached",
-                description: "You've reached your AI usage limit. Please upgrade your subscription for more AI generations.",
-                variant: "destructive",
-            });
-            return;
-        }
+  const reset = () => {
+    setTitle('')
+    setClientId('')
+    setContent('')
+    setDetails('')
+    setJurisdiction('')
+    setRefineText('')
+  }
 
-        if (!title.trim() || !content.trim() || !clientId) {
-            toast({
-                title: "Error",
-                description: "Please fill in all fields",
-                variant: "destructive",
-            });
-            return;
-        }
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id) return fail('User not authenticated')
+    if (!title.trim() || !content.trim() || !clientId) return fail('Please add a title, a client and the contract text.')
 
-        try {
-            const selectedClient = clients.find(c => c.id === clientId);
-            const generatedContract = await generateAiContract({
-                title: title.trim(),
-                contractType,
-                prompt: content.trim(),
-                clientName: selectedClient?.name || '',
-            });
+    setIsSaving(true)
+    try {
+      await createContract.mutateAsync({
+        user_id: user.id,
+        client_id: clientId,
+        title: title.trim(),
+        content,
+      })
+      toast({ title: 'Contract saved', description: 'You can preview, download or send it from the list.' })
+      reset()
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Error creating contract:', error)
+      fail('Failed to save the contract. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
-            // Increment AI usage after successful generation
-            await incrementAiUsage.mutateAsync(user.id);
+  const busy = aiLoading || isSaving
 
-            // Set the generated contract as content and switch to manual mode
-            setContent(generatedContract);
-            setContractMode('manual');
-            
-            toast({
-                title: "Success",
-                description: "Contract generated successfully! Review and save when ready.",
-            });
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: aiError || "Failed to generate contract",
-                variant: "destructive",
-            });
-        }
-    };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="mx-auto max-h-[92vh] overflow-y-auto sm:max-w-[860px]">
+        <DialogHeader>
+          <DialogTitle>New contract</DialogTitle>
+          <DialogDescription>
+            Write one yourself or let AI draft it from a few details. You review everything before it's saved.
+          </DialogDescription>
+        </DialogHeader>
 
-    const handleModeSwitch = (toAiMode: boolean) => {
-        if (toAiMode) {
-            // Switching to AI mode
-            if (content.trim() && contractMode !== 'ai-prompt') {
-                // Show confirmation if there's content that will be wiped
-                setShowSwitchConfirm(true);
-            } else {
-                setContractMode('ai-prompt');
-            }
-        } else {
-            // Switching to manual mode
-            setContractMode('manual');
-        }
-    };
+        {/* Mode switch */}
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+          {(
+            [
+              { id: 'ai', label: 'Generate with AI', icon: Sparkles },
+              { id: 'manual', label: 'Write manually', icon: FileText },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              disabled={busy}
+              onClick={() => setMode(id)}
+              className={cn(
+                'flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                mode === id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
 
-    const confirmSwitchToAi = () => {
-        setContractMode('ai-prompt');
-        setContent('');
-        setShowSwitchConfirm(false);
-    };
+        <form onSubmit={handleSave} className="space-y-5">
+          {/* Basics */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">Contract title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Website redesign – Acme"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="client">Client</Label>
+              <Select value={clientId} onValueChange={setClientId} disabled={clientsLoading || clients.length === 0}>
+                <SelectTrigger id="client">
+                  <SelectValue
+                    placeholder={clientsLoading ? 'Loading clients…' : clients.length ? 'Select a client' : 'No clients yet'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client: any) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                      {client.company ? ` (${client.company})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[900px] mx-auto max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <DialogTitle>
-                                    {contractMode === 'ai-prompt' ? 'Generate AI Contract' : 'Create New Contract'}
-                                </DialogTitle>
-                                
-                                {/* Mode Toggle */}
-                                <div className="flex items-center gap-2 ml-auto">
-                                    {!canUseAi && 
-                                        <div className='text-md font-weight-bold text-red-500'>
-                                            Out of AI uses for the day
-                                        </div>
-                                    }
-                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                        <FileText className="h-4 w-4" />
-                                        Manual
-                                    </div>
-                                    <Switch
-                                        checked={contractMode === 'ai-prompt'}
-                                        onCheckedChange={(checked) => handleModeSwitch(checked)}
-                                        disabled={aiLoading || isSubmitting ||!canUseAi}
-                                    />
-                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mr-5">
-                                        <Bot className="h-4 w-4" />
-                                        AI
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* AI Usage Counter */}
-                            {contractMode === 'ai-prompt' && (
-                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Bot className="h-4 w-4 text-blue-600" />
-                                            <span className="text-sm font-medium text-gray-700">
-                                                AI Usage Today
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            {subscriptionType} Plan
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                        {/* Usage Bar */}
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-1">
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        className={`h-2 rounded-full transition-all duration-300 ${
-                                                            canUseAi 
-                                                                ? (aiUsage || 0) / (() => {
-                                                                    switch (subscriptionType) {
-                                                                        case 'Unlimited Freelancer': return 999999;
-                                                                        case 'Free': return 1;
-                                                                        default: return 1;
-                                                                    }
-                                                                })() < 0.8 
-                                                                    ? 'bg-green-500' 
-                                                                    : 'bg-yellow-500'
-                                                                : 'bg-red-500'
-                                                        }`}
-                                                        style={{ 
-                                                            width: `${Math.min(100, ((aiUsage || 0) / (() => {
-                                                            switch (subscriptionType) {
-                                                                case 'Unlimited Freelancer': return 999999;
-                                                                case 'Free': return 1;
-                                                                default: return 1;
-                                                            }
-                                                            })()) * 100)}%` 
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="text-sm font-mono">
-                                                <span className={canUseAi ? 'text-gray-700' : 'text-red-600'}>
-                                                    {aiUsage || 0}
-                                                </span>
-                                                <span className="text-gray-400 mx-1">/</span>
-                                                <span className="text-gray-500">
-                                                    {(() => {
-                                                        switch (subscriptionType) {
-                                                            case 'Expert Freelancer': return 50;
-                                                            case 'Seasoned Freelancer': return 10;
-                                                            case 'New Freelancer': return 1;
-                                                            default: return 1;
-                                                        }
-                                                    })()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Status Message */}
-                                        <div className="flex items-center gap-2">
-                                            {canUseAi ? (
-                                                <div className="flex items-center gap-1 text-xs text-green-600">
-                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                    Available
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1 text-xs text-red-600">
-                                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                                    Limit reached
-                                                </div>
-                                            )}
-                                            <div className="text-xs text-gray-500">
-                                                • Resets daily at 12:00 AM GMT
-                                            </div>
-                                        </div>
-                                        
-                                        {!canUseAi && subscriptionType === 'Free' && (
-                                            <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                                                <p className="text-xs text-blue-700">
-                                                    💡 <strong>Upgrade your plan</strong> to get more AI generations per day
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            <DialogDescription className='mt-2'>
-                                {contractMode === 'ai-prompt' ? 'Provide details to generate a professional contract with AI' :
-                                 'Fill out the form below to create a new contract for your client.'}
-                            </DialogDescription>
-                        </div>
-                    </div>
-                </DialogHeader>
-                
-                <form onSubmit={contractMode === 'ai-prompt' ? handleAiGenerate : handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="title">Contract Title</Label>
-                        <Input
-                            id="title"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Enter contract title"
-                            required
-                        />
-                    </div>
+          {/* AI inputs */}
+          {mode === 'ai' && (
+            <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Bot className="h-4 w-4 text-primary" />
+                  AI generations today
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className={cn('h-full rounded-full transition-all', canUseAi ? 'bg-primary' : 'bg-destructive')}
+                      style={{ width: `${usagePct}%` }}
+                    />
+                  </div>
+                  <span className={cn('font-mono', !canUseAi && 'text-destructive')}>
+                    {used} / {formatLimit(limit)}
+                  </span>
+                  <span>{subscriptionType} plan</span>
+                </div>
+              </div>
+              {!canUseAi && (
+                <p className="text-xs text-destructive">
+                  Daily limit reached — resets at 00:00 GMT. You can still write a contract manually, or upgrade your plan.
+                </p>
+              )}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="client">Client</Label>
-                        <Select value={clientId} onValueChange={setClientId} required disabled={clientsLoading || clients.length===0}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={clientsLoading ? 'Loading clients...' : (clients.length ? 'Select a client' : 'No clients available')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {clientsLoading && (
-                                    <SelectItem disabled value="loading">Loading...</SelectItem>
-                                )}
-                                {!clientsLoading && clients.length === 0 && (
-                                    <SelectItem disabled value="none">No clients found</SelectItem>
-                                )}
-                                {!clientsLoading && clients.map((client: any) => (
-                                    <SelectItem key={client.id} value={client.id}>
-                                        {client.name}{client.company ? ` (${client.company})` : ''}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    {contractMode === 'ai-prompt' && 
-                    <div className='space-y-2'>
-                        <Label> Contract Type </Label>
-                        <Select value={contractType} onValueChange={setContractType}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select contract type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                 <SelectItem value="freelance-service-agreement">
-                                    Freelance Service Agreement
-                                </SelectItem>
-                                <SelectItem value="employment-contract">
-                                    Employment Contract
-                                </SelectItem>
-                                <SelectItem value="rental-lease-agreement">
-                                    Rental/Lease Agreement
-                                </SelectItem>
-                                <SelectItem value="service-provider-contract">
-                                    Service Provider Contract
-                                </SelectItem>
-                                
-                                {/* Tier 2 - Business-Focused */}
-                                <SelectItem value="non-disclosure-agreement">
-                                    Non-Disclosure Agreement (NDA)
-                                </SelectItem>
-                                <SelectItem value="partnership-agreement">
-                                    Partnership Agreement
-                                </SelectItem>
-                                <SelectItem value="sales-contract">
-                                    Sales Contract
-                                </SelectItem>
-                                <SelectItem value="consulting-agreement">
-                                    Consulting Agreement
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>}
-                    
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="content">
-                                {contractMode === 'ai-prompt' ? 'Prompt To Create Contract' : 'Contract Content'}
-                            </Label>
-                            {contractMode === 'ai-prompt' && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowPromptGuide(true)}
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <Info className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                        <Textarea
-                            id="content"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder={contractMode === 'ai-prompt' ? "Enter prompt for AI to generate contract..." : "Enter contract content..."}
-                            className="min-h-[300px] font-mono text-sm"
-                            style={{ whiteSpace: 'pre-wrap' }}
-                            disabled={aiLoading}
-                        />
-                        {contractMode !== 'ai-prompt' && (
-                            <p className="text-xs text-muted-foreground">
-                                Use line breaks and spacing as needed. Formatting will be preserved in the PDF.
-                            </p>
-                        )}
-                    </div>
-                    
-                    <div className="flex justify-end space-x-2 pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                            disabled={isSubmitting || aiLoading}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            type="submit" 
-                            disabled={aiLoading || (!title || !contractType || !content)}
-                        >
-                            {aiLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : (
-                                contractMode === 'ai-prompt' ? 'Generate With AI' : 'Create Contract'
-                            )}
-                        </Button>
-                    </div>
-                </form>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Contract type</Label>
+                  <Select value={contractType} onValueChange={setContractType} disabled={busy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTRACT_TYPES.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">{typeDef.description}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="jurisdiction">Governing law</Label>
+                  <Input
+                    id="jurisdiction"
+                    list="jurisdictions"
+                    value={jurisdiction}
+                    onChange={(e) => setJurisdiction(e.target.value)}
+                    placeholder="e.g. California, USA"
+                    disabled={busy}
+                  />
+                  <datalist id="jurisdictions">
+                    {Object.keys(countriesData).map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground">Leave blank to get a [placeholder] to fill in.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tone</Label>
+                  <Segmented value={tone} onChange={setTone} options={TONES} disabled={busy} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Length</Label>
+                  <Segmented value={length} onChange={setLength} options={LENGTHS} disabled={busy} />
+                </div>
+              </div>
 
-                {/* Prompt Guide Popup */}
-                {showPromptGuide && (
-                    <div className="fixed inset-0 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto m-4 shadow-lg border">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-lg font-semibold">
-                                    Prompt Guide: {getPromptGuide(contractType).title}
-                                </h3>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowPromptGuide(false)}
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="text-sm text-gray-600 whitespace-pre-line">
-                                    {getPromptGuide(contractType).prompt}
-                                </div>
-                                <div className="pt-4 border-t">
-                                    <Button
-                                        onClick={() => setShowPromptGuide(false)}
-                                        className="w-full"
-                                    >
-                                        Close
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="details">Deal details</Label>
+                  <button
+                    type="button"
+                    onClick={() => setShowGuide((s) => !s)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    What should I include?
+                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showGuide && 'rotate-180')} />
+                  </button>
+                </div>
+                {showGuide && (
+                  <div className="whitespace-pre-line rounded-lg border bg-card p-3 text-xs leading-relaxed text-muted-foreground">
+                    {getPromptGuide(contractType).prompt}
+                  </div>
                 )}
+                <Textarea
+                  id="details"
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                  placeholder="Scope, price, timeline, revisions, who owns the work, anything unusual…"
+                  className="min-h-[110px]"
+                  disabled={busy}
+                />
+              </div>
 
-                {/* Switch Mode Confirmation Dialog */}
-                {showSwitchConfirm && (
-                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
-                        <div className="bg-white rounded-lg p-6 max-w-md m-4 shadow-xl border">
-                            <div className="flex items-start gap-3 mb-4">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                        Switch to AI Mode?
-                                    </h3>
-                                    <p className="text-sm text-gray-600 mt-2">
-                                        Switching to AI mode will clear your current contract content. This action cannot be undone.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex gap-3 justify-end">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setShowSwitchConfirm(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    onClick={confirmSwitchToAi}
-                                >
-                                    Clear & Switch
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  AI drafts are a starting point, not legal advice. Have a lawyer review high-value agreements.
+                </p>
+                {aiLoading ? (
+                  <Button type="button" variant="outline" onClick={cancel} className="shrink-0 gap-2">
+                    <Square className="h-3.5 w-3.5" /> Stop
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={handleGenerate} disabled={busy || !canUseAi} className="shrink-0 gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    {hasDraft ? 'Regenerate' : 'Generate draft'}
+                  </Button>
                 )}
-            </DialogContent>
-        </Dialog>
-    )
-} 
+              </div>
+            </div>
+          )}
 
-export default CreateContractDialog;
+          {/* Contract text */}
+          {(mode === 'manual' || hasDraft || aiLoading) && (
+            <div className="space-y-3">
+              <Label htmlFor="content" className="flex items-center gap-2">
+                Contract text
+                {aiLoading && (
+                  <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing…
+                  </span>
+                )}
+              </Label>
+              <ContractEditor
+                id="content"
+                value={content}
+                onChange={setContent}
+                streaming={aiLoading}
+                placeholder="Enter the contract text…"
+              />
+
+              {mode === 'ai' && hasDraft && !aiLoading && (
+                <div className="flex gap-2">
+                  <Input
+                    value={refineText}
+                    onChange={(e) => setRefineText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleRefine()
+                      }
+                    }}
+                    placeholder='Ask for a change, e.g. "add a 1.5% monthly late fee" or "make the IP clause simpler"'
+                    disabled={!canUseAi}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleRefine}
+                    disabled={!refineText.trim() || !canUseAi}
+                    className="shrink-0 gap-2"
+                  >
+                    <Wand2 className="h-4 w-4" /> Apply
+                  </Button>
+                </div>
+              )}
+              {mode === 'ai' && hasDraft && !aiLoading && (
+                <p className="text-xs text-muted-foreground">Each change request counts as one AI generation.</p>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy || !title.trim() || !content.trim() || !clientId}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
+                </>
+              ) : (
+                'Save contract'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default CreateContractDialog

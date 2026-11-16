@@ -1,161 +1,177 @@
-import { NextRequest,NextResponse } from "next/server";
-import OpenAI from "openai";
-import { createClient } from '../../../../supabase/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '../../../../supabase/server'
+import { getContractModel, getOpenAI } from '@/lib/contracts/openai'
+import {
+  buildGenerationPrompt,
+  buildRefinePrompt,
+  buildSystemPrompt,
+  maxTokensFor,
+  supportsTemperature,
+} from '@/lib/contracts/prompt'
+import { getAiDailyLimit } from '@/lib/contracts/limits'
+import { CONTRACT_TYPES, LENGTHS, TONES } from '@/lib/contracts/catalog'
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-const openAi = new OpenAI({apiKey : OPENAI_API_KEY})
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
+/**
+ * POST /api/ai-contract-generate
+ *
+ * Authenticated by the Supabase session cookie (same-origin only — no CORS
+ * headers on purpose). Streams the contract back as plain text so the UI can
+ * render it as it is written.
+ *
+ *   { mode?: 'generate', title, contractType, clientName, details, ... }
+ *   { mode: 'refine', currentContract, instruction }
+ *
+ * The daily per-plan limit is enforced HERE. It used to be checked and
+ * incremented in the browser only, so calling this route directly bypassed it.
+ */
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400',
-};
+type Body = Record<string, unknown>
 
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
-// Handle preflight requests -required by next.js
-export async function OPTIONS(request: NextRequest) {
-    return NextResponse.json({}, { headers: corsHeaders });
+function bad(message: string, status = 400) {
+  return NextResponse.json({ message }, { status })
 }
 
+export async function POST(request: NextRequest) {
+  // Auth first, so unauthenticated callers learn nothing about server config.
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !user) return bad('Please sign in to generate contracts.', 401)
 
-export async function POST(request: NextRequest){
+  const openai = getOpenAI()
+  if (!openai) {
+    console.error('OPENAI_API_KEY is not set')
+    return bad('AI contract generation is not configured.', 500)
+  }
 
-    
-    if(!OPENAI_API_KEY){
-        console.error('OpenAI API key not found in environment variables');
-        return NextResponse.json(
-            {message : 'OpenAI API key not found'},
-            {status: 500}
-        )
+  let body: Body
+  try {
+    body = await request.json()
+  } catch {
+    return bad('Invalid request body.')
+  }
+
+  const mode = body.mode === 'refine' ? 'refine' : 'generate'
+
+  // ---- Build the messages ------------------------------------------------
+  let userPrompt: string
+  let maxTokens: number
+
+  if (mode === 'refine') {
+    const currentContract = str(body.currentContract, 40000)
+    const instruction = str(body.instruction, 1500)
+    if (!currentContract || !instruction) {
+      return bad('Both the current contract and a change request are required.')
     }
+    userPrompt = buildRefinePrompt(currentContract, instruction)
+    maxTokens = maxTokensFor('comprehensive')
+  } else {
+    const title = str(body.title, 200)
+    const clientName = str(body.clientName, 200)
+    const details = str(body.details ?? body.prompt, 4000)
+    const contractType = str(body.contractType, 80)
 
-    // Authenticate user using Supabase session
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (!title || !clientName || !details) {
+      return bad('Title, client and contract details are required.')
+    }
+    if (!CONTRACT_TYPES.some((t) => t.id === contractType)) {
+      return bad('Unknown contract type.')
+    }
+    const tone = TONES.find((t) => t.id === body.tone)?.id
+    const length = LENGTHS.find((l) => l.id === body.length)?.id
 
-    if (authError || !user) {
-        return NextResponse.json(
-            {message: 'Authentication required. Please sign in to continue.'},
-            {status: 401, headers: corsHeaders}
-        )
-    } 
-    try {
-        const body = await request.json();
-        const { title, contractType, clientName, prompt, clientCompany } = body;
+    userPrompt = buildGenerationPrompt({
+      title,
+      contractType,
+      details,
+      clientName,
+      clientCompany: str(body.clientCompany, 200),
+      clientEmail: str(body.clientEmail, 200),
+      jurisdiction: str(body.jurisdiction, 200),
+      freelancerName: str(user.user_metadata?.full_name, 200) || undefined,
+      freelancerEmail: user.email ?? undefined,
+      tone,
+      length,
+    })
+    maxTokens = maxTokensFor(length)
+  }
 
-        // field validation
-        if (!title || !contractType || !clientName || !prompt) {
-            console.error('Missing required fields:', { title, contractType, clientName, prompt: !!prompt });
-            return NextResponse.json(
-                {message: 'Missing required fields: title, contractType, clientName, and prompt are required'},
-                {status: 400,headers : corsHeaders}
-            );
+  // ---- Enforce the plan limit server-side --------------------------------
+  const [{ data: profile }, { data: usage }] = await Promise.all([
+    supabase.from('users').select('subscription').eq('user_id', user.id).maybeSingle(),
+    supabase.from('user_usage').select('ai_uses').eq('user_id', user.id).maybeSingle(),
+  ])
+  const limit = getAiDailyLimit(profile?.subscription)
+  const used = usage?.ai_uses ?? 0
+  if (used >= limit) {
+    return bad(
+      `You've used all ${limit} of your AI generations for today. Your allowance resets daily at 00:00 GMT.`,
+      429,
+    )
+  }
+
+  // ---- Call the model, streaming -----------------------------------------
+  const model = getContractModel()
+  let completion
+  try {
+    completion = await openai.chat.completions.create({
+      model,
+      stream: true,
+      max_completion_tokens: maxTokens,
+      ...(supportsTemperature(model) ? { temperature: 0.3 } : {}),
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        { role: 'user', content: userPrompt },
+      ],
+    })
+  } catch (error: any) {
+    // Full detail stays in server logs; the client gets a safe message.
+    console.error('OpenAI request failed:', { status: error?.status, message: error?.message, model })
+    return bad('The AI service could not be reached. Please try again in a moment.', 502)
+  }
+
+  const encoder = new TextEncoder()
+  let counted = false
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for await (const chunk of completion) {
+          const delta = chunk.choices[0]?.delta?.content
+          if (!delta) continue
+          if (!counted) {
+            // Count the use once the model has actually started producing text.
+            counted = true
+            const { error } = await supabase.rpc('handle_ai_usage', { user_id_param: user.id })
+            if (error) console.error('Failed to record AI usage:', error.message)
+          }
+          controller.enqueue(encoder.encode(delta))
         }
+        controller.close()
+      } catch (error: any) {
+        console.error('Contract stream failed:', error?.message)
+        controller.error(error)
+      }
+    },
+    cancel() {
+      completion.controller.abort()
+    },
+  })
 
-        console.log('Generating contract with params:', { title, contractType, clientName, promptLength: prompt.length });
-
-        const response = await openAi.chat.completions.create({
-            model:'gpt-4',
-            messages : [
-                {
-                    role: 'system',
-                    content: `You are an expert legal contract writer. Generate a comprehensive, professional legal contract with proper formatting and all necessary legal clauses. 
-
-CRITICAL: This contract is for digital use only - DO NOT include any signature sections, signature lines, date fields, or manual completion areas.
-
-FORMATTING REQUIREMENTS:
-- Use clear section numbering (1., 1.1, 1.2, etc.)
-- Include proper legal headings and subheadings
-- Use formal legal language
-- Include standard legal clauses (governing law, dispute resolution, etc.)
-- Format as complete legal document content
-- Use proper spacing and structure
-
-ABSOLUTELY FORBIDDEN - DO NOT INCLUDE:
-- Signature lines or signature blocks
-- Date fields or "Date: ____" sections
-- Any blank lines like "______" or "___________"
-- "Signed by:" sections
-- "Party A Signature:" or "Party B Signature:" fields
-- Any placeholder fields requiring manual completion
-- Witness signature areas
-- Notary sections
-
-The contract should be a complete, self-contained legal document that needs no additional completion.`
-                },
-                {
-                    role: 'user',
-                    content: `Generate a ${contractType} contract with the title "${title}" for client "${clientName}"${clientCompany ? ` who works at company ${clientCompany}` : ''}.
-
-Contract Requirements: ${prompt}
-
-Please ensure the contract includes:
-- Proper legal formatting with numbered sections
-- All parties clearly identified with specific names and details
-- Detailed terms and conditions
-- Payment/compensation clauses
-- Termination conditions
-- Dispute resolution
-- Governing law
-- Complete legal content ready for PDF generation
-
-CRITICAL REMINDER: This is a DIGITAL CONTRACT ONLY. Do NOT include:
-❌ Signature blocks or signature lines
-❌ Date fields or "Date: ____" sections  
-❌ Any "______" blank lines or fill-in spaces
-❌ "Signed by:" sections
-❌ Witness or notary sections
-❌ Any manual completion areas
-
-The contract should END with the final legal clause (like governing law or entire agreement clause) and nothing more. No signature areas whatsoever.
-
-Make this a complete, professional legal contract that is ready for immediate digital use.`
-                }
-            ],
-            max_completion_tokens : 3000,
-            temperature : 0.2
-        });
-
-        if (!response.choices || !response.choices[0] || !response.choices[0].message?.content) {
-            console.error('Invalid response from OpenAI:', response);
-            return NextResponse.json(
-                {message: 'Invalid response from AI service'},
-                {status: 500, headers: corsHeaders}
-            );
-        }
-
-        const generatedContract = response.choices[0].message.content;
-
-        console.log('Contract generated successfully, length:', generatedContract.length);
-        return NextResponse.json(
-            {
-                contract : generatedContract,
-                success : true
-            },
-            {status: 200,headers : corsHeaders}
-        );
-
-    }
-    catch(error: any){
-        console.error('Error generating contract:', {
-            message: error?.message,
-            name: error?.name,
-            stack: error?.stack,
-            cause: error?.cause
-        });
-        
-        // Return a safe error message without exposing internal details
-        const errorMessage = error?.message || 'Failed to generate contract';
-        
-        return NextResponse.json(
-            {
-                message: errorMessage,
-                error: process.env.NODE_ENV === 'development' ? error?.message : undefined
-            },
-            {status : 500, headers: corsHeaders}
-        );
-    }
-
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store, no-transform',
+      'X-Accel-Buffering': 'no',
+      'X-AI-Limit': Number.isFinite(limit) ? String(limit) : 'unlimited',
+      'X-AI-Used': String(used + 1),
+    },
+  })
 }

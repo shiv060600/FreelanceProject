@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { createClient } from "../../supabase/server";
 import { Button } from "./ui/button";
-import { User, UserCircle } from "lucide-react";
-import { InfoCircledIcon } from "@radix-ui/react-icons";
 import UserProfile from "./user-profile";
+import { ThemeToggle } from "./theme-toggle";
+import { BrandLink } from "./app-shell/brand";
 import '@/styles/components.css'
 
 export default async function Navbar() {
@@ -16,10 +16,9 @@ export default async function Navbar() {
   return (
     <nav className="nav-container">
       <div className="nav-content">
-        <Link href="/" prefetch className="nav-brand">
-          FreelanceFlow
-        </Link>
+        <BrandLink />
         <div className="nav-actions">
+          <ThemeToggle />
           {user ? (
             <>
               <Link href="/dashboard">

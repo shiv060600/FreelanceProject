@@ -74,9 +74,9 @@ export function EmailTest() {
               ) : message.type === 'error' ? (
                 <AlertCircle className="h-4 w-4 text-red-500" />
               ) : (
-                <Info className="h-4 w-4 text-blue-500" />
+                <Info className="h-4 w-4 text-primary" />
               )}
-              <AlertDescription className={message.type === 'success' ? 'text-green-700' : message.type === 'error' ? 'text-red-700' : 'text-blue-700'}>
+              <AlertDescription className={message.type === 'success' ? 'text-green-700 dark:text-green-400' : message.type === 'error' ? 'text-red-700 dark:text-red-400' : 'text-primary'}>
                 {message.text}
               </AlertDescription>
             </Alert>

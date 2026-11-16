@@ -191,9 +191,9 @@ export default function InvoicesPage() {
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm border">
+        <div className="bg-card rounded-lg shadow-sm border">
           <div className="p-6">
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin" />
                 <span>Loading user data...</span>
@@ -241,9 +241,9 @@ export default function InvoicesPage() {
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm border">
+        <div className="bg-card rounded-lg shadow-sm border">
           <div className="p-6">
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin" />
                 <span>Loading invoices...</span>
@@ -282,7 +282,7 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center pb-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
+          <h1 className="text-3xl font-bold text-foreground">Invoices</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage and track your invoice payments
           </p>
@@ -317,16 +317,16 @@ export default function InvoicesPage() {
       )}
 
       {/* Search Bar */}
-      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
+      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-primary/5 to-purple-50/50 dark:to-purple-500/10 rounded-lg p-4 border border-primary/20">
         <div className="flex items-center gap-4 flex-1">
           <SearchInput
             placeholder="Search by name,#,client..."
             value={searchTerm}
             onChange={setSearchTerm}
-            className="max-w-md bg-white shadow-sm"
+            className="max-w-md bg-card shadow-sm"
           />
           {searchTerm && (
-            <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
+            <span className="text-sm font-medium text-foreground/80 bg-card px-3 py-1.5 rounded-md shadow-sm">
               {filteredAndSortedInvoices.length} of {invoices?.length || 0} invoices
             </span>
           )}
@@ -334,15 +334,15 @@ export default function InvoicesPage() {
       </div>
 
       {/* Invoices List */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-md border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b bg-gradient-to-r from-gray-50 to-gray-50/50">
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Invoice #</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Name</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Client</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">
+              <tr className="border-b bg-gradient-to-r from-muted to-muted/50">
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Invoice #</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Name</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Client</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">
                   <SortHeader 
                     sortKey="issue_date" 
                     currentSort={sortConfig} 
@@ -352,7 +352,7 @@ export default function InvoicesPage() {
                     Start Date
                   </SortHeader>
                 </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">
                   <SortHeader 
                     sortKey="due_date" 
                     currentSort={sortConfig} 
@@ -362,7 +362,7 @@ export default function InvoicesPage() {
                     Due Date
                   </SortHeader>
                 </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">
                   <SortHeader 
                     sortKey="total" 
                     currentSort={sortConfig} 
@@ -372,15 +372,15 @@ export default function InvoicesPage() {
                     Amount
                   </SortHeader>
                 </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Status</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-700">Actions</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Status</th>
+                <th className="text-right py-4 px-6 text-sm font-semibold text-foreground/80">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {filteredAndSortedInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12">
-                    <div className="flex flex-col items-center justify-center text-gray-400">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <FileText className="h-12 w-12 mb-3 opacity-50" />
                       <p className="text-base font-medium">
                         {!invoices || invoices.length === 0 ? (
@@ -396,27 +396,27 @@ export default function InvoicesPage() {
                 filteredAndSortedInvoices.map((invoice: any) => (
                   <tr 
                     key={invoice.id} 
-                    className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors duration-150 cursor-pointer group"
+                    className="border-b border-border hover:bg-primary/5 transition-colors duration-150 cursor-pointer group"
                   >
                     <td className="py-4 px-6">
-                      <span className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
                         {invoice.invoice_number}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-gray-700">{invoice.invoice_name || 'N/A'}</td>
-                    <td className="py-4 px-6 text-gray-700 font-medium">{invoice.clients?.name || 'N/A'}</td>
-                    <td className="py-4 px-6 text-gray-600">{new Date(invoice.issue_date).toLocaleDateString()}</td>
-                    <td className="py-4 px-6 text-gray-600">{new Date(invoice.due_date).toLocaleDateString()}</td>
+                    <td className="py-4 px-6 text-foreground/80">{invoice.invoice_name || 'N/A'}</td>
+                    <td className="py-4 px-6 text-foreground/80 font-medium">{invoice.clients?.name || 'N/A'}</td>
+                    <td className="py-4 px-6 text-muted-foreground">{new Date(invoice.issue_date).toLocaleDateString()}</td>
+                    <td className="py-4 px-6 text-muted-foreground">{new Date(invoice.due_date).toLocaleDateString()}</td>
                     <td className="py-4 px-6">
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-foreground">
                         ${parseFloat(invoice.total || invoice.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
                         invoice.status === 'paid' 
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                          : 'bg-amber-100 text-amber-700 border border-amber-200'
+                          ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30' 
+                          : 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30'
                       }`}>
                         {invoice.status.toUpperCase()}
                       </span>
@@ -433,7 +433,7 @@ export default function InvoicesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -459,7 +459,7 @@ export default function InvoicesPage() {
                               variant="ghost"
                               size="icon"
                               disabled={loading || userInfoLoading || !invoice?.id || !invoice.clients}
-                              className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                             >
                               <Download className="h-4 w-4" />
                             </Button>
@@ -470,7 +470,7 @@ export default function InvoicesPage() {
                           size="icon"
                           onClick={() => handleSendInvoice(invoice)}
                           disabled={userInfoLoading || !invoice?.id || !invoice.clients}
-                          className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                         >
                           <Mail className="h-4 w-4" />
                         </Button>
@@ -482,7 +482,7 @@ export default function InvoicesPage() {
                             setInvoicePreviewOpen(!invoicePreviewOpen);
                           }}
                           disabled={userInfoLoading || !invoice?.id || !invoice.clients}
-                          className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                         >
                           <Eye className="h-4 w-4"/>
                         </Button>
@@ -493,7 +493,7 @@ export default function InvoicesPage() {
                             setSelectedInvoice(invoice)
                             setDeleteDialogOpen(true)
                           }}
-                          className="h-8 w-8 hover:bg-red-100 hover:text-red-600 transition-colors"
+                          className="h-8 w-8 hover:bg-red-100 dark:bg-red-500/15 hover:text-red-600 dark:text-red-400 transition-colors"
                         >
                           <Trash className="h-4 w-4" />
                         </Button>

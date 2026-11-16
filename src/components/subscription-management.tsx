@@ -45,16 +45,16 @@ export default function SubscriptionManagement({ user, subscription }: Subscript
     const getStatusColor = (status: string | null) => {
         switch (status) {
             case 'active':
-                return 'bg-green-100 text-green-800';
+                return 'bg-green-100 dark:bg-green-500/15 text-green-800 dark:text-green-400';
             case 'trialing':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-primary/10 text-primary';
             case 'past_due':
-                return 'bg-yellow-100 text-yellow-800';
+                return 'bg-yellow-100 dark:bg-yellow-500/15 text-yellow-800 dark:text-yellow-400';
             case 'canceled':
             case 'incomplete_expired':
-                return 'bg-red-100 text-red-800';
+                return 'bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-400';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-muted text-foreground';
         }
     };
 
@@ -78,7 +78,7 @@ export default function SubscriptionManagement({ user, subscription }: Subscript
 
     return (
         <div className="mb-8">
-            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+            <Card className="bg-gradient-to-r from-primary/5 to-purple-50 dark:to-purple-500/10 border-2 border-primary/20">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <CreditCard className="h-5 w-5" />
@@ -117,9 +117,9 @@ export default function SubscriptionManagement({ user, subscription }: Subscript
                     </div>
                     
                     {subscription.subscription_status === 'past_due' && (
-                        <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                            <AlertCircle className="h-4 w-4 text-yellow-600" />
-                            <p className="text-sm text-yellow-800">
+                        <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 rounded-md">
+                            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                            <p className="text-sm text-yellow-800 dark:text-yellow-400">
                                 Your subscription payment is past due. Please update your payment method.
                             </p>
                         </div>

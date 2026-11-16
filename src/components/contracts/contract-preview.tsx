@@ -23,7 +23,7 @@ export default function ContractPreview ({previewOpen, setPreviewOpen, selectedC
                 <DialogHeader>
                     <DialogTitle>Contract Preview - {selectedContract.title}</DialogTitle>
                 </DialogHeader>
-                <div className="border rounded-lg bg-gray-50 overflow-hidden" style={{ height: '600px' }}>
+                <div className="border rounded-lg bg-muted/50 overflow-hidden" style={{ height: '600px' }}>
                     <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
                         <ContractPDF
                             contract={{

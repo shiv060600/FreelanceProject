@@ -8,8 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Globe, Scale, FileText, Users, Calendar, DollarSign, FileSignature, CheckCircle } from 'lucide-react'
 import countriesData from "../../utils/country-info.json"
-import { useAiContractGenerate } from '@/hooks/use-ai-contract-generate'
-import { Progress } from '@/components/ui/progress'
 
 interface CountryInfo {
   e_signature_valid: boolean
@@ -22,7 +20,6 @@ export default function ContractsInformation() {
   const countryNames: string[] = Object.keys(countriesData)
   const countriesMap: Map<string, CountryInfo> = new Map(Object.entries(countriesData))
   const selectedCountryInfo = countriesMap.get(selectedCountry) || null
-  const { loading, progress } = useAiContractGenerate()
 
   const elements = [
     { icon: <Users className="h-4 w-4" />, title: 'Parties', description: 'Clear identification of all parties involved' },
@@ -61,22 +58,9 @@ export default function ContractsInformation() {
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold">Contract Information</h1>
         <p className="text-lg text-muted-foreground">{message}</p>
-        <Alert className="max-w-3xl mx-auto bg-blue-50 border-blue-200">
-          <AlertDescription className="text-blue-800 text-sm">Educational resources about contracts for freelancers. This guide is not legal advice.</AlertDescription>
+        <Alert className="max-w-3xl mx-auto bg-primary/5 border-primary/20">
+          <AlertDescription className="text-primary text-sm">Educational resources about contracts for freelancers. This guide is not legal advice.</AlertDescription>
         </Alert>
-        {loading && (
-          <Card className="max-w-3xl mx-auto mt-4">
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Generating contract...</span>
-                  <span className="font-medium">{Math.round(progress)}%</span>
-                </div>
-                <Progress value={progress} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       <Tabs defaultValue="basics" className="w-full">
@@ -89,7 +73,7 @@ export default function ContractsInformation() {
         </TabsList>
 
         <TabsContent value="basics" className="space-y-6"> 
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50">
+          <Card className="bg-gradient-to-r from-primary/5 to-purple-50 dark:to-purple-500/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Scale className="h-4 w-4" />
@@ -104,9 +88,9 @@ export default function ContractsInformation() {
         </TabsContent>
 
         <TabsContent value="binding" className="space-y-6">
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50">
+          <Card className="bg-gradient-to-r from-green-50 dark:from-green-500/10 to-emerald-50 dark:to-emerald-500/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700">
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
                 <FileText className="h-4 w-4" /> Binding Contracts
               </CardTitle>
             </CardHeader>
@@ -119,7 +103,7 @@ export default function ContractsInformation() {
         <TabsContent value="elements" className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             {elements.map((e, i) => (
-              <Card key={i} className="bg-gradient-to-r from-blue-50 to-purple-50">
+              <Card key={i} className="bg-gradient-to-r from-primary/5 to-purple-50 dark:to-purple-500/10">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     {e.icon}
@@ -135,14 +119,14 @@ export default function ContractsInformation() {
         </TabsContent>
 
         <TabsContent value="examples" className="space-y-6">
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50">
+          <Card className="bg-gradient-to-r from-green-50 dark:from-green-500/10 to-emerald-50 dark:to-emerald-500/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700">
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
                 <CheckCircle className="h-4 w-4" /> Good Example
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="text-xs bg-white p-3 rounded border">{goodExample}</pre>
+              <pre className="text-xs bg-card p-3 rounded border">{goodExample}</pre>
             </CardContent>
           </Card>
         </TabsContent>
@@ -169,23 +153,23 @@ export default function ContractsInformation() {
                 </Select>
               </div>
               {selectedCountry && selectedCountryInfo && (
-                <div className="mt-4 p-3 border rounded bg-white">
+                <div className="mt-4 p-3 border rounded bg-card">
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <FileSignature className="h-4 w-4" /> Electronic Signatures
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <div className="font-semibold text-gray-700">E-Signature:</div>
+                      <div className="font-semibold text-foreground/80">E-Signature:</div>
                       <Badge variant={selectedCountryInfo.e_signature_valid ? 'default' : 'destructive'}>
                         {selectedCountryInfo.e_signature_valid ? '✓ Valid' : '✗ Not Valid'}
                       </Badge>
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-700">Language:</div>
+                      <div className="font-semibold text-foreground/80">Language:</div>
                       <span>{selectedCountryInfo.language_required}</span>
                     </div>
                   </div>
-                  <div className="mt-2 text-sm text-gray-700">Notes: {selectedCountryInfo.notes || 'None'}</div>
+                  <div className="mt-2 text-sm text-foreground/80">Notes: {selectedCountryInfo.notes || 'None'}</div>
                 </div>
               )}
             </CardContent>

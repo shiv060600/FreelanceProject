@@ -1,6 +1,5 @@
 'use client'
 
-import DashboardNavbar from "@/components/dashboard-navbar";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
 import ClientList from "@/components/clients/client-list";
@@ -21,12 +20,11 @@ export default function ClientsPage() {
   if (userLoading) {
     return (
       <>
-        <DashboardNavbar/>
-        <main className="w-full">
+        <div className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
             <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <h1 className="text-4xl font-bold text-foreground">Clients</h1>
                 <p className="text-sm text-muted-foreground mt-2">
                   Manage your client relationships
                 </p>
@@ -43,9 +41,9 @@ export default function ClientsPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-md border border-gray-200/60">
+            <div className="bg-card rounded-xl shadow-md border border-border/60">
               <div className="p-6">
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="h-6 w-6 animate-spin" />
                     <span>Loading user data...</span>
@@ -54,7 +52,7 @@ export default function ClientsPage() {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </>
     );
   }
@@ -63,12 +61,11 @@ export default function ClientsPage() {
   if (!user) {
     return (
       <>
-        <DashboardNavbar />
-        <main className="w-full">
+        <div className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
             <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <h1 className="text-4xl font-bold text-foreground">Clients</h1>
                 <p className="text-sm text-muted-foreground mt-2">
                   Manage your client relationships
                 </p>
@@ -82,7 +79,7 @@ export default function ClientsPage() {
               </AlertDescription>
             </Alert>
           </div>
-        </main>
+        </div>
       </>
     );
   }
@@ -91,12 +88,11 @@ export default function ClientsPage() {
   if (clientsLoading) {
     return (
       <>
-        <DashboardNavbar />
-        <main className="w-full">
+        <div className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
             <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <h1 className="text-4xl font-bold text-foreground">Clients</h1>
                 <p className="text-sm text-muted-foreground mt-2">
                   Manage your client relationships
                 </p>
@@ -115,9 +111,9 @@ export default function ClientsPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-md border border-gray-200/60">
+            <div className="bg-card rounded-xl shadow-md border border-border/60">
               <div className="p-6">
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="h-6 w-6 animate-spin" />
                     <span>Loading clients...</span>
@@ -126,7 +122,7 @@ export default function ClientsPage() {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </>
     );
   }
@@ -135,12 +131,11 @@ export default function ClientsPage() {
   if (clientsError) {
     return (
       <>
-        <DashboardNavbar />
-        <main className="w-full">
+        <div className="w-full">
           <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
             <div className="flex justify-between items-center pb-2">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+                <h1 className="text-4xl font-bold text-foreground">Clients</h1>
                 <p className="text-sm text-muted-foreground mt-2">
                   Manage your client relationships
                 </p>
@@ -160,20 +155,19 @@ export default function ClientsPage() {
               </AlertDescription>
             </Alert>
           </div>
-        </main>
+        </div>
       </>
     );
   }
 
   return (
     <>
-      <DashboardNavbar />
-      <main className="w-full">
+      <div className="w-full">
         <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
           {/* Header Section */}
           <div className="flex justify-between items-center pb-2">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Clients</h1>
+              <h1 className="text-4xl font-bold text-foreground">Clients</h1>
               <p className="text-sm text-muted-foreground mt-2">
                 Manage your client relationships
               </p>
@@ -189,7 +183,7 @@ export default function ClientsPage() {
           {/* Clients List */}
           <ClientList clients={clients || []} />
         </div>
-      </main>
+      </div>
     </>
   );
 }

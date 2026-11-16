@@ -1,7 +1,6 @@
 import { createClient } from "../../../../supabase/server";
 import { redirect } from "next/navigation";
 import InvoicesPage from "@/components/invoices/invoices-page";
-import DashboardNavbar from "@/components/dashboard-navbar";
 import '@/styles/components.css';
 
 export default async function Invoices() {
@@ -14,7 +13,6 @@ export default async function Invoices() {
 
   return (
     <>
-      <DashboardNavbar />
         <div className="container mx-auto px-4 py-8">
           <InvoicesPage />
         </div>

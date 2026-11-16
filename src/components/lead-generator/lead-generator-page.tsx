@@ -96,7 +96,7 @@ export default function LeadGeneratorPage() {
         <button 
         onClick={() => setCurrentPage(prev => Math.max(prev-1,1))}
         disabled = {currentPage === 1} 
-        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+        className="px-3 py-2 text-sm font-medium text-muted-foreground bg-card border border-border rounded-md hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed">
           Previous
         </button>
         {pageNumbers.map(number => (
@@ -110,7 +110,7 @@ export default function LeadGeneratorPage() {
           <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1,totalPages))}
             disabled = {currentPage === totalPages}
-            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            className="px-3 py-2 text-sm font-medium text-muted-foreground bg-card border border-border rounded-md hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed">
             Next
           </button>
       </div>
@@ -122,10 +122,10 @@ export default function LeadGeneratorPage() {
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
             Lead Generator
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             Describe your service or business to generate qualified leads
           </p>
         </div>
@@ -133,7 +133,7 @@ export default function LeadGeneratorPage() {
           <div>
             <label
               htmlFor="location"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground/80"
             >
               Location
             </label>
@@ -143,14 +143,14 @@ export default function LeadGeneratorPage() {
               name="location"
               value={formData.location}
               onChange={handleInputChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
+              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
               placeholder="Enter location"
             />
           </div>
           <div>
             <label
               htmlFor="radius"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground/80"
             >
               Radius (Mi)
             </label>
@@ -160,14 +160,14 @@ export default function LeadGeneratorPage() {
               name="radius"
               value={formData.radius}
               onChange={handleInputChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
+              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
               placeholder="Enter Radius (Miles)"
             />
           </div>
           <div>
             <label
               htmlFor="limit"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground/80"
             >
               Limit (maximum responses)
             </label>
@@ -177,14 +177,14 @@ export default function LeadGeneratorPage() {
               name="limit"
               value={formData.limit}
               onChange={handleInputChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
+              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
               placeholder="Enter limit"
             />
           </div>
           <div>
             <label
               htmlFor="businessType"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground/80"
             >
               Business Type
             </label>
@@ -194,7 +194,7 @@ export default function LeadGeneratorPage() {
               name="businessType"
               value={formData.businessType}
               onChange={handleInputChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
+              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg h-12 px-2"
               placeholder="Enter business type"
             />
           </div>
@@ -211,7 +211,7 @@ export default function LeadGeneratorPage() {
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600 mr-2"></div>
-            <p className="mt-2 text-gray-600">Generating leads...</p>
+            <p className="mt-2 text-muted-foreground">Generating leads...</p>
           </div>
         ) : leads.length > 0 ? (
           <>
@@ -231,20 +231,20 @@ export default function LeadGeneratorPage() {
               )}
               <div className="flex-grow">
                 <h2 className="text-lg font-bold">{lead.name}</h2>
-                <p className="text-sm text-gray-600">Service: {lead.service}</p>
+                <p className="text-sm text-muted-foreground">Service: {lead.service}</p>
                 {lead.email && lead.email !== 'Contact via Yelp' && (
-                  <p className="text-sm text-gray-600">Email: {lead.email}</p>
+                  <p className="text-sm text-muted-foreground">Email: {lead.email}</p>
                 )}
                 {lead.phone_number && lead.phone_number !== 'Not available' && (
-                  <p className="text-sm text-gray-600">Phone: {lead.phone_number}</p>
+                  <p className="text-sm text-muted-foreground">Phone: {lead.phone_number}</p>
                 )}
                 {lead.website && (
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-sm text-muted-foreground mt-2">
                     <a 
                       href={lead.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       View on Yelp
                     </a>
@@ -258,20 +258,20 @@ export default function LeadGeneratorPage() {
         ) : (
           <div className="text-center mt-8">
             {error ? (
-              <div className="text-red-600 mb-4">
+              <div className="text-red-600 dark:text-red-400 mb-4">
                 <p className="font-semibold">Error:</p>
                 <p>{error}</p>
               </div>
             ) : formData.location ? (
-              <p className="text-gray-500">No leads found. Try different search parameters.</p>
+              <p className="text-muted-foreground">No leads found. Try different search parameters.</p>
             ) : (
-              <p className="text-gray-500">No leads generated yet.</p>
+              <p className="text-muted-foreground">No leads generated yet.</p>
             )}
             
             {formData.location && !error && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-md text-sm">
-                <p className="font-medium text-blue-800">Tips for better results:</p>
-                <ul className="list-disc list-inside text-left mt-2 text-blue-700">
+              <div className="mt-4 p-4 bg-primary/5 rounded-md text-sm">
+                <p className="font-medium text-primary">Tips for better results:</p>
+                <ul className="list-disc list-inside text-left mt-2 text-primary">
                   <li>Try a larger radius (e.g., 25 miles instead of 10)</li>
                   <li>Use more generic business types (e.g., "cafe" instead of "specialty coffee")</li>
                   <li>Check your location spelling</li>
@@ -285,10 +285,10 @@ export default function LeadGeneratorPage() {
     </div>) 
     : (
       <div className="min-h-screen flex  items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-md p-8 max-w-md w-full text-center">
+        <div className="bg-card rounded-lg shadow-md p-8 max-w-md w-full text-center">
           <div className="flex space-x-2">
             <Lock className="h-10 w-10 text-red-500"/>
-            <h2 className="text-bold text-red-600">
+            <h2 className="text-bold text-red-600 dark:text-red-400">
               No access for users who don't have Expert Freelancer subscription
             </h2>
           </div>

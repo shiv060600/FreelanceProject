@@ -1,97 +1,111 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import type { LengthId, ToneId } from "@/lib/contracts/catalog";
 
-interface AiContractGenerateParams {
+export interface GenerateParams {
   title: string;
   contractType: string;
-  prompt: string;
+  details: string;
   clientName: string;
+  clientCompany?: string;
+  clientEmail?: string;
+  jurisdiction?: string;
+  tone?: ToneId;
+  length?: LengthId;
 }
 
+export interface RefineParams {
+  currentContract: string;
+  instruction: string;
+}
+
+interface StreamCallbacks {
+  /** Called with the full text so far each time more arrives. */
+  onText: (textSoFar: string) => void;
+}
+
+/**
+ * Streams a contract from /api/ai-contract-generate. The server increments
+ * the usage counter, so after a run the caller should refetch usage
+ * (we expose the server's reported count via `lastUsage`).
+ */
 export function useAiContractGenerate() {
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number>(0);
+  const [lastUsage, setLastUsage] = useState<{ used: number; limit: number } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Progress simulation while API call is in flight
-  useEffect(() => {
-    let timer: any;
-    if (loading) {
-      setProgress(0);
-      timer = setInterval(() => {
-        setProgress((p) => Math.min(95, p + 6));
-      }, 200);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [loading]);
+  const run = useCallback(
+    async (payload: Record<string, unknown>, { onText }: StreamCallbacks): Promise<string> => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-  const generateAiContract = async (
-    params: AiContractGenerateParams,
-  ): Promise<string> => {
-    setLoading(true);
-    setError(null);
-    try {
-      if (!params.title.trim()) {
-        throw new Error("Contract title is required");
-      }
-      if (!params.contractType.trim()) {
-        throw new Error("Contract type is required");
-      }
-      if (!params.prompt.trim()) {
-        throw new Error("Prompt is required");
-      }
-      if (!params.clientName.trim()) {
-        throw new Error("Client name is required");
-      }
+      setLoading(true);
+      setError(null);
+      let text = "";
 
-      const response = await fetch("/api/ai-contract-generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(params),
-      });
+      try {
+        const response = await fetch("/api/ai-contract-generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
 
-      // handle unexpected faliure
-      if (!response.ok) {
-        let errorMessage = "Failed to generate contract";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If JSON parsing fails, use status text
-          errorMessage =
-            response.statusText || `Server error (${response.status})`;
+        if (!response.ok || !response.body) {
+          let message = `Request failed (${response.status})`;
+          try {
+            message = (await response.json()).message || message;
+          } catch {
+            /* non-JSON error body */
+          }
+          throw new Error(message);
         }
-        throw new Error(errorMessage);
+
+        const limitHeader = response.headers.get("X-AI-Limit");
+        const used = Number(response.headers.get("X-AI-Used"));
+        if (limitHeader && Number.isFinite(used)) {
+          setLastUsage({ used, limit: limitHeader === "unlimited" ? Infinity : Number(limitHeader) });
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+          onText(text);
+        }
+        text += decoder.decode();
+        onText(text);
+
+        if (!text.trim()) throw new Error("The AI returned an empty contract. Please try again.");
+        return text;
+      } catch (e: any) {
+        if (e?.name === "AbortError") return text; // user cancelled; keep what we have
+        const message = e?.message || "Failed to generate contract. Check your connection and try again.";
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setLoading(false);
+        if (abortRef.current === controller) abortRef.current = null;
       }
+    },
+    [],
+  );
 
-      const data = await response.json();
+  const generateAiContract = useCallback(
+    (params: GenerateParams, cb: StreamCallbacks) => run({ mode: "generate", ...params }, cb),
+    [run],
+  );
 
-      if (!data.success || !data.contract) {
-        throw new Error(data.message || "Invalid response from AI service");
-      }
+  const refineAiContract = useCallback(
+    (params: RefineParams, cb: StreamCallbacks) => run({ mode: "refine", ...params }, cb),
+    [run],
+  );
 
-      // Ensure progress finishes at 100% on success
-      setProgress(100);
-      return data.contract;
-    } catch (error: any) {
-      console.error("Failed to generate contract:", error);
-      const errorMessage =
-        error?.message ||
-        "Failed to generate AI contract. Please check your connection and try again.";
-      setError(errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-  return {
-    loading,
-    error,
-    progress,
-    generateAiContract,
-  };
+  const cancel = useCallback(() => abortRef.current?.abort(), []);
+
+  return { loading, error, lastUsage, generateAiContract, refineAiContract, cancel };
 }

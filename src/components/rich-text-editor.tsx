@@ -10,7 +10,7 @@ import 'react-quill/dist/quill.snow.css'
 const ReactQuill = dynamic(() => import('react-quill'), {
   ssr: false,
   loading: () => (
-    <div className="h-[250px] border rounded-md bg-gray-50 animate-pulse flex items-center justify-center">
+    <div className="h-[250px] border rounded-md bg-muted/50 animate-pulse flex items-center justify-center">
       <span>Loading Rich Text Editor...</span>
     </div>
   )
@@ -31,7 +31,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
 
   if (!mounted) {
     return (
-      <div className="h-[250px] border rounded-md bg-gray-50 animate-pulse flex items-center justify-center">
+      <div className="h-[250px] border rounded-md bg-muted/50 animate-pulse flex items-center justify-center">
         <span>Loading Rich Text Editor...</span>
       </div>
     )

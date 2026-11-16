@@ -112,7 +112,7 @@ export function TestSignup() {
               ) : (
                 <AlertCircle className="h-4 w-4 text-red-500" />
               )}
-              <AlertDescription className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+              <AlertDescription className={message.type === 'success' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
                 {message.text}
               </AlertDescription>
             </Alert>

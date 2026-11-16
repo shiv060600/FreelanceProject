@@ -173,7 +173,7 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
           </div>
 
           {/* Display calculated amounts */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
               <span className="font-medium">Subtotal:</span>
               <span>${subtotal.toFixed(2)}</span>

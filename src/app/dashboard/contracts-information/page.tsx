@@ -1,6 +1,5 @@
 import { createClient } from "../../../../supabase/server";
 import { redirect } from "next/navigation";
-import DashboardNavbar from "@/components/dashboard-navbar";
 import ContractsInformation from "@/components/contracts-information/contracts-information-page";
 import '@/styles/components.css';
 export default async function ContractsInformationPage(){
@@ -11,7 +10,6 @@ export default async function ContractsInformationPage(){
     }
     return (
         <div>
-            <DashboardNavbar/>
             <div className="container mx-auto px-4 py-8 ">
                 <ContractsInformation/>
             </div>

@@ -16,6 +16,7 @@ import { SearchInput } from '../ui/search-input'
 import ContractInfo from './contract-info'
 import { useMemo } from 'react'
 import ContractPreview from './contract-preview'
+import { stripContractMarkup } from '@/lib/contracts/parse'
 
 interface CountryInfo {
   e_signature_valid:boolean,
@@ -124,12 +125,12 @@ export default function ContractsPage() {
   if (contracts?.length === 0){
     return(
       <div>
-        <Card className="border-2 border-dashed border-gray-200">
+        <Card className="border-2 border-dashed border-border">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 bg-blue-100 rounded-full mb-4">
-              <FileText className="h-12 w-12 text-blue-600" />
+            <div className="p-4 bg-primary/10 rounded-full mb-4">
+              <FileText className="h-12 w-12 text-primary" />
             </div>
-            <h3 className="text-xl font-bold mb-2 text-gray-900">No contracts yet</h3>
+            <h3 className="text-xl font-bold mb-2 text-foreground">No contracts yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
               Create your first contract to get started and protect your freelance business.
             </p>
@@ -164,14 +165,14 @@ export default function ContractsPage() {
         <div className="space-y-6">
           <div className='flex justify-between items-center pb-2'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>Contracts</h1>
+              <h1 className='text-3xl font-bold text-foreground'>Contracts</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Manage and organize your client contracts
               </p>
             </div>
             <div className='flex items-center gap-3'>
               {!canCreate && 
-                <p className='text-sm font-semibold text-red-500 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-md border border-red-200'>
+                <p className='text-sm font-semibold text-red-500 flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-md border border-red-200 dark:border-red-500/30'>
                   <AwardIcon className='h-4 w-4'/>
                   Contract limit reached ({currentCount}/{maxContracts}) - upgrade to add more
                 </p>
@@ -180,7 +181,7 @@ export default function ContractsPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setContractsInfoOpen(!contractsInfoOpen)}
-                className={contractsInfoOpen? `h-9 w-9 bg-blue-200` : `h-9 w-9 hover:bg-blue-100 hover:text-blue-900 hover:border-blue-300 transition-colors`}
+                className={contractsInfoOpen? `h-9 w-9 bg-blue-200` : `h-9 w-9 hover:bg-primary/10 hover:text-blue-900 dark:text-blue-400 hover:border-primary/20 transition-colors`}
                 title="Contract Information"
               >
                 <Info className="h-4 w-4 " />
@@ -197,31 +198,31 @@ export default function ContractsPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 border border-blue-100/50">
+          <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-primary/5 to-purple-50/50 dark:to-purple-500/10 rounded-lg p-4 border border-primary/20">
             <SearchInput 
               placeholder='Search contracts by name or client...' 
               value={currentSearch} 
               onChange={setCurrentSearch} 
-              className='max-w-md bg-white shadow-sm'
+              className='max-w-md bg-card shadow-sm'
             />
             {currentSearch && (
-              <span className="text-sm font-medium text-gray-700 bg-white px-3 py-1.5 rounded-md shadow-sm">
+              <span className="text-sm font-medium text-foreground/80 bg-card px-3 py-1.5 rounded-md shadow-sm">
                 {filteredContracts.length} of {contracts?.length || 0} contracts
               </span>
             )}
           </div>
           <div className="grid gap-4">
         {filteredContracts.map((contract) => (
-          <Card key={contract.id} className="border border-gray-200/60 hover:shadow-lg transition-all duration-200 hover:border-blue-200">
+          <Card key={contract.id} className="border border-border/60 hover:shadow-lg transition-all duration-200 hover:border-primary/20">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-xl font-bold text-gray-900 mb-3">{contract.title}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-foreground mb-3">{contract.title}</CardTitle>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border border-blue-200 font-semibold">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20 font-semibold">
                       {contract.clients?.name || `Unknown Client (${contract.client_id})`}
                     </Badge>
-                    <span className="text-sm text-gray-500 font-medium">
+                    <span className="text-sm text-muted-foreground font-medium">
                       {new Date(contract.created_at).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'short', 
@@ -253,7 +254,7 @@ export default function ContractsPage() {
                           variant="outline"
                           size="sm"
                           disabled={loading}
-                          className="h-10 w-10 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                          className="h-10 w-10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -264,7 +265,7 @@ export default function ContractsPage() {
                     variant='outline'
                     size='sm'
                     onClick={() => handleSendContract(contract)}
-                    className="h-10 w-10 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                    className="h-10 w-10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
                   >
                     <Mail className='h-4 w-4'/>
                   </Button>
@@ -272,7 +273,7 @@ export default function ContractsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleEditContract(contract)}
-                    className="h-10 w-10 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                    className="h-10 w-10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -280,7 +281,7 @@ export default function ContractsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteContract(contract)}
-                    className="h-10 w-10 hover:bg-red-100 hover:text-red-600 hover:border-red-300 transition-colors"
+                    className="h-10 w-10 hover:bg-red-100 dark:bg-red-500/15 hover:text-red-600 dark:text-red-400 hover:border-red-300 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -292,7 +293,7 @@ export default function ContractsPage() {
                       setSelectedContract(contract)
                       setContractPreviewOpen(true)
                     }}
-                    className="h-10 w-10 hover:bg-green-100 hover:text-green-600 hover:border-green-300 transition-colors"
+                    className="h-10 w-10 hover:bg-green-100 dark:bg-green-500/15 hover:text-green-600 dark:text-green-400 hover:border-green-300 transition-colors"
                     title="Quick Preview"
                   >
                     <Eye className="h-4 w-4" />
@@ -301,19 +302,19 @@ export default function ContractsPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="text-sm text-gray-600 max-h-24 overflow-hidden bg-gray-50/50 rounded-lg p-4 border border-gray-100">
+              <div className="text-sm text-muted-foreground max-h-24 overflow-hidden bg-muted/50 rounded-lg p-4 border border-border">
                 {contract.content ? (
                   <div className="whitespace-pre-wrap font-sans leading-relaxed">
-                    {/* Strip HTML for preview */}
+                    {/* Strip markup (HTML from older contracts, Markdown from AI drafts) for the preview */}
                     {(() => {
-                      const plainText = contract.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
+                      const plainText = stripContractMarkup(contract.content)
                       return plainText.length > 200 
                         ? `${plainText.substring(0, 200)}...` 
                         : plainText
                     })()}
                   </div>
                 ) : (
-                  <em className="text-gray-400">No content</em>
+                  <em className="text-muted-foreground">No content</em>
                 )}
               </div>
             </CardContent>

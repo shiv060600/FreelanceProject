@@ -1,4 +1,3 @@
-import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from "../../../supabase/server";
 import { InfoIcon, DollarSign, FileText } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -147,59 +146,58 @@ export default async function Dashboard() {
   };
   return (
     <>
-      <DashboardNavbar />
-      <main className="w-full">
+      <div className="w-full">
         <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
           {/* Header Section */}
           <header className="flex flex-col gap-4 pb-2">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
+              <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
               <p className="text-sm text-muted-foreground mt-2">
                 Welcome back! Here's your business overview.
               </p>
             </div>
-            <div className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 backdrop-blur-sm text-sm p-4 px-5 rounded-xl text-gray-700 flex gap-3 items-center border border-blue-100/50 shadow-sm">
-              <InfoIcon size="16" className="text-blue-600 flex-shrink-0" />
+            <div className="bg-gradient-to-r from-primary/5 to-purple-50/80 dark:to-purple-500/10 backdrop-blur-sm text-sm p-4 px-5 rounded-xl text-foreground/80 flex gap-3 items-center border border-primary/20 shadow-sm">
+              <InfoIcon size="16" className="text-primary flex-shrink-0" />
               <span className="font-medium">Your business insights and analytics at a glance</span>
             </div>
           </header>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-white to-emerald-50/30 rounded-2xl p-6 border border-emerald-100 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+            <div className="bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-500/10 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-500/30 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-emerald-100 rounded-xl border border-emerald-200">
-                  <DollarSign className="h-7 w-7 text-emerald-600" />
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-500/15 rounded-xl border border-emerald-200 dark:border-emerald-500/30">
+                  <DollarSign className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="font-semibold text-lg text-gray-700 mb-1">Lifetime Earnings</h2>
-                  <p className="text-4xl font-bold text-gray-900 mb-1">${allMoneyStats?.totalMade.toFixed(2)}</p>
+                  <h2 className="font-semibold text-lg text-foreground/80 mb-1">Lifetime Earnings</h2>
+                  <p className="text-4xl font-bold text-foreground mb-1">${allMoneyStats?.totalMade.toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground font-medium">{allInvoiceStats?.paid} paid invoices</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl p-6 border border-amber-100 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+            <div className="bg-gradient-to-br from-background to-amber-50/30 dark:to-amber-500/10 rounded-2xl p-6 border border-amber-100 dark:border-amber-500/30 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-amber-100 rounded-xl border border-amber-200">
-                  <DollarSign className="h-7 w-7 text-amber-600" />
+                <div className="p-3 bg-amber-100 dark:bg-amber-500/15 rounded-xl border border-amber-200 dark:border-amber-500/30">
+                  <DollarSign className="h-7 w-7 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="font-semibold text-lg text-gray-700 mb-1">Draft Revenue</h2>
-                  <p className="text-4xl font-bold text-gray-900 mb-1">${allMoneyStats?.totalToBeMade.toFixed(2)}</p>
+                  <h2 className="font-semibold text-lg text-foreground/80 mb-1">Draft Revenue</h2>
+                  <p className="text-4xl font-bold text-foreground mb-1">${allMoneyStats?.totalToBeMade.toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground font-medium">From draft invoices</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-6 border border-blue-100 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+            <div className="bg-gradient-to-br from-background to-primary/5 rounded-2xl p-6 border border-primary/20 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-100 rounded-xl border border-blue-200">
-                  <FileText className="h-7 w-7 text-blue-600" />
+                <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                  <FileText className="h-7 w-7 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="font-semibold text-lg text-gray-700 mb-1">Draft Invoices</h2>
-                  <p className="text-4xl font-bold text-gray-900 mb-1">{allInvoiceStats?.draft}</p>
+                  <h2 className="font-semibold text-lg text-foreground/80 mb-1">Draft Invoices</h2>
+                  <p className="text-4xl font-bold text-foreground mb-1">{allInvoiceStats?.draft}</p>
                   <p className="text-sm text-muted-foreground font-medium">Ready to be sent</p>
                 </div>
               </div>
@@ -211,7 +209,7 @@ export default async function Dashboard() {
             clientsYearlySalesData={clientsYearlySalesData}
           />
         </div>
-      </main>
+      </div>
     </>
   );
 }

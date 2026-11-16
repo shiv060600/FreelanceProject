@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { ContractEditor } from './contract-editor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { useEditContract } from '@/hooks/use-contracts'
@@ -143,17 +143,12 @@ export function EditContractDialog({ contract, open, onOpenChange}: EditContract
 
                     <div className="space-y-2">
                         <Label htmlFor="content">Contract Content</Label>
-                        <Textarea
+                        <ContractEditor
                             id="content"
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
+                            onChange={setContent}
                             placeholder="Enter contract content..."
-                            className="min-h-[300px] font-mono text-sm"
-                            style={{ whiteSpace: 'pre-wrap' }}
                         />
-                        <p className="text-xs text-muted-foreground">
-                            Use line breaks and spacing as needed. Formatting will be preserved in the PDF.
-                        </p>
                     </div>
 
                     <div className="flex justify-end space-x-2 pt-4">

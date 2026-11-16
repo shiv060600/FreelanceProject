@@ -162,7 +162,7 @@ export default function PaymentLinksForm(props:{userId:string}){
                         <div className="flex items-center justify-center py-12">
                             <div className="flex flex-col items-center gap-4">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                <p className="text-gray-600 text-sm">Loading payment settings...</p>
+                                <p className="text-muted-foreground text-sm">Loading payment settings...</p>
                             </div>
                         </div>
                     </CardContent>
@@ -199,8 +199,8 @@ export default function PaymentLinksForm(props:{userId:string}){
                                         onChange={(e)=>setCashAppUserName(e.target.value)}
                                         placeholder="Enter Cashapp Username"
                                         disabled={cashAppExsists && !cashAppEditMode}
-                                        className={`w-full px-4 py-3 h-8 border border-gray-300 rounded-md text-base pr-10 ${
-                                            cashAppExsists && !cashAppEditMode ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                                        className={`w-full px-4 py-3 h-8 border border-border rounded-md text-base pr-10 ${
+                                            cashAppExsists && !cashAppEditMode ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
                                         }`}
                                     />
                                     <Popover open={cashAppPopoverOpen} onOpenChange={setCashAppPopoverOpen}>
@@ -209,38 +209,38 @@ export default function PaymentLinksForm(props:{userId:string}){
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-full transition-all duration-200"
+                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-50 dark:to-purple-500/10 rounded-full transition-all duration-200"
                                             >
-                                                <HelpCircle className="h-4 w-4 text-gray-600 hover:text-blue-600 transition-colors" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent 
                                             side="top" 
-                                            className="max-w-sm p-4 bg-white border-2 border-gray-800 shadow-xl rounded-lg"
+                                            className="max-w-sm p-4 bg-card border-2 border-gray-800 shadow-xl rounded-lg"
                                             sideOffset={8}
                                         >
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"></div>
-                                                        <p className="font-semibold text-gray-900 text-base">Cash App Username Format</p>
+                                                        <p className="font-semibold text-foreground text-base">Cash App Username Format</p>
                                                     </div>
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-6 w-6 p-0 hover:bg-gray-100 rounded-full"
+                                                        className="h-6 w-6 p-0 hover:bg-muted rounded-full"
                                                         onClick={() => setCashAppPopoverOpen(false)}
                                                     >
-                                                        <X className="h-3 w-3 text-gray-500" />
+                                                        <X className="h-3 w-3 text-muted-foreground" />
                                                     </Button>
                                                 </div>
-                                                <p className="text-sm text-gray-700 leading-relaxed">
+                                                <p className="text-sm text-foreground/80 leading-relaxed">
                                                     Enter your username without the $ symbol.
                                                 </p>
-                                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-md border border-gray-200">
-                                                    <p className="text-sm text-gray-600 font-medium">Example:</p>
-                                                    <p className="text-sm text-gray-700">If your Cash App is <span className="font-mono bg-gray-100 px-1 rounded">$johnsmith</span>, enter <span className="font-mono bg-blue-100 text-blue-800 px-1 rounded">"johnsmith"</span></p>
+                                                <div className="bg-gradient-to-r from-primary/5 to-purple-50 dark:to-purple-500/10 p-3 rounded-md border border-border">
+                                                    <p className="text-sm text-muted-foreground font-medium">Example:</p>
+                                                    <p className="text-sm text-foreground/80">If your Cash App is <span className="font-mono bg-muted px-1 rounded">$johnsmith</span>, enter <span className="font-mono bg-primary/10 text-primary px-1 rounded">"johnsmith"</span></p>
                                                 </div>
                                             </div>
                                         </PopoverContent>
@@ -292,8 +292,8 @@ export default function PaymentLinksForm(props:{userId:string}){
                                         onChange={(e)=>setVenmoUserName(e.target.value)}
                                         placeholder="Enter Venmo Username"
                                         disabled={venmoExists && !venmoEditMode}
-                                        className={`w-full px-4 py-3 h-8 border border-gray-300 rounded-md text-base pr-10 ${
-                                            venmoExists && !venmoEditMode ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                                        className={`w-full px-4 py-3 h-8 border border-border rounded-md text-base pr-10 ${
+                                            venmoExists && !venmoEditMode ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
                                         }`}
                                     />
                                     <Popover open={venmoPopoverOpen} onOpenChange={setVenmoPopoverOpen}>
@@ -302,38 +302,38 @@ export default function PaymentLinksForm(props:{userId:string}){
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-full transition-all duration-200"
+                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-50 dark:to-purple-500/10 rounded-full transition-all duration-200"
                                             >
-                                                <HelpCircle className="h-4 w-4 text-gray-600 hover:text-blue-600 transition-colors" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent 
                                             side="top" 
-                                            className="max-w-sm p-4 bg-white border-2 border-gray-800 shadow-xl rounded-lg"
+                                            className="max-w-sm p-4 bg-card border-2 border-gray-800 shadow-xl rounded-lg"
                                             sideOffset={8}
                                         >
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"></div>
-                                                        <p className="font-semibold text-gray-900 text-base">Venmo Username Format</p>
+                                                        <p className="font-semibold text-foreground text-base">Venmo Username Format</p>
                                                     </div>
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-6 w-6 p-0 hover:bg-gray-100 rounded-full"
+                                                        className="h-6 w-6 p-0 hover:bg-muted rounded-full"
                                                         onClick={() => setVenmoPopoverOpen(false)}
                                                     >
-                                                        <X className="h-3 w-3 text-gray-500" />
+                                                        <X className="h-3 w-3 text-muted-foreground" />
                                                     </Button>
                                                 </div>
-                                                <p className="text-sm text-gray-700 leading-relaxed">
+                                                <p className="text-sm text-foreground/80 leading-relaxed">
                                                     Enter your username without the @ symbol.
                                                 </p>
-                                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-md border border-gray-200">
-                                                    <p className="text-sm text-gray-600 font-medium">Example:</p>
-                                                    <p className="text-sm text-gray-700">If your Venmo is <span className="font-mono bg-gray-100 px-1 rounded">@janesmith</span>, enter <span className="font-mono bg-blue-100 text-blue-800 px-1 rounded">"janesmith"</span></p>
+                                                <div className="bg-gradient-to-r from-primary/5 to-purple-50 dark:to-purple-500/10 p-3 rounded-md border border-border">
+                                                    <p className="text-sm text-muted-foreground font-medium">Example:</p>
+                                                    <p className="text-sm text-foreground/80">If your Venmo is <span className="font-mono bg-muted px-1 rounded">@janesmith</span>, enter <span className="font-mono bg-primary/10 text-primary px-1 rounded">"janesmith"</span></p>
                                                 </div>
                                             </div>
                                         </PopoverContent>

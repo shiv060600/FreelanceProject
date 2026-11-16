@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createClient } from "../../supabase/client";
 
 const supabase = createClient();
@@ -25,25 +25,4 @@ export function useUserAiUsage(userId: string) {
     });
 }
 
-// increment AI usage 
-export function useIncrementAiUsage() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async (userId: string) => {
-            const { data: newUsage, error } = await supabase.rpc('handle_ai_usage', {
-                user_id_param: userId
-            });
-
-            if (error) {
-                throw error;
-            }
-
-            return newUsage;
-        },
-        onSuccess: (newUsage, userId) => {
-            // Update the cache with the new usage value
-            queryClient.setQueryData(['user-ai-usage', userId], newUsage);
-        },
-    });
-}
+// Usage is incremented server-side by /api/ai-contract-generate. Do not increment from the browser.
