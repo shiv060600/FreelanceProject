@@ -19,11 +19,16 @@ import { Client } from "@/types/client"
 
 interface DeleteClientDialogProps {
   client: Client;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function DeleteClientDialog({ client, children }: DeleteClientDialogProps) {
-  const [open, setOpen] = useState(false)
+export default function DeleteClientDialog({ client, children, open: controlledOpen, onOpenChange }: DeleteClientDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  // Controlled when `open` is passed (one dialog per page); otherwise self-managed with `children` as trigger.
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -46,9 +51,11 @@ export default function DeleteClientDialog({ client, children }: DeleteClientDia
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        {children}
-      </AlertDialogTrigger>
+      {children && (
+        <AlertDialogTrigger asChild>
+          {children}
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

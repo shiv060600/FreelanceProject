@@ -80,7 +80,7 @@ export function useInvoices (userId:string){
             const clientsResponse = clientIds.length > 0 
                 ? await supabase
                     .from('clients')
-                    .select('id,name,email,phone')
+                    .select('id,name,email,phone,company,address')
                     .in('id',clientIds)
                 : { data: [], error: null };
 

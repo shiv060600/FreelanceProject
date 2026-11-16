@@ -1,255 +1,221 @@
 'use client'
-import { useState, useMemo } from "react"
-import { useDebounce } from "@/hooks/use-debounce"
-import { Button } from "@/components/ui/button"
-import { Plus, FileText, Download, Mail, Trash, Pencil, RefreshCw, Eye} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
-import { SearchInput } from "@/components/ui/search-input"
-import { SortHeader } from "@/components/ui/sort-header"
-import CreateInvoiceDialog from "./create-invoice-dialog"
-import EditInvoiceDialog from "./edit-invoice-dialog"
-import InvoicePreview from "./invoice-preview"
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import InvoicePDF from './invoice-pdf'
-import { useInvoicePDF } from '../../hooks/use-invoice-pdf'
-import { DeleteInvoiceDialog } from "./delete-invoice-dialog"
-import { useUser } from '@/hooks/use-user'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { 
-  useInvoices, 
-  useUserSubscription, 
-  useInvoiceCount, 
-  useCanCreateInvoice,
-  useSendInvoice,
-  useUpdateInvoice
-} from '@/hooks/use-invoices'
+import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Plus, Receipt, SearchX, Wallet } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Segmented } from '@/components/ui/segmented'
+import { SearchInput } from '@/components/ui/search-input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StatCard } from '@/components/ui/stat-card'
+import { useToast } from '@/components/ui/use-toast'
+import { useDebounce } from '@/hooks/use-debounce'
+import { useUser } from '@/hooks/use-user'
+import { useInvoicePDF } from '@/hooks/use-invoice-pdf'
+import { useCanCreateInvoice, useInvoices, useUpdateInvoice } from '@/hooks/use-invoices'
+import { formatDate, money, money2 } from '@/lib/format'
+import { todayISO } from '@/lib/analytics'
+import {
+  countByState,
+  filterInvoices,
+  invoiceAmount,
+  sortInvoices,
+  summarizeInvoices,
+  type InvoiceSort,
+  type StatusFilter,
+} from '@/lib/invoice-utils'
+import CreateInvoiceDialog from './create-invoice-dialog'
+import { DeleteInvoiceDialog } from './delete-invoice-dialog'
+import EditInvoiceDialog from './edit-invoice-dialog'
+import InvoicePreview from './invoice-preview'
+import { InvoiceList } from './invoice-list'
+import { buildInvoicePdf, invoiceFileName, saveBlob } from './invoice-pdf-actions'
 
-type SortDirection = 'asc' | 'desc' | null
+const PAGE_SIZE = 25
+
+const SORTS: { id: InvoiceSort; label: string }[] = [
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'due', label: 'Due date (soonest)' },
+  { id: 'amount_desc', label: 'Amount (high to low)' },
+  { id: 'amount_asc', label: 'Amount (low to high)' },
+  { id: 'client', label: 'Client (A–Z)' },
+]
+
+function PageHeader({ action }: { action: React.ReactNode }) {
+  return (
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Create invoices, track who owes you, and mark them paid.</p>
+      </div>
+      {action}
+    </header>
+  )
+}
 
 export default function InvoicesPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
-  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState("")
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: SortDirection }>({
-    key: 'created_at',
-    direction: 'desc'
-  })
+  const { toast } = useToast()
 
-  const handleSort = (key: string) => {
-    setSortConfig(prevConfig => {
-      if (prevConfig.key === key) {
-        // Cycle through: desc -> asc -> null -> desc
-        if (prevConfig.direction === 'desc') return { key, direction: 'asc' }
-        if (prevConfig.direction === 'asc') return { key: null, direction: null }
-        return { key, direction: 'desc' }
-      }
-      return { key, direction: 'desc' }
-    })
-  }
-  
-  // React Query hooks
-  const { data: user, isLoading: userLoading } = useUser();
-  const { data: invoices, isLoading: invoicesLoading, error: invoicesError } = useInvoices(user?.id || '');
+  const [query, setQuery] = useState('')
+  const debouncedQuery = useDebounce(query, 250)
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [clientId, setClientId] = useState('all')
+  const [sort, setSort] = useState<InvoiceSort>('newest')
+  const [visible, setVisible] = useState(PAGE_SIZE)
+
+  const [selected, setSelected] = useState<any>(null)
+  const [editing, setEditing] = useState<any>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+
+  const { data: user, isLoading: userLoading } = useUser()
+  const { data: invoices, isLoading: invoicesLoading, error: invoicesError } = useInvoices(user?.id || '')
   const { userInfo, loading: userInfoLoading } = useInvoicePDF()
-  const userInfoForPdf = { 
+  const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id!)
+  const updateInvoice = useUpdateInvoice()
+
+  const pdfUser = useMemo(
+    () => ({
       name: userInfo.name || 'not set',
       email: userInfo.email || 'not set',
       address: userInfo.address || 'not set',
       venmo_username: userInfo.venmo_username,
-      cashapp_username: userInfo.cashapp_username
-    };
-  const { data: subscription } = useUserSubscription(user?.id || '');
-  const { data: invoiceCount } = useInvoiceCount(user?.id || '');
-  const { canCreate, currentCount, maxInvoices } = useCanCreateInvoice(user?.id!);
-  const sendInvoice = useSendInvoice();
-  const updateInvoice = useUpdateInvoice();
+      cashapp_username: userInfo.cashapp_username,
+    }),
+    [userInfo],
+  )
 
-  //Master loading state
-  const isLoading = userLoading || invoicesLoading
+  const today = useMemo(() => todayISO(), [])
+  const all = (invoices ?? []) as any[]
 
-  // Filter and sort invoices useMemo
-  const filteredAndSortedInvoices = useMemo(() => {
-    if (!invoices) return []
-    
-    let result = [...invoices]
+  const counts = useMemo(() => countByState(all, today), [all, today])
+  const summary = useMemo(() => summarizeInvoices(all, today), [all, today])
 
-    if (debouncedSearchTerm) {
-      const searchLower = debouncedSearchTerm.toLowerCase()
-      result = result.filter(invoice =>
-        invoice.invoice_number.toLowerCase().includes(searchLower) ||
-        (invoice.invoice_name && 
-         invoice.invoice_name.toLowerCase().includes(searchLower)) ||
-        (invoice.clients?.name && 
-         invoice.clients.name.toLowerCase().includes(searchLower))
-      )
-    }
+  const clients = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const i of all) if (i.client_id && i.clients?.name) seen.set(i.client_id, i.clients.name)
+    return Array.from(seen.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [all])
 
-    // Sort
-    if (sortConfig.key && sortConfig.direction) {
-      result.sort((a, b) => {
-        let aValue: any
-        let bValue: any
+  const rows = useMemo(
+    () => sortInvoices(filterInvoices(all, { query: debouncedQuery, status, clientId, today }), sort),
+    [all, debouncedQuery, status, clientId, sort, today],
+  )
+  const shown = rows.slice(0, visible)
+  const filtersActive = query !== '' || status !== 'all' || clientId !== 'all'
 
-        switch (sortConfig.key) {
-          case 'issue_date':
-            aValue = new Date(a.issue_date).getTime()
-            bValue = new Date(b.issue_date).getTime()
-            break
-          case 'due_date':
-            aValue = new Date(a.due_date).getTime()
-            bValue = new Date(b.due_date).getTime()
-            break
-          case 'total':
-            aValue = a.total
-            bValue = b.total
-            break
-          case 'created_at':
-            aValue = new Date(a.created_at).getTime()
-            bValue = new Date(b.created_at).getTime()
-            break
-          default:
-            return 0
-        }
+  const resetFilters = () => {
+    setQuery('')
+    setStatus('all')
+    setClientId('all')
+    setVisible(PAGE_SIZE)
+  }
+  // Any filter change goes back to the first page of results.
+  const withReset = <T,>(setter: (v: T) => void) => (v: T) => {
+    setter(v)
+    setVisible(PAGE_SIZE)
+  }
 
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
-        return 0
-      })
-    }
-    
+  const refresh = () => {
+    if (!user) return
+    queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
+    queryClient.invalidateQueries({ queryKey: ['invoice-count', user.id] })
+  }
 
-    return result
-  }, [invoices, debouncedSearchTerm, sortConfig])
-  
-  const handleSendInvoice = async (invoice: any) => {
-    if (!user) {
-      router.push('/sign-in')
-      return
-    }
+  // ---- actions --------------------------------------------------------------
 
+  const handleSetPaid = async (invoice: any, paid: boolean) => {
+    if (!user) return
+    setPendingId(invoice.id)
     try {
-      const { pdf } = await import('@react-pdf/renderer')
-      
-      // Create the PDF document component with userInfo and client data
-      const invoicePdf = (
-        <InvoicePDF 
-          invoice={invoice} 
-          userInfo={userInfoForPdf}
-          clientData={invoice.clients ? {
-            name: invoice.clients.name || 'N/A',
-            email: invoice.clients.email || 'N/A',
-            phone: invoice.clients.phone || 'N/A',
-            company: invoice.clients.company || 'N/A',
-            address: invoice.clients.address || 'N/A'
-          } : undefined}
-        />
-      )
-      
-      // Generate blob from PDF component
-      const invoicePdfBlob = await pdf(invoicePdf).toBlob()
-      
-      // Create a blob URL that can be clicked to view the PDF
-      const blobUrl = URL.createObjectURL(invoicePdfBlob)
-      
-      // Create mailto link with the blob URL in the body
-      const subject = encodeURIComponent(`Invoice ${invoice.invoice_number} - ${invoice.invoice_name || 'Invoice'}`)
-      const body = encodeURIComponent(`Please review the invoice by clicking this link:\n\n${blobUrl}\n\nBest regards`)
-      const to = invoice.clients?.email || ''
-      const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`
-      
-      // Open default email client with the blob URL in the body
-      window.location.href = mailtoLink
-      
-      // Note: DO NOT revoke the URL - it needs to stay valid for the recipient to click
+      await updateInvoice.mutateAsync({ id: invoice.id, user_id: user.id, status: paid ? 'paid' : 'draft' })
+      toast({
+        title: paid ? 'Marked as paid' : 'Moved back to draft',
+        description: `${invoice.invoice_number} · ${money2(invoiceAmount(invoice))}`,
+      })
     } catch (error) {
-      console.error('Error sending invoice:', error)
-      alert('Failed to open email client')
+      console.error('Failed to update invoice status:', error)
+      toast({ title: 'Could not update the invoice', description: 'Please try again.', variant: 'destructive' })
+    } finally {
+      setPendingId(null)
     }
   }
 
-  //Display spinner if loading
-  if (userLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoices</h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Loading user data...</span>
-            </div>
-            <Button disabled>
-              <Plus className="h-4 w-4 mr-2" />
-              New Invoice
-            </Button>
-          </div>
-        </div>
-        
-        <div className="bg-card rounded-lg shadow-sm border">
-          <div className="p-6">
-            <div className="text-center py-8 text-muted-foreground">
-              <div className="flex items-center justify-center gap-2">
-                <RefreshCw className="h-6 w-6 animate-spin" />
-                <span>Loading user data...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+  const handleDownload = async (invoice: any) => {
+    setPendingId(invoice.id)
+    try {
+      saveBlob(await buildInvoicePdf(invoice, pdfUser), invoiceFileName(invoice))
+    } catch (error) {
+      console.error('Failed to build invoice PDF:', error)
+      toast({ title: 'Could not create the PDF', description: 'Please try again.', variant: 'destructive' })
+    } finally {
+      setPendingId(null)
+    }
   }
 
- 
-  if (!user) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoices</h1>
-        </div>
-        
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Please sign in to view your invoices.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
+  /**
+   * mailto: links can't carry attachments, and the previous version put a
+   * blob: URL in the body, which only works in the sender's own browser tab,
+   * so clients got a dead link. Instead: save the PDF, open the draft email,
+   * and tell the user to attach it.
+   */
+  const handleEmail = async (invoice: any) => {
+    setPendingId(invoice.id)
+    try {
+      const fileName = invoiceFileName(invoice)
+      saveBlob(await buildInvoicePdf(invoice, pdfUser), fileName)
+
+      const subject = `Invoice ${invoice.invoice_number}${invoice.invoice_name ? ` – ${invoice.invoice_name}` : ''}`
+      const body =
+        `Hi ${invoice.clients?.name ?? 'there'},\n\n` +
+        `Please find invoice ${invoice.invoice_number} for ${money2(invoiceAmount(invoice))} attached, ` +
+        `due ${formatDate(invoice.due_date)}.\n\nThank you,\n${pdfUser.name}`
+      window.location.href = `mailto:${invoice.clients?.email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+      toast({ title: 'PDF saved to your downloads', description: `Attach ${fileName} to the email that just opened.` })
+    } catch (error) {
+      console.error('Failed to prepare invoice email:', error)
+      toast({ title: 'Could not prepare the email', description: 'Please try again.', variant: 'destructive' })
+    } finally {
+      setPendingId(null)
+    }
   }
 
-  // Loading state for invoices
-  if (invoicesLoading) {
+  // ---- states ---------------------------------------------------------------
+
+  if (!userLoading && !user) {
+    router.push('/sign-in')
+    return null
+  }
+
+  const newInvoiceButton = (
+    <CreateInvoiceDialog onSuccess={refresh}>
+      <Button disabled={!canCreate || userLoading} className="gap-2" title={canCreate ? undefined : 'Invoice limit reached'}>
+        <Plus className="h-4 w-4" /> New invoice
+      </Button>
+    </CreateInvoiceDialog>
+  )
+
+  if (userLoading || invoicesLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoices</h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Loading invoices...</span>
-            </div>
-            <Button disabled>
-              <Plus className="h-4 w-4 mr-2" />
-              New Invoice
-            </Button>
-          </div>
+      <div className="flex flex-col gap-6">
+        <PageHeader action={<Button disabled className="gap-2"><Plus className="h-4 w-4" /> New invoice</Button>} />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
         </div>
-        
-        <div className="bg-card rounded-lg shadow-sm border">
-          <div className="p-6">
-            <div className="text-center py-8 text-muted-foreground">
-              <div className="flex items-center justify-center gap-2">
-                <RefreshCw className="h-6 w-6 animate-spin" />
-                <span>Loading invoices...</span>
-              </div>
-            </div>
-          </div>
+        <Skeleton className="h-12 rounded-xl" />
+        <div className="space-y-2 rounded-xl border bg-card p-4">
+          {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-12" />)}
         </div>
       </div>
     )
@@ -257,266 +223,182 @@ export default function InvoicesPage() {
 
   if (invoicesError) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoices</h1>
-          <div className="flex items-center gap-2">
-            <Button disabled = {!canCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Invoice
-            </Button>
-          </div>
-        </div>
-        
+      <div className="flex flex-col gap-6">
+        <PageHeader action={newInvoiceButton} />
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Error loading invoices: {invoicesError.message}
-          </AlertDescription>
+          <AlertDescription>Error loading invoices: {(invoicesError as Error).message}</AlertDescription>
         </Alert>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center pb-2">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Invoices</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage and track your invoice payments
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {isLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Loading...</span>
-            </div>
-          )}
-          <CreateInvoiceDialog onSuccess={() => {
-            // Invalidate and refetch invoices to show new invoice
-            queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
-            queryClient.invalidateQueries({queryKey:["invoice-count",user.id]})
-          }}>
-            <Button disabled={!canCreate || isLoading} className="shadow-sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Invoice
-            </Button>
-          </CreateInvoiceDialog>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader action={newInvoiceButton} />
 
-      {currentCount >= maxInvoices && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            You've reached your free invoice limit ({maxInvoices}). Upgrade to create more invoices.
-          </AlertDescription>
-        </Alert>
+      {!canCreate && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+            You've used all {maxInvoices} invoices on your plan.
+          </span>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/pricing">Upgrade</Link>
+          </Button>
+        </div>
       )}
 
-      {/* Search Bar */}
-      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-primary/5 to-purple-50/50 dark:to-purple-500/10 rounded-lg p-4 border border-primary/20">
-        <div className="flex items-center gap-4 flex-1">
-          <SearchInput
-            placeholder="Search by name,#,client..."
-            value={searchTerm}
-            onChange={setSearchTerm}
-            className="max-w-md bg-card shadow-sm"
-          />
-          {searchTerm && (
-            <span className="text-sm font-medium text-foreground/80 bg-card px-3 py-1.5 rounded-md shadow-sm">
-              {filteredAndSortedInvoices.length} of {invoices?.length || 0} invoices
-            </span>
-          )}
+      {all.length === 0 ? (
+        <div className="rounded-xl border border-dashed bg-card">
+          <EmptyState
+            icon={Receipt}
+            title="No invoices yet"
+            description="Create your first invoice and it'll show up here with its status, due date and a one-click way to mark it paid."
+          >
+            {newInvoiceButton}
+          </EmptyState>
         </div>
-      </div>
+      ) : (
+        <>
+          <section aria-label="Invoice totals" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+            <StatCard
+              icon={Wallet}
+              label="Outstanding"
+              value={money(summary.outstanding.amount)}
+              sub={`${summary.outstanding.count} unpaid ${summary.outstanding.count === 1 ? 'invoice' : 'invoices'}`}
+              tone="warning"
+            />
+            <StatCard
+              icon={AlertTriangle}
+              label="Overdue"
+              value={money(summary.overdue.amount)}
+              sub={summary.overdue.count ? `${summary.overdue.count} past due. Click to review` : 'Nothing past due'}
+              tone={summary.overdue.count ? 'danger' : 'default'}
+              onClick={summary.overdue.count ? () => withReset(setStatus)('overdue') : undefined}
+              active={status === 'overdue'}
+            />
+            <StatCard
+              icon={CheckCircle2}
+              label="Paid"
+              value={money(summary.paid.amount)}
+              sub={`${summary.paid.count} paid ${summary.paid.count === 1 ? 'invoice' : 'invoices'}`}
+              tone="success"
+            />
+            <StatCard
+              icon={FileText}
+              label="Total invoices"
+              value={String(all.length)}
+              sub={maxInvoices < 100 ? `${currentCount} of ${maxInvoices} on your plan` : 'Across all clients'}
+            />
+          </section>
 
-      {/* Invoices List */}
-      <div className="bg-card rounded-xl shadow-md border border-border/60 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-gradient-to-r from-muted to-muted/50">
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Invoice #</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Name</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Client</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">
-                  <SortHeader 
-                    sortKey="issue_date" 
-                    currentSort={sortConfig} 
-                    onSort={handleSort}
-                    className="text-left"
-                  >
-                    Start Date
-                  </SortHeader>
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">
-                  <SortHeader 
-                    sortKey="due_date" 
-                    currentSort={sortConfig} 
-                    onSort={handleSort}
-                    className="text-left"
-                  >
-                    Due Date
-                  </SortHeader>
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">
-                  <SortHeader 
-                    sortKey="total" 
-                    currentSort={sortConfig} 
-                    onSort={handleSort}
-                    className="text-left"
-                  >
-                    Amount
-                  </SortHeader>
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-foreground/80">Status</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-foreground/80">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredAndSortedInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <FileText className="h-12 w-12 mb-3 opacity-50" />
-                      <p className="text-base font-medium">
-                        {!invoices || invoices.length === 0 ? (
-                          "No invoices yet"
-                        ) : (
-                          "No invoices found matching your search"
-                        )}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredAndSortedInvoices.map((invoice: any) => (
-                  <tr 
-                    key={invoice.id} 
-                    className="border-b border-border hover:bg-primary/5 transition-colors duration-150 cursor-pointer group"
-                  >
-                    <td className="py-4 px-6">
-                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {invoice.invoice_number}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-foreground/80">{invoice.invoice_name || 'N/A'}</td>
-                    <td className="py-4 px-6 text-foreground/80 font-medium">{invoice.clients?.name || 'N/A'}</td>
-                    <td className="py-4 px-6 text-muted-foreground">{new Date(invoice.issue_date).toLocaleDateString()}</td>
-                    <td className="py-4 px-6 text-muted-foreground">{new Date(invoice.due_date).toLocaleDateString()}</td>
-                    <td className="py-4 px-6">
-                      <span className="font-semibold text-foreground">
-                        ${parseFloat(invoice.total || invoice.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
-                        invoice.status === 'paid' 
-                          ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30' 
-                          : 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30'
-                      }`}>
-                        {invoice.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex justify-end gap-1">
-                        <EditInvoiceDialog 
-                          invoice={invoice}
-                          onSuccess={() => {
-                            // Invalidate and refetch invoices to show updated data
-                            queryClient.invalidateQueries({ queryKey: ['invoices', user.id] })
-                          }}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </EditInvoiceDialog>
-                        <PDFDownloadLink
-                          document={
-                            <InvoicePDF 
-                              invoice={invoice} 
-                              userInfo={userInfoForPdf}
-                              clientData={invoice.clients ? {
-                                name: invoice.clients.name || 'N/A',
-                                email: invoice.clients.email || 'N/A',
-                                phone: invoice.clients.phone || 'N/A',
-                                company: invoice.clients.company || 'N/A',
-                                address: invoice.clients.address || 'N/A'
-                              } : undefined}
-                            />
-                          }
-                          fileName={`invoice-${invoice.invoice_number || 'unknown'}.pdf`}
-                        >
-                          {({ loading }) => (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={loading || userInfoLoading || !invoice?.id || !invoice.clients}
-                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </PDFDownloadLink>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleSendInvoice(invoice)}
-                          disabled={userInfoLoading || !invoice?.id || !invoice.clients}
-                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          onClick={()=>{
-                            setSelectedInvoice(invoice);
-                            setInvoicePreviewOpen(!invoicePreviewOpen);
-                          }}
-                          disabled={userInfoLoading || !invoice?.id || !invoice.clients}
-                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
-                        >
-                          <Eye className="h-4 w-4"/>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedInvoice(invoice)
-                            setDeleteDialogOpen(true)
-                          }}
-                          className="h-8 w-8 hover:bg-red-100 dark:bg-red-500/15 hover:text-red-600 dark:text-red-400 transition-colors"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <DeleteInvoiceDialog
-        invoice={selectedInvoice}
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}/>
-      
-      <InvoicePreview
-        invoice = {selectedInvoice}
-        open = {invoicePreviewOpen}
-        setOpen= {setInvoicePreviewOpen}
-        userInfoForPdf= {userInfoForPdf}
-      />
+          <section aria-label="Filters" className="flex flex-wrap items-center gap-3">
+            <SearchInput
+              placeholder="Search invoices…"
+              value={query}
+              onChange={withReset(setQuery)}
+              className="w-full sm:w-72"
+            />
+            <Segmented
+              label="Status"
+              value={status}
+              onChange={withReset(setStatus)}
+              options={[
+                { id: 'all', label: 'All', count: counts.all },
+                { id: 'draft', label: 'Draft', count: counts.draft },
+                { id: 'overdue', label: 'Overdue', count: counts.overdue },
+                { id: 'paid', label: 'Paid', count: counts.paid },
+              ]}
+            />
+            <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+              <Select value={clientId} onValueChange={withReset(setClientId)}>
+                <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-44 sm:flex-none" aria-label="Filter by client">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All clients</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => setSort(v as InvoiceSort)}>
+                <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-48 sm:flex-none" aria-label="Sort invoices">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORTS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          {rows.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-card">
+              <EmptyState
+                icon={SearchX}
+                title="No invoices match"
+                description="Try a different search, or clear the filters to see everything."
+              >
+                <Button variant="outline" onClick={resetFilters}>
+                  Clear filters
+                </Button>
+              </EmptyState>
+            </div>
+          ) : (
+            <>
+              <InvoiceList
+                invoices={shown}
+                today={today}
+                pendingId={pendingId}
+                pdfReady={!userInfoLoading}
+                onPreview={(inv) => {
+                  setSelected(inv)
+                  setPreviewOpen(true)
+                }}
+                onDelete={(inv) => {
+                  setSelected(inv)
+                  setDeleteOpen(true)
+                }}
+                onDownload={handleDownload}
+                onEmail={handleEmail}
+                onSetPaid={handleSetPaid}
+                onEdit={setEditing}
+              />
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  Showing {shown.length} of {rows.length}
+                  {filtersActive && rows.length !== all.length ? ` (filtered from ${all.length})` : ''}
+                </span>
+                {shown.length < rows.length && (
+                  <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                    Show more
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {editing && (
+        <EditInvoiceDialog
+          key={editing.id}
+          invoice={editing}
+          open
+          onOpenChange={(o) => !o && setEditing(null)}
+          onSuccess={refresh}
+        />
+      )}
+      <DeleteInvoiceDialog invoice={selected} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <InvoicePreview invoice={selected} open={previewOpen} setOpen={setPreviewOpen} userInfoForPdf={pdfUser} />
     </div>
   )
-} 
+}

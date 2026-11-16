@@ -18,11 +18,16 @@ import { useLifeTimeClientStats } from "@/hooks/use-clients"
 
 interface ClientDetailDialogProps {
   client: Client;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function ClientDetailDialog({ client, children }: ClientDetailDialogProps) {
-  const [open, setOpen] = useState(false)
+export default function ClientDetailDialog({ client, children, open: controlledOpen, onOpenChange }: ClientDetailDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  // Controlled when `open` is passed (one dialog per page); otherwise self-managed with `children` as trigger.
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   
   const {data: user} = useUser();
   const {data: stats} = useLifeTimeClientStats(user?.id!, client.id);
@@ -33,9 +38,11 @@ export default function ClientDetailDialog({ client, children }: ClientDetailDia
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      {children && (
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{client.name}</DialogTitle>
@@ -114,7 +121,7 @@ export default function ClientDetailDialog({ client, children }: ClientDetailDia
                     <CardTitle className="text-base">Lifetime Paid Invoices</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <p className="text-2xl font-bold">{stats.lifetime_client_paid_invoices}</p>
+                    <p className="text-2xl font-bold">{stats.lifetime_client_paid_invoices ?? 0}</p>
                   </CardContent>
                 </Card>
                 
@@ -123,7 +130,7 @@ export default function ClientDetailDialog({ client, children }: ClientDetailDia
                     <CardTitle className="text-base">Lifetime Earnings</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <p className="text-2xl font-bold">${stats.lifetime_client_earnings.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">${Number(stats.lifetime_client_earnings ?? 0).toFixed(2)}</p>
                   </CardContent>
                 </Card>
               </div>

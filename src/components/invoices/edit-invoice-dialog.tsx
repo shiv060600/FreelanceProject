@@ -21,13 +21,18 @@ import { useUser } from "@/hooks/use-user"
 import { useUpdateInvoice } from "@/hooks/use-invoices"
 
 interface EditInvoiceDialogProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   invoice: any
   onSuccess?: () => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export default function EditInvoiceDialog({ children, invoice, onSuccess }: EditInvoiceDialogProps) {
-  const [open, setOpen] = useState(false)
+export default function EditInvoiceDialog({ children, invoice, onSuccess, open: controlledOpen, onOpenChange }: EditInvoiceDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  // Controlled when `open` is passed (one dialog per page); otherwise self-managed with `children` as trigger.
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [loading, setLoading] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState('')
@@ -94,9 +99,11 @@ export default function EditInvoiceDialog({ children, invoice, onSuccess }: Edit
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      {children && (
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Invoice</DialogTitle>

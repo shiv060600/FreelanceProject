@@ -20,11 +20,16 @@ import { Client } from "@/types/client"
 
 interface EditClientDialogProps {
   client: Client;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function EditClientDialog({ client, children }: EditClientDialogProps) {
-  const [open, setOpen] = useState(false)
+export default function EditClientDialog({ client, children, open: controlledOpen, onOpenChange }: EditClientDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  // Controlled when `open` is passed (one dialog per page); otherwise self-managed with `children` as trigger.
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -55,9 +60,11 @@ export default function EditClientDialog({ client, children }: EditClientDialogP
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      {children && (
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Client</DialogTitle>
