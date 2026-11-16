@@ -1,21 +1,22 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-/** Square logo mark. Pure CSS/SVG so there is no image asset to go missing. */
+/**
+ * The Freelance Flow logo. Renders /icon.svg, the exact file used as the
+ * browser-tab icon, so the site and the tab can never drift apart.
+ * (Edit src/app/icon.svg to change the logo everywhere.)
+ */
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/icon.svg"
+      alt=""
       aria-hidden
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-fuchsia-500 text-primary-foreground shadow-sm',
-        className,
-      )}
-    >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 7h12a4 4 0 0 1 0 8H8" />
-        <path d="M11 12l-3 3 3 3" />
-      </svg>
-    </span>
+      width={36}
+      height={36}
+      className={cn('h-9 w-9 shrink-0 rounded-[10px]', className)}
+    />
   )
 }
 

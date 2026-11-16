@@ -14,7 +14,7 @@ export function AppTopbar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:px-6">
       <MobileNav />
-      <BrandMark className="h-7 w-7 rounded-lg md:hidden [&_svg]:h-4 [&_svg]:w-4" />
+      <BrandMark className="h-7 w-7 rounded-md md:hidden" />
 
       <h1 className="truncate text-sm font-semibold tracking-tight">{getPageTitle(pathname)}</h1>
 

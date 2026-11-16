@@ -11,10 +11,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Freelance Flow",
   description: "Streamline your freelance business with intelligent invoicing, contracts, and client management",
-  icons: {
-    icon: '/icon.svg',
-    apple: '/icon.png',
-  },
 };
 
 export default function RootLayout({
