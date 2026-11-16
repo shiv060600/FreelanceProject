@@ -3,6 +3,7 @@ import {
   Users,
   Receipt,
   FileSignature,
+  BarChart3,
   Scale,
   type LucideIcon,
 } from 'lucide-react'
@@ -44,6 +45,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Draft with AI, preview & send',
     icon: FileSignature,
     matchNested: true,
+  },
+  {
+    href: '/dashboard/analytics',
+    label: 'Analytics',
+    description: 'Sales by client & period',
+    icon: BarChart3,
   },
 ]
 

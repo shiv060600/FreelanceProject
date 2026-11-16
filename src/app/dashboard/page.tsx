@@ -1,8 +1,8 @@
 import { createClient } from "../../../supabase/server";
-import { InfoIcon, DollarSign, FileText } from "lucide-react";
+import { InfoIcon, DollarSign, FileText, BarChart3, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import '@/styles/components.css';
-import AnalyticsSection from "@/components/dashboard/analytics-section";
 
 interface ClientInfo {
   name: string | null;
@@ -35,19 +35,6 @@ export default async function Dashboard() {
   previousYearDate.setFullYear(currentDate.getFullYear()-1)
   //parse date for supabase format
   const previousYearISO = previousYearDate.toISOString().slice(0,10);
-  //create and build 12m rolling array
-  const twelveMonthRolling = new Map<number,number>();
-  const x = new Array();
-  for(let i = 0 ; i < 12 ; i++){
-    let calculatedMonth = currentMonth - i;
-    let calculatedYear = currentYear;
-    if (calculatedMonth <= 0){
-      calculatedMonth += 12;
-      calculatedYear -= 1;
-    }
-    twelveMonthRolling.set(calculatedYear*100 + calculatedMonth,i)
-    x.push(calculatedMonth.toString() + '-' + calculatedYear.toString());
-  }
   const {data:{user}} = await supabase.auth.getUser();
 
   if (!user) {
@@ -98,52 +85,6 @@ export default async function Dashboard() {
     draft: currentDraftStats.draft
   };
 
-  //detailed invoicing for plotting
-  const enrichedInvoices: EnrichedInvoice[] = (allInvoiceData as Array<any>)
-    .filter((invoice) => invoice.status === 'paid')
-    .map((invoice) => {
-      // Defensive: due_date may be string or Date
-      const dueDateStr = typeof invoice.due_date === 'string' ? invoice.due_date : String(invoice.due_date);
-      const year = dueDateStr.slice(0, 4);
-      const month = dueDateStr.slice(5, 7);
-      const yearMonth = Number(year) * 100 + Number(month);
-      return {
-        user_id: invoice.user_id,
-        client_id: invoice.client_id,
-        status: invoice.status,
-        due_date: yearMonth,
-        clients: invoice.clients,
-        total: invoice.total,
-      };
-    });
-
-  const clientsYearlySalesData = new Map<string,ClientYearlySales>();
-  
-  enrichedInvoices.forEach((invoice)=>{
-    if(!clientsYearlySalesData.get(invoice.client_id)){
-      clientsYearlySalesData.set(invoice.client_id,{
-        x: [...x],
-        y: new Array(12).fill(0),
-        name:invoice?.clients?.name ?? "Unknown",
-        type:'bar'
-      })
-    }
-    const currentClientData:ClientYearlySales = clientsYearlySalesData.get(invoice.client_id)!;
-    currentClientData.y[twelveMonthRolling.get(invoice.due_date)!] += invoice.total;
-    clientsYearlySalesData.set(invoice.client_id,currentClientData);
-  });
-
-  // Prepare data for recharts (after map is populated)
-  const rechartsData: Array<{ month: string } & { [client: string]: number }> = [];
-  for (let i = 0; i < x.length; i++) {
-    const monthObj: { month: string } & { [client: string]: number } = { month: x[i] };
-    for (const client of Array.from(clientsYearlySalesData.values())) {
-      monthObj[client.name] = client.y[i] || 0;
-    }
-    rechartsData.push(monthObj);
-
-  
-  };
   return (
     <>
       <div className="w-full">
@@ -204,10 +145,21 @@ export default async function Dashboard() {
             </div>
           </div>
           
-          <AnalyticsSection 
-            rechartsData={rechartsData} 
-            clientsYearlySalesData={clientsYearlySalesData}
-          />
+          <Link
+            href="/dashboard/analytics"
+            className="group flex items-center justify-between gap-4 rounded-2xl border bg-card p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl border border-primary/20 bg-primary/10 p-3">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Sales analytics</h2>
+                <p className="text-sm text-muted-foreground">Revenue by month and client, with filters and CSV export.</p>
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+          </Link>
         </div>
       </div>
     </>
