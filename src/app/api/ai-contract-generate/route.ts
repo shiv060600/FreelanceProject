@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../supabase/server'
-import { getContractModel, getOpenAI } from '@/lib/contracts/openai'
+import {
+  classifyOpenAIError,
+  getContractModel,
+  getModelCandidates,
+  getOpenAI,
+  isModelUnavailable,
+} from '@/lib/contracts/openai'
 import {
   buildGenerationPrompt,
   buildRefinePrompt,
@@ -118,10 +124,38 @@ export async function POST(request: NextRequest) {
   }
 
   // ---- Call the model, streaming -----------------------------------------
-  const model = getContractModel()
-  let completion
-  try {
-    completion = await openai.chat.completions.create({
+  // Try the configured model first, then fall through the fallbacks if this
+  // OpenAI account doesn't have access to it.
+  let completion: Awaited<ReturnType<typeof startCompletion>> | undefined
+  let lastError: any
+  for (const model of getModelCandidates()) {
+    try {
+      completion = await startCompletion(model)
+      if (model !== getContractModel()) {
+        console.warn(`Contract model "${getContractModel()}" unavailable; using fallback "${model}".`)
+      }
+      break
+    } catch (error: any) {
+      lastError = error
+      // Full detail stays in server logs; the client gets a safe, specific message.
+      console.error('OpenAI request failed:', {
+        model,
+        status: error?.status,
+        code: error?.code,
+        type: error?.type,
+        message: error?.message,
+      })
+      if (!isModelUnavailable(error)) break
+    }
+  }
+
+  if (!completion) {
+    const { status, code, message } = classifyOpenAIError(lastError)
+    return NextResponse.json({ message, code }, { status })
+  }
+
+  function startCompletion(model: string) {
+    return openai!.chat.completions.create({
       model,
       stream: true,
       max_completion_tokens: maxTokens,
@@ -131,10 +165,6 @@ export async function POST(request: NextRequest) {
         { role: 'user', content: userPrompt },
       ],
     })
-  } catch (error: any) {
-    // Full detail stays in server logs; the client gets a safe message.
-    console.error('OpenAI request failed:', { status: error?.status, message: error?.message, model })
-    return bad('The AI service could not be reached. Please try again in a moment.', 502)
   }
 
   const encoder = new TextEncoder()
