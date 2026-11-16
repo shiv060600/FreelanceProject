@@ -181,7 +181,7 @@ export default function ContractsPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setContractsInfoOpen(!contractsInfoOpen)}
-                className={contractsInfoOpen? `h-9 w-9 bg-blue-200` : `h-9 w-9 hover:bg-primary/10 hover:text-blue-900 dark:text-blue-400 hover:border-primary/20 transition-colors`}
+                className={contractsInfoOpen? `h-9 w-9 bg-blue-200` : `h-9 w-9 hover:bg-primary/10 hover:text-blue-900 dark:hover:text-blue-400 hover:border-primary/20 transition-colors`}
                 title="Contract Information"
               >
                 <Info className="h-4 w-4 " />
@@ -281,7 +281,7 @@ export default function ContractsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteContract(contract)}
-                    className="h-10 w-10 hover:bg-red-100 dark:bg-red-500/15 hover:text-red-600 dark:text-red-400 hover:border-red-300 transition-colors"
+                    className="h-10 w-10 hover:bg-red-100 dark:hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -293,7 +293,7 @@ export default function ContractsPage() {
                       setSelectedContract(contract)
                       setContractPreviewOpen(true)
                     }}
-                    className="h-10 w-10 hover:bg-green-100 dark:bg-green-500/15 hover:text-green-600 dark:text-green-400 hover:border-green-300 transition-colors"
+                    className="h-10 w-10 hover:bg-green-100 dark:hover:bg-green-500/15 hover:text-green-600 dark:hover:text-green-400 hover:border-green-300 transition-colors"
                     title="Quick Preview"
                   >
                     <Eye className="h-4 w-4" />
