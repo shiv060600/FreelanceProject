@@ -1,6 +1,9 @@
 'use client'
 
 import InvoicePDF from './invoice-pdf'
+import { saveBlob } from '@/lib/download'
+
+export { saveBlob }
 
 export interface PdfUserInfo {
   name: string
@@ -34,14 +37,3 @@ export async function buildInvoicePdf(invoice: any, userInfo: PdfUserInfo): Prom
 
 export const invoiceFileName = (invoice: { invoice_number?: string }) => `invoice-${invoice.invoice_number || 'unknown'}.pdf`
 
-export function saveBlob(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // Give the browser a moment to start the download before releasing the URL.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000)
-}

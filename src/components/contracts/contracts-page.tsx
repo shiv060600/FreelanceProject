@@ -1,358 +1,392 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useDebounce } from '@/hooks/use-debounce'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import {
+  AlertCircle,
+  AlertTriangle,
+  CalendarPlus,
+  FileSignature,
+  FileText,
+  Plus,
+  Scale,
+  SearchX,
+  Sparkles,
+  Users,
+} from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Plus, FileText, Pencil, Trash2, Download, AwardIcon, RefreshCw, Mail, Info, Eye} from 'lucide-react'
-import { ContractPDF } from './contract-pdf'
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import CreateContractDialog from './create-contract-dialog'
-import { EditContractDialog } from './edit-contract-dialog'
-import { DeleteContractDialog } from './delete-contract-dialog'
-import { useContracts, useCanCreateContract } from '@/hooks/use-contracts'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SearchInput } from '@/components/ui/search-input'
+import { Segmented } from '@/components/ui/segmented'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StatCard } from '@/components/ui/stat-card'
+import { useToast } from '@/components/ui/use-toast'
+import { useAiAllowance } from '@/hooks/use-ai-allowance'
+import { useCanCreateContract, useContracts } from '@/hooks/use-contracts'
+import { useDebounce } from '@/hooks/use-debounce'
 import { useUser } from '@/hooks/use-user'
-import { SearchInput } from '../ui/search-input'
-import ContractInfo from './contract-info'
-import { useMemo } from 'react'
-import ContractPreview from './contract-preview'
-import { stripContractMarkup } from '@/lib/contracts/parse'
+import { todayISO } from '@/lib/analytics'
+import { saveBlob } from '@/lib/download'
+import { formatLimit } from '@/lib/contracts/limits'
+import {
+  clientNameOf,
+  contractFileName,
+  contractMeta,
+  filterContracts,
+  sortContracts,
+  summarizeContracts,
+  type ContractFilter,
+  type ContractSort,
+} from '@/lib/contracts/library'
+import { ContractCard } from './contract-card'
+import { buildContractPdf } from './contract-pdf-actions'
+import { ContractViewDialog } from './contract-view-dialog'
+import CreateContractDialog from './create-contract-dialog'
+import { DeleteContractDialog } from './delete-contract-dialog'
+import { EditContractDialog } from './edit-contract-dialog'
 
-interface CountryInfo {
-  e_signature_valid:boolean,
-  language_required:string,
-  notes:string
-} 
+const PAGE_SIZE = 12
 
-interface Contract {
-    id: string;
-    client_id:string;
-    user_id:string;
-    title:string;
-    content:string;
-    created_at:string;
-    //joined clients not from db
-    clients?: {
-      id: string;
-      name: string;
-      email: string;
-      company: string;
-    } | null;
+const SORTS: { id: ContractSort; label: string }[] = [
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'title', label: 'Title (A–Z)' },
+  { id: 'client', label: 'Client (A–Z)' },
+]
+
+function PageHeader({ action }: { action: React.ReactNode }) {
+  return (
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Contracts</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Draft with AI or write your own, then preview, download and send.</p>
+      </div>
+      {action}
+    </header>
+  )
 }
 
 export default function ContractsPage() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedContract, setSelectedContract] = useState<any | null>(null)
-  const [currentSearch, setCurrentSearch] = useState("")
-  const debouncedCurrentSearch = useDebounce(currentSearch, 300)
-  const [contractsInfoOpen, setContractsInfoOpen] = useState(false);
-  const [contractPreviewOpen, setContractPreviewOpen] = useState(false);
-  
-  const { data: user , isLoading: userLoading, error: userError } = useUser();
-  const { data: contracts , isLoading: contractsLoading, isFetching: contractsFetching, error: contractsError } = useContracts(user?.id || '');
-  const { canCreate, currentCount, maxContracts, subscriptionStatus } = useCanCreateContract(user?.id || '');
+  const router = useRouter()
+  const { toast } = useToast()
 
-  const handleEditContract = (contract: any) => {
-    setSelectedContract(contract)
-    setEditDialogOpen(true)
+  const [query, setQuery] = useState('')
+  const debouncedQuery = useDebounce(query, 250)
+  const [filter, setFilter] = useState<ContractFilter>('all')
+  const [clientId, setClientId] = useState('all')
+  const [sort, setSort] = useState<ContractSort>('newest')
+  const [visible, setVisible] = useState(PAGE_SIZE)
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [viewing, setViewing] = useState<any>(null)
+  const [editing, setEditing] = useState<any>(null)
+  const [deleting, setDeleting] = useState<any>(null)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+
+  const { data: user, isLoading: userLoading } = useUser()
+  const { data: contracts, isLoading: contractsLoading, error: contractsError } = useContracts(user?.id || '')
+  const { canCreate, currentCount, maxContracts } = useCanCreateContract(user?.id || '')
+  const ai = useAiAllowance(user?.id || '')
+
+  const today = useMemo(() => todayISO(), [])
+  const all = (contracts ?? []) as any[]
+
+  // Computing a contract's excerpt/placeholders means parsing its text; do it once per contract.
+  const metaById = useMemo(() => new Map(all.map((c) => [c.id, contractMeta(c)])), [all])
+  const metaOf = (c: { id: string }) => metaById.get(c.id) ?? contractMeta(c as any)
+
+  const summary = useMemo(() => summarizeContracts(all, today, metaOf), [all, today, metaById])
+
+  const clients = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const c of all) if (c.client_id) seen.set(c.client_id, clientNameOf(c))
+    return Array.from(seen.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [all])
+
+  const rows = useMemo(
+    () => sortContracts(filterContracts(all, { query: debouncedQuery, filter, clientId }, metaOf), sort),
+    [all, debouncedQuery, filter, clientId, sort, metaById],
+  )
+  const shown = rows.slice(0, visible)
+  const filtersActive = query !== '' || filter !== 'all' || clientId !== 'all'
+
+  const withReset = <T,>(setter: (v: T) => void) => (v: T) => {
+    setter(v)
+    setVisible(PAGE_SIZE)
+  }
+  const resetFilters = () => {
+    setQuery('')
+    setFilter('all')
+    setClientId('all')
+    setVisible(PAGE_SIZE)
   }
 
-  const filteredContracts = useMemo(()=>{
-    if (!contracts) return [];
-    return contracts.filter((contract)=> {
-      return (contract?.clients?.name.toLowerCase().includes(debouncedCurrentSearch.toLowerCase()) ||
-              contract?.title.toLowerCase().includes(debouncedCurrentSearch.toLowerCase()))
-    })
-  },[contracts,debouncedCurrentSearch]);
+  // ---- actions --------------------------------------------------------------
 
-  const handleDeleteContract = (contract: any) => {
-    setSelectedContract(contract)
-    setDeleteDialogOpen(true)
-  }
-
-  const handleSendContract = async (contract: any) => {
+  const handleDownload = async (contract: any) => {
+    setPendingId(contract.id)
     try {
-      const { pdf } = await import('@react-pdf/renderer')
-      
-      // Create the PDF document component
-      const contractPdf = <ContractPDF
-                              contract={{
-                                ...contract,
-                                clients: contract.clients ? [{
-                                  ...contract.clients,
-                                  company: contract.clients.company || undefined
-                                }] : []
-                              }}
-                              userName={user?.user_metadata?.full_name || user?.email || 'Unknown User'}
-                              userEmail={user?.email || ''}
-                            />
-      
-      // Generate blob from PDF component
-      const contractPdfBlob = await pdf(contractPdf).toBlob()
-      
-      // Create a blob URL that can be clicked to view the PDF
-      const blobUrl = URL.createObjectURL(contractPdfBlob)
-      
-      // Create mailto link with the blob URL in the body
-      const subject = encodeURIComponent(`Contract for ${contract.title}`)
-      const body = encodeURIComponent(`Please review the contract by clicking this link:\n\n${blobUrl}\n\nBest regards`)
-      const to = contract.clients?.email || ''
-      const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`
-      
-      // Open default email client with the blob URL in the body
-      window.location.href = mailtoLink
-      
-      // Note: DO NOT revoke the URL - it needs to stay valid for the recipient to click
+      saveBlob(await buildContractPdf(contract, user), contractFileName(contract))
     } catch (error) {
-      console.error('Error sending contract:', error)
-      alert('Failed to send contract')
+      console.error('Failed to build contract PDF:', error)
+      toast({ title: 'Could not create the PDF', description: 'Please try again.', variant: 'destructive' })
+    } finally {
+      setPendingId(null)
     }
   }
 
-  if (userLoading || contractsLoading || contractsFetching || !user || !contracts){
-    return(
-      <div className="flex flex-col items-center justify-start min-h-screen">
-        <div className="mt-16 flex items-center">
-          <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-          <span>Loading Contracts</span>
-        </div>
-    </div>
-    )
+  /**
+   * mailto: links can't carry attachments, and the old version put a blob: URL in
+   * the body, which only opens in the sender's own browser tab. Save the PDF, open
+   * a draft email, and tell the user to attach it.
+   */
+  const handleEmail = async (contract: any) => {
+    setPendingId(contract.id)
+    try {
+      const fileName = contractFileName(contract)
+      saveBlob(await buildContractPdf(contract, user), fileName)
+      const name = user?.user_metadata?.full_name || user?.email || ''
+      const subject = `Contract: ${contract.title}`
+      const body =
+        `Hi ${contract.clients?.name ?? 'there'},\n\n` +
+        `Please find the contract "${contract.title}" attached for your review. ` +
+        `Let me know if you have any questions or would like changes.\n\nThank you,\n${name}`
+      window.location.href = `mailto:${contract.clients?.email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      toast({ title: 'PDF saved to your downloads', description: `Attach ${fileName} to the email that just opened.` })
+    } catch (error) {
+      console.error('Failed to prepare contract email:', error)
+      toast({ title: 'Could not prepare the email', description: 'Please try again.', variant: 'destructive' })
+    } finally {
+      setPendingId(null)
+    }
   }
 
-  if (contracts?.length === 0){
-    return(
-      <div>
-        <Card className="border-2 border-dashed border-border">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 bg-primary/10 rounded-full mb-4">
-              <FileText className="h-12 w-12 text-primary" />
-            </div>
-            <h3 className="text-xl font-bold mb-2 text-foreground">No contracts yet</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Create your first contract to get started and protect your freelance business.
-            </p>
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              disabled={!canCreate}
-              className="shadow-md"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Contract
-            </Button>
-            {!canCreate && 
-              <p className='text-sm font-bold text-red-500 mt-5 flex items-center gap-2'>
-                <AwardIcon className='h-4 w-4'/>
-                Your current subscription does not allow for contract creation
-              </p>}
-          </CardContent>
-        </Card>
-        <CreateContractDialog 
-        open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen}
-        />
-      </div>
-    )
+  const openEdit = (contract: any) => {
+    setViewing(null)
+    setEditing(contract)
   }
-  return (
-    <div className="relative flex gap-0">
-      {/* Main Content - 75% when panel open, 100% when closed */}
-      <div className={`transition-all duration-500 ease-in-out ${
-        contractsInfoOpen ? 'w-[75%] pr-5 pl-4' : 'w-full pl-10'
-      }`}>
-        <div className="space-y-6">
-          <div className='flex justify-between items-center pb-2'>
-            <div>
-              <h1 className='text-3xl font-bold text-foreground'>Contracts</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage and organize your client contracts
-              </p>
-            </div>
-            <div className='flex items-center gap-3'>
-              {!canCreate && 
-                <p className='text-sm font-semibold text-red-500 flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-md border border-red-200 dark:border-red-500/30'>
-                  <AwardIcon className='h-4 w-4'/>
-                  Contract limit reached ({currentCount}/{maxContracts}) - upgrade to add more
-                </p>
-              }
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setContractsInfoOpen(!contractsInfoOpen)}
-                className={contractsInfoOpen? `h-9 w-9 bg-blue-200` : `h-9 w-9 hover:bg-primary/10 hover:text-blue-900 dark:hover:text-blue-400 hover:border-primary/20 transition-colors`}
-                title="Contract Information"
-              >
-                <Info className="h-4 w-4 " />
-              </Button>
-              <Button 
-                disabled = {!canCreate}
-                onClick={() => {setCreateDialogOpen(true)}}
-                className="shadow-sm bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-              >          
-                <Plus className='h-4 w-4 mr-2'/>
-                Add Contract
-              </Button>
-            </div>
-          </div>
 
-          {/* Search Bar */}
-          <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-primary/5 to-purple-50/50 dark:to-purple-500/10 rounded-lg p-4 border border-primary/20">
-            <SearchInput 
-              placeholder='Search contracts by name or client...' 
-              value={currentSearch} 
-              onChange={setCurrentSearch} 
-              className='max-w-md bg-card shadow-sm'
-            />
-            {currentSearch && (
-              <span className="text-sm font-medium text-foreground/80 bg-card px-3 py-1.5 rounded-md shadow-sm">
-                {filteredContracts.length} of {contracts?.length || 0} contracts
-              </span>
-            )}
-          </div>
-          <div className="grid gap-4">
-        {filteredContracts.map((contract) => (
-          <Card key={contract.id} className="border border-border/60 hover:shadow-lg transition-all duration-200 hover:border-primary/20">
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-xl font-bold text-foreground mb-3">{contract.title}</CardTitle>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20 font-semibold">
-                      {contract.clients?.name || `Unknown Client (${contract.client_id})`}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground font-medium">
-                      {new Date(contract.created_at).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {user && (
-                    <PDFDownloadLink
-                      document={
-                        <ContractPDF
-                          contract={{
-                            ...contract,
-                            clients: contract.clients ? [{
-                              ...contract.clients,
-                              company: contract.clients.company || undefined
-                            }] : []
-                          }}
-                          userName={user.user_metadata?.full_name || user.email || 'Unknown User'}
-                          userEmail={user.email || ''}
-                        />
-                      }
-                      fileName={`contract-${contract.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${contract.id.slice(0, 8)}.pdf`}
-                    >
-                      {({ loading }) => (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={loading}
-                          className="h-10 w-10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </PDFDownloadLink>
-                  )}
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() => handleSendContract(contract)}
-                    className="h-10 w-10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
-                  >
-                    <Mail className='h-4 w-4'/>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditContract(contract)}
-                    className="h-10 w-10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-colors"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteContract(contract)}
-                    className="h-10 w-10 hover:bg-red-100 dark:hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+  // ---- states ---------------------------------------------------------------
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedContract(contract)
-                      setContractPreviewOpen(true)
-                    }}
-                    className="h-10 w-10 hover:bg-green-100 dark:hover:bg-green-500/15 hover:text-green-600 dark:hover:text-green-400 hover:border-green-300 transition-colors"
-                    title="Quick Preview"
-                  >
-                    <Eye className="h-4 w-4" />
-                </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-sm text-muted-foreground max-h-24 overflow-hidden bg-muted/50 rounded-lg p-4 border border-border">
-                {contract.content ? (
-                  <div className="whitespace-pre-wrap font-sans leading-relaxed">
-                    {/* Strip markup (HTML from older contracts, Markdown from AI drafts) for the preview */}
-                    {(() => {
-                      const plainText = stripContractMarkup(contract.content)
-                      return plainText.length > 200 
-                        ? `${plainText.substring(0, 200)}...` 
-                        : plainText
-                    })()}
-                  </div>
-                ) : (
-                  <em className="text-muted-foreground">No content</em>
-                )}
-              </div>
-            </CardContent>
-            </Card>
-          ))}
-        </div>
-        </div>
-      </div>
+  if (!userLoading && !user) {
+    router.push('/sign-in')
+    return null
+  }
 
-      {/* Contract Info Side Panel - 30% */}
-      <ContractInfo open={contractsInfoOpen} setOpen={setContractsInfoOpen} />
-
-      {/* Dialogs */}
-      <CreateContractDialog 
-        open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen}
-      />
-      
-      <EditContractDialog 
-        contract={selectedContract}
-        open={editDialogOpen} 
-        onOpenChange={setEditDialogOpen}
-      />
-      
-      <DeleteContractDialog 
-        contract={selectedContract}
-        open={deleteDialogOpen} 
-        onOpenChange={setDeleteDialogOpen} 
-      />
-
-      <ContractPreview
-        selectedContract={selectedContract}
-        previewOpen= {contractPreviewOpen}
-        setPreviewOpen= {setContractPreviewOpen}
-        user = {user}
-      />
-
+  const newButton = (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button asChild variant="outline" className="gap-2">
+        <Link href="/dashboard/contracts-information">
+          <Scale className="h-4 w-4" /> Legal guide
+        </Link>
+      </Button>
+      <Button onClick={() => setCreateOpen(true)} disabled={!canCreate || userLoading} className="gap-2" title={canCreate ? undefined : 'Contract limit reached'}>
+        <Plus className="h-4 w-4" /> New contract
+      </Button>
     </div>
   )
 
+  if (userLoading || contractsLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader action={<Button disabled className="gap-2"><Plus className="h-4 w-4" /> New contract</Button>} />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-12 rounded-xl" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-60 rounded-xl" />)}
+        </div>
+      </div>
+    )
+  }
+
+  if (contractsError) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader action={newButton} />
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Error loading contracts: {(contractsError as Error).message}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader action={newButton} />
+
+      {!canCreate && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+            Contract limit reached ({currentCount}/{maxContracts}). Upgrade to add more.
+          </span>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/pricing">Upgrade</Link>
+          </Button>
+        </div>
+      )}
+
+      {all.length === 0 ? (
+        <div className="rounded-xl border border-dashed bg-card">
+          <EmptyState
+            icon={FileSignature}
+            title="No contracts yet"
+            description="Describe the deal and AI drafts a contract in seconds, or write one yourself. Anything you still need to fill in is highlighted."
+          >
+            <Button onClick={() => setCreateOpen(true)} disabled={!canCreate} className="gap-2">
+              <Sparkles className="h-4 w-4" /> Create your first contract
+            </Button>
+          </EmptyState>
+        </div>
+      ) : (
+        <>
+          <section aria-label="Contract totals" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+            <StatCard
+              icon={FileText}
+              label="Contracts"
+              value={String(summary.total)}
+              sub={`${summary.clients} ${summary.clients === 1 ? 'client' : 'clients'}`}
+            />
+            <StatCard
+              icon={AlertTriangle}
+              label="Need attention"
+              value={String(summary.attention)}
+              sub={summary.attention ? 'Have blanks to fill in. Click to review' : 'Everything is complete'}
+              tone={summary.attention ? 'warning' : 'success'}
+              onClick={summary.attention ? () => withReset(setFilter)('attention') : undefined}
+              active={filter === 'attention'}
+            />
+            <StatCard
+              icon={CalendarPlus}
+              label="Added this month"
+              value={String(summary.thisMonth)}
+              sub={new Date(`${today}T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            />
+            <StatCard
+              icon={Sparkles}
+              label="AI drafts left today"
+              value={ai.loading ? '—' : `${Number.isFinite(ai.limit) ? ai.remaining : '∞'}`}
+              sub={ai.loading ? undefined : `${ai.used} of ${formatLimit(ai.limit)} used · ${ai.plan} plan`}
+              tone={!ai.loading && ai.remaining === 0 ? 'danger' : 'default'}
+              onClick={canCreate && ai.remaining > 0 ? () => setCreateOpen(true) : undefined}
+            />
+          </section>
+
+          <section aria-label="Filters" className="flex flex-wrap items-center gap-3">
+            <SearchInput
+              placeholder="Search contracts…"
+              value={query}
+              onChange={withReset(setQuery)}
+              className="w-full sm:w-72"
+            />
+            <Segmented
+              label="Show contracts"
+              value={filter}
+              onChange={withReset(setFilter)}
+              options={[
+                { id: 'all', label: 'All', count: summary.total },
+                { id: 'attention', label: 'Need attention', count: summary.attention },
+              ]}
+            />
+            <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+              <Select value={clientId} onValueChange={withReset(setClientId)}>
+                <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-44 sm:flex-none" aria-label="Filter by client">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All clients</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => setSort(v as ContractSort)}>
+                <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-44 sm:flex-none" aria-label="Sort contracts">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORTS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          {rows.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-card">
+              <EmptyState
+                icon={SearchX}
+                title="No contracts match"
+                description="Try a different search (it looks inside the contract text too), or clear the filters."
+              >
+                <Button variant="outline" onClick={resetFilters}>
+                  Clear filters
+                </Button>
+              </EmptyState>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {shown.map((contract: any) => (
+                  <ContractCard
+                    key={contract.id}
+                    contract={contract}
+                    meta={metaOf(contract)}
+                    pending={pendingId === contract.id}
+                    onView={setViewing}
+                    onEdit={openEdit}
+                    onDownload={handleDownload}
+                    onEmail={handleEmail}
+                    onDelete={setDeleting}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  Showing {shown.length} of {rows.length}
+                  {filtersActive && rows.length !== all.length ? ` (filtered from ${all.length})` : ''}
+                </span>
+                {shown.length < rows.length && (
+                  <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                    Show more
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      <CreateContractDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      <ContractViewDialog
+        contract={viewing}
+        user={user}
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+        onEdit={openEdit}
+        onDownload={handleDownload}
+        onEmail={handleEmail}
+        busy={!!viewing && pendingId === viewing.id}
+      />
+
+      {editing && (
+        <EditContractDialog contract={editing} open onOpenChange={(o) => !o && setEditing(null)} />
+      )}
+
+      <DeleteContractDialog contract={deleting} open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)} />
+    </div>
+  )
 }
