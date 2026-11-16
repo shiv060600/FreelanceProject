@@ -98,11 +98,6 @@ ${instruction.trim().slice(0, 1500)}
 Return the complete updated contract in the same output format.`
 }
 
-/** Models that reject a custom temperature (reasoning-style models). */
-export function supportsTemperature(model: string) {
-  return !/^(o\d|gpt-5)/i.test(model)
-}
-
 export function maxTokensFor(length: LengthId | undefined) {
   return (LENGTHS.find((l) => l.id === length) ?? LENGTHS[1]).maxTokens
 }

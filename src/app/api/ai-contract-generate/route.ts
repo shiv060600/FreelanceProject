@@ -5,14 +5,14 @@ import {
   getContractModel,
   getModelCandidates,
   getOpenAI,
-  isModelUnavailable,
+  completionTuning,
+  shouldTryNextModel,
 } from '@/lib/contracts/openai'
 import {
   buildGenerationPrompt,
   buildRefinePrompt,
   buildSystemPrompt,
   maxTokensFor,
-  supportsTemperature,
 } from '@/lib/contracts/prompt'
 import { getAiDailyLimit } from '@/lib/contracts/limits'
 import { CONTRACT_TYPES, LENGTHS, TONES } from '@/lib/contracts/catalog'
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         type: error?.type,
         message: error?.message,
       })
-      if (!isModelUnavailable(error)) break
+      if (!shouldTryNextModel(error)) break
     }
   }
 
@@ -158,8 +158,7 @@ export async function POST(request: NextRequest) {
     return openai!.chat.completions.create({
       model,
       stream: true,
-      max_completion_tokens: maxTokens,
-      ...(supportsTemperature(model) ? { temperature: 0.3 } : {}),
+      ...completionTuning(model, maxTokens),
       messages: [
         { role: 'system', content: buildSystemPrompt() },
         { role: 'user', content: userPrompt },

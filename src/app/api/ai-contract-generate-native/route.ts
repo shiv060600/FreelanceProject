@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
-import { getContractModel, getOpenAI } from '@/lib/contracts/openai'
+import { completionTuning, getContractModel, getOpenAI } from '@/lib/contracts/openai'
 import {
   buildGenerationPrompt,
   buildSystemPrompt,
   maxTokensFor,
-  supportsTemperature,
 } from '@/lib/contracts/prompt'
 
 export const runtime = 'nodejs'
@@ -64,8 +63,7 @@ export async function POST(request: NextRequest) {
     const model = getContractModel()
     const response = await openai.chat.completions.create({
       model,
-      max_completion_tokens: maxTokensFor('standard'),
-      ...(supportsTemperature(model) ? { temperature: 0.3 } : {}),
+      ...completionTuning(model, maxTokensFor('standard')),
       messages: [
         { role: 'system', content: buildSystemPrompt() },
         {
