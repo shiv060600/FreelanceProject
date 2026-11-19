@@ -14,15 +14,16 @@ export function getOpenAI(): OpenAI | null {
 }
 
 /**
- * Default: gpt-5.4-mini — current generation, ~$0.75 / $4.50 per 1M tokens
- * (roughly 1.5 cents per contract). Override with OPENAI_CONTRACT_MODEL
- * (e.g. gpt-5.4 or gpt-5.6-sol for higher quality) without a deploy.
+ * Default: gpt-6.2-sol — OpenAI's balanced current-generation model
+ * ($2 in / $10 out per 1M tokens, roughly 5-8 cents per contract with
+ * reasoning). For the hardest agreements set OPENAI_CONTRACT_MODEL=gpt-6.2-astra
+ * (flagship, about 4x the price). No deploy needed to switch.
  */
 export function getContractModel() {
-  return process.env.OPENAI_CONTRACT_MODEL || 'gpt-5.4-mini'
+  return process.env.OPENAI_CONTRACT_MODEL || 'gpt-6.2-sol'
 }
 
-const FALLBACK_MODELS = ['gpt-5.4-mini', 'gpt-5.4', 'gpt-4.1', 'gpt-4o-mini']
+const FALLBACK_MODELS = ['gpt-6.2-sol', 'gpt-6.1-terra', 'gpt-5.4', 'gpt-4.1']
 
 /**
  * Models to try in order. Some OpenAI projects don't have access to every
@@ -34,23 +35,31 @@ export function getModelCandidates() {
   return [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)]
 }
 
-/** GPT-5.x and o-series are reasoning models: different request parameters. */
+/** GPT-5+, GPT-6 and the o-series are reasoning models: different request parameters. */
 export function isReasoningModel(model: string) {
-  return /^(o\d|gpt-5)/i.test(model)
+  return /^(o\d|gpt-([5-9]|\d{2,}))/i.test(model)
 }
 
 /**
  * Request parameters that differ between model families.
  *  - Reasoning models reject `temperature`, accept `reasoning_effort`, and
- *    count hidden reasoning tokens against `max_completion_tokens`, so we
- *    keep effort low (drafting doesn't need deep reasoning; it also means
- *    the first words stream sooner) and add headroom for those tokens.
+ *    count hidden reasoning tokens against `max_completion_tokens`.
  *  - Older chat models take `temperature` and reject `reasoning_effort`.
  */
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+
+/** Contract drafting benefits from real reasoning (consistent numbering, cross-references), and GPT-6 rejects "none". */
+function reasoningEffort() {
+  const fromEnv = process.env.OPENAI_CONTRACT_REASONING as (typeof EFFORTS)[number] | undefined
+  return (fromEnv && EFFORTS.includes(fromEnv) ? fromEnv : 'medium') as 'low' | 'medium' | 'high'
+}
+
+/** Hidden reasoning tokens count against max_completion_tokens, so leave generous headroom. */
+export const REASONING_HEADROOM = 8000
+
 export function completionTuning(model: string, maxTokens: number) {
   if (isReasoningModel(model)) {
-    const effort = (process.env.OPENAI_CONTRACT_REASONING || 'low') as 'low' | 'medium' | 'high'
-    return { max_completion_tokens: maxTokens + 2000, reasoning_effort: effort }
+    return { max_completion_tokens: maxTokens + REASONING_HEADROOM, reasoning_effort: reasoningEffort() }
   }
   return { max_completion_tokens: maxTokens, temperature: 0.3 }
 }

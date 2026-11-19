@@ -21,9 +21,10 @@ export const CONTRACT_TYPES: ContractTypeDef[] = [
     mustCover: [
       'Scope of services and deliverables, with a clear definition of what is out of scope',
       'Timeline and milestones, and what happens if the client delays feedback or materials',
-      'Fees, invoicing schedule, payment due dates, late-payment interest and kill fee',
+      'Fees, invoicing schedule, payment due dates, late-payment interest, the right to pause work for non-payment, and a kill fee',
+      'Acceptance criteria, a review period and deemed acceptance after it',
       'Revisions policy and the change-request process for scope changes',
-      'Intellectual property: ownership transfers only on full payment; freelancer keeps pre-existing tools and may show the work in a portfolio unless confidentiality applies',
+      'Intellectual property: assignment of final deliverables only on full payment (limited licence until then); freelancer keeps pre-existing tools and may show the work in a portfolio unless confidentiality applies; third-party and open-source materials',
       'Independent contractor status (no employment, taxes are the freelancer\'s responsibility)',
       'Confidentiality',
       'Termination for convenience and for cause, with payment for work completed',
@@ -37,7 +38,7 @@ export const CONTRACT_TYPES: ContractTypeDef[] = [
     partyRoles: { provider: 'Consultant', client: 'Client' },
     mustCover: [
       'Description of consulting services and objectives',
-      'Fee structure (hourly, fixed or retainer), expense reimbursement and invoicing terms',
+      'Fee structure (hourly, fixed or retainer), expense reimbursement, invoicing terms and the right to pause work for non-payment',
       'Time commitment and availability',
       'Independent contractor status',
       'Confidentiality and handling of client data',

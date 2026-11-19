@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Bot, FileText, Info, Loader2, Sparkles, Square, Wand2, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -26,7 +27,10 @@ import {
   type ToneId,
 } from '@/lib/contracts/catalog'
 import { formatLimit, getAiDailyLimit } from '@/lib/contracts/limits'
-import countriesData from '@/utils/country-info.json'
+import { JURISDICTION_LABELS } from '@/lib/legal/jurisdictions'
+import { Checkbox } from '@/components/ui/checkbox'
+import { LEGAL_GUIDE_HREF } from '@/components/legal/legal-disclaimer'
+import { DraftingNotes } from './drafting-notes'
 import { getPromptGuide } from './contract-prompt-guides'
 import { ContractEditor } from './contract-editor'
 
@@ -36,6 +40,8 @@ interface CreateContractDialogProps {
 }
 
 type Mode = 'manual' | 'ai'
+
+const ACK_KEY = 'ff:ai-contract-ack:v1'
 
 /** Small segmented control used for tone / length. */
 function Segmented<T extends string>({
@@ -86,6 +92,10 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
   const [showGuide, setShowGuide] = useState(false)
   const [refineText, setRefineText] = useState('')
   const [subscriptionType, setSubscriptionType] = useState('Free')
+  // The AI's "before you send" checklist. Shown beside the draft, never saved in the contract.
+  const [notes, setNotes] = useState<string[]>([])
+  // Must be acknowledged once per browser session before generating.
+  const [acknowledged, setAcknowledged] = useState(false)
 
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -109,6 +119,24 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
     if (!open) cancel()
   }, [open, cancel])
 
+  useEffect(() => {
+    try {
+      setAcknowledged(sessionStorage.getItem(ACK_KEY) === '1')
+    } catch {
+      /* storage unavailable: the checkbox just won't be remembered */
+    }
+  }, [])
+
+  const acknowledge = (checked: boolean) => {
+    setAcknowledged(checked)
+    try {
+      if (checked) sessionStorage.setItem(ACK_KEY, '1')
+      else sessionStorage.removeItem(ACK_KEY)
+    } catch {
+      /* ignore */
+    }
+  }
+
   const limit = getAiDailyLimit(subscriptionType)
   const used = aiUsage || 0
   const canUseAi = used < limit
@@ -130,9 +158,13 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
     if (!canUseAi) {
       return fail("You've used all your AI generations for today. They reset daily at 00:00 GMT.")
     }
+    if (!acknowledged) {
+      return fail('Please tick the box confirming you understand this is an AI draft and that you will review it.')
+    }
     setContent('')
+    setNotes([])
     try {
-      await generateAiContract(
+      const result = await generateAiContract(
         {
           title: title.trim(),
           contractType,
@@ -146,7 +178,8 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
         },
         { onText: setContent },
       )
-      toast({ title: 'Draft ready', description: 'Review it, fill in any highlighted gaps, then save.' })
+      setNotes(result.notes)
+      toast({ title: 'Draft ready', description: 'Read the checklist below, fill in any highlighted gaps, then review it carefully before saving.' })
     } catch (e: any) {
       fail(e.message)
     } finally {
@@ -162,7 +195,11 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
     const previous = content
     try {
       setContent('')
-      await refineAiContract({ currentContract: previous, instruction: refineText.trim() }, { onText: setContent })
+      const result = await refineAiContract(
+        { currentContract: previous, instruction: refineText.trim(), jurisdiction: jurisdiction.trim() || undefined },
+        { onText: setContent },
+      )
+      if (result.notes.length) setNotes(result.notes)
       setRefineText('')
     } catch (e: any) {
       setContent(previous) // don't lose the draft if the change fails
@@ -179,6 +216,7 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
     setDetails('')
     setJurisdiction('')
     setRefineText('')
+    setNotes([])
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -329,11 +367,11 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                     disabled={busy}
                   />
                   <datalist id="jurisdictions">
-                    {Object.keys(countriesData).map((c) => (
+                    {JURISDICTION_LABELS.map((c) => (
                       <option key={c} value={c} />
                     ))}
                   </datalist>
-                  <p className="text-xs text-muted-foreground">Leave blank to get a [placeholder] to fill in.</p>
+                  <p className="text-xs text-muted-foreground">Drives country- and state-specific drafting. Leave blank to get a [placeholder].</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Tone</Label>
@@ -373,16 +411,40 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">
-                  AI drafts are a starting point, not legal advice. Have a lawyer review high-value agreements.
-                </p>
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border bg-card p-3 text-xs leading-relaxed">
+                <Checkbox
+                  checked={acknowledged}
+                  onCheckedChange={(c) => acknowledge(c === true)}
+                  className="mt-0.5"
+                  aria-describedby="ack-text"
+                />
+                <span id="ack-text">
+                  I understand this is an <strong>AI-generated draft, not legal advice</strong>. FreelanceFlow doesn’t review contracts. I’m
+                  responsible for reading and checking the contract (and getting a lawyer’s advice where needed) before I send or sign it.{' '}
+                  <Link
+                    href={LEGAL_GUIDE_HREF}
+                    target="_blank"
+                    className="font-medium underline underline-offset-2 hover:text-primary"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Read the legal guide
+                  </Link>
+                </span>
+              </label>
+
+              <div className="flex items-center justify-end gap-3">
                 {aiLoading ? (
                   <Button type="button" variant="outline" onClick={cancel} className="shrink-0 gap-2">
                     <Square className="h-3.5 w-3.5" /> Stop
                   </Button>
                 ) : (
-                  <Button type="button" onClick={handleGenerate} disabled={busy || !canUseAi} className="shrink-0 gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={busy || !canUseAi || !acknowledged}
+                    title={acknowledged ? undefined : 'Tick the box above to continue'}
+                    className="shrink-0 gap-2"
+                  >
                     <Sparkles className="h-4 w-4" />
                     {hasDraft ? 'Regenerate' : 'Generate draft'}
                   </Button>
@@ -398,7 +460,7 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                 Contract text
                 {aiLoading && (
                   <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing…
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {content ? 'Writing…' : 'Reviewing your details and planning the clauses…'}
                   </span>
                 )}
               </Label>
@@ -409,6 +471,8 @@ const CreateContractDialog = ({ open, onOpenChange }: CreateContractDialogProps)
                 streaming={aiLoading}
                 placeholder="Enter the contract text…"
               />
+
+              {mode === 'ai' && !aiLoading && <DraftingNotes notes={notes} />}
 
               {mode === 'ai' && hasDraft && !aiLoading && (
                 <div className="flex gap-2">

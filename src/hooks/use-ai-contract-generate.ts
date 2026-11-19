@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import type { LengthId, ToneId } from "@/lib/contracts/catalog";
+import { splitDraft, type SplitDraft } from "@/lib/contracts/draft";
 
 export interface GenerateParams {
   title: string;
@@ -17,11 +18,13 @@ export interface GenerateParams {
 export interface RefineParams {
   currentContract: string;
   instruction: string;
+  /** Governing law, so revisions keep following the same jurisdiction rules. */
+  jurisdiction?: string;
 }
 
 interface StreamCallbacks {
-  /** Called with the full text so far each time more arrives. */
-  onText: (textSoFar: string) => void;
+  /** Called with the CONTRACT text so far each time more arrives (the notes checklist is split off). */
+  onText: (contractSoFar: string) => void;
 }
 
 /**
@@ -36,7 +39,7 @@ export function useAiContractGenerate() {
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(
-    async (payload: Record<string, unknown>, { onText }: StreamCallbacks): Promise<string> => {
+    async (payload: Record<string, unknown>, { onText }: StreamCallbacks): Promise<SplitDraft> => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -75,15 +78,16 @@ export function useAiContractGenerate() {
           const { done, value } = await reader.read();
           if (done) break;
           text += decoder.decode(value, { stream: true });
-          onText(text);
+          onText(splitDraft(text).contract);
         }
         text += decoder.decode();
-        onText(text);
+        const finished = splitDraft(text, { final: true });
+        onText(finished.contract);
 
-        if (!text.trim()) throw new Error("The AI returned an empty contract. Please try again.");
-        return text;
+        if (!finished.contract.trim()) throw new Error("The AI returned an empty contract. Please try again.");
+        return finished;
       } catch (e: any) {
-        if (e?.name === "AbortError") return text; // user cancelled; keep what we have
+        if (e?.name === "AbortError") return splitDraft(text, { final: true }); // user cancelled; keep what we have
         const message = e?.message || "Failed to generate contract. Check your connection and try again.";
         setError(message);
         throw new Error(message);

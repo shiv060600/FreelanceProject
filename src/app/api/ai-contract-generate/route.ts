@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (!currentContract || !instruction) {
       return bad('Both the current contract and a change request are required.')
     }
-    userPrompt = buildRefinePrompt(currentContract, instruction)
+    userPrompt = buildRefinePrompt(currentContract, instruction, str(body.jurisdiction, 200))
     maxTokens = maxTokensFor('comprehensive')
   } else {
     const title = str(body.title, 200)

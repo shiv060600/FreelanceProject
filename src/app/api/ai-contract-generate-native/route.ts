@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { completionTuning, getContractModel, getOpenAI } from '@/lib/contracts/openai'
+import { splitDraft } from '@/lib/contracts/draft'
 import {
   buildGenerationPrompt,
   buildSystemPrompt,
@@ -74,15 +75,18 @@ export async function POST(request: NextRequest) {
             details: String(prompt),
             clientName: String(clientName),
             clientCompany: clientCompany ? String(clientCompany) : undefined,
+            jurisdiction: body?.jurisdiction ? String(body.jurisdiction) : undefined,
           }),
         },
       ],
     })
 
-    const contract = response.choices?.[0]?.message?.content
-    if (!contract) return respond('Invalid response from AI service', 502)
+    const raw = response.choices?.[0]?.message?.content
+    if (!raw) return respond('Invalid response from AI service', 502)
+    // Keep the contract free of the drafting-notes checklist; return it separately.
+    const { contract, notes } = splitDraft(raw, { final: true })
 
-    return NextResponse.json({ contract, success: true }, { status: 200, headers: corsHeaders })
+    return NextResponse.json({ contract, notes, success: true }, { status: 200, headers: corsHeaders })
   } catch (error: any) {
     console.error('Native contract generation failed:', { message: error?.message, status: error?.status })
     return respond('Failed to generate contract', 500)
