@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ClientAvatar } from '@/components/shared/client-avatar'
 import { formatDate } from '@/lib/format'
 import { clientNameOf, contractMeta } from '@/lib/contracts/library'
+import { LegalReminder } from '@/components/legal/legal-disclaimer'
 import { ContractDocument } from './contract-document'
 import { ContractPDF } from './contract-pdf'
 import { pdfContractOf, userNameOf } from './contract-pdf-actions'
@@ -96,7 +97,9 @@ export function ContractViewDialog({ contract, user, open, onOpenChange, onEdit,
           </TabsContent>
         </Tabs>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t p-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t p-3">
+          <LegalReminder className="max-w-md" />
+          <div className="flex flex-wrap items-center justify-end gap-2">
           <Button variant="ghost" onClick={() => onEdit(contract)} className="gap-2">
             <Pencil className="h-4 w-4" /> Edit
           </Button>
@@ -106,6 +109,7 @@ export function ContractViewDialog({ contract, user, open, onOpenChange, onEdit,
           <Button onClick={() => onDownload(contract)} disabled={busy} className="gap-2">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download PDF
           </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

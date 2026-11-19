@@ -58,7 +58,7 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
   {
     href: '/dashboard/contracts-information',
     label: 'Legal Guide',
-    description: 'E-signature rules by country',
+    description: 'Contract basics & local rules',
     icon: Scale,
   },
 ]
