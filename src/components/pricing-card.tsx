@@ -21,7 +21,7 @@ export default function PricingCard({ item, user }: {
     const handleCheckout = async (priceId: string) => {
         if (!user) {
             // Redirect to login if user is not authenticated
-            window.location.href = "/sign-in";
+            window.location.href = "/sign-up";
             return;
         }
 
@@ -54,7 +54,7 @@ export default function PricingCard({ item, user }: {
     };
 
     return (
-        <Card className={`w-[350px] relative overflow-hidden ${item.popular ? 'border-2 border-blue-500 shadow-xl scale-105' : 'border border-border'}`}>
+        <Card className={`w-full max-w-[350px] relative overflow-hidden ${item.popular ? 'border-2 border-primary shadow-xl md:scale-105' : 'border border-border'}`}>
             {item.popular && (
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-purple-50 dark:to-purple-500/10 opacity-30" />
             )}
