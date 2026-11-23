@@ -69,3 +69,6 @@ logs
 .eslintcache
 
 *.backup
+
+# Supabase CLI local state (project link, versions)
+supabase/.temp/
